@@ -1,0 +1,46 @@
+section#file-content{
+  display:block;
+  width:100%;
+  /*height:100%;*/
+  position:fixed;
+  left:0;
+  top:($h-hud+$h-tabs);
+  bottom:0;
+  margin:0;
+  padding:.5rem 0;
+  @include borderbox();
+
+  > div.content-wrap{
+    display:none;
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    @include borderbox();
+    border-bottom: solid .3rem #7f1171;
+
+    > div.CodeMirror{
+      height:auto;
+
+      .CodeMirror-code {
+        > div:first-child{
+          margin-top:.5rem;
+        }
+        > div:last-child{
+          margin-bottom:1rem;
+        }
+      }
+    }
+
+    &.active{
+      display:block;
+    }
+
+    textarea.raw{
+      width:0;
+      height:0;
+      visibility:hidden;
+    }
+  }
+}

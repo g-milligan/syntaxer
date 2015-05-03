@@ -7,7 +7,14 @@
 
 <link type="text/css" rel="stylesheet" href="css/styles.css" />
 <script type="text/javascript" src="js/codemirror.js"></script>
+<!-- modes -->
 <script type="text/javascript" src="js/mode/javascript.js"></script>
+<script type="text/javascript" src="js/mode/css.js"></script>
+<script type="text/javascript" src="js/mode/xml.js"></script>
+<script type="text/javascript" src="js/mode/htmlmixed.js"></script>
+<script type="text/javascript" src="js/mode/webglslvert.js"></script>
+<script type="text/javascript" src="js/mode/webglslfrag.js"></script>
+<!-- end modes -->
 <script type="text/javascript" src="js/jquery.min.js"></script>
 <script type="text/javascript">
   function initHud(){
@@ -83,15 +90,160 @@
     };
     initNavLevel(navJson, topUl, 0);
   }
+  function getFilterInputStr(defaultTxt){
+    if(defaultTxt==undefined){defaultTxt='filter';}
+    var html='';
+    html+='<span class="filter-box">';
+    html+='<input type="text" value="'+defaultTxt+'" />';
+    html+='<span class="filter-btn"></span>';
+    html+='</span>';
+    return html;
+  }
+  function addFilterBoxItem(filterBox,itemJson){
+    if(filterBox.hasClass('filter-box')){
+      var ul=filterBox.children('ul.filter-items:last');
+      if(ul.length<1){
+        filterBox.append('<ul class="filter-items"></ul>');
+        ul=filterBox.children('ul.filter-items:last');
+      }
+      if(itemJson.hasOwnProperty('val')){
+        if(itemJson.hasOwnProperty('txt')){
+          ul.append('<li val="'+val+'">'+txt+'</li>');
+          var li=ul.children('li:last');
+          //item click action
+          if(itemJson.hasOwnProperty('_action')){
+            var actionEvent=itemJson['_action'];
+            li[0]['itemClickAction']=actionEvent;
+          }
+          //init the onchange event for the filter box
+          if(!filterBox[0].hasOwnProperty('filterChangeAction')){
+            //set the filter change action for this filter-box
+            filterBox[0]['filterChangeAction']=function(trigger){
+              //if trigger is selecting a dropdown item
+              switch(trigger[0].tagName.toLowerCase()){
+                case 'li':
+                  //***
+                  //execute additional trigger action if any custom _action is assigned
+                  if(trigger[0].hasOwnProperty('itemClickAction')){
+                    trigger[0]['itemClickAction'](trigger);
+                  }
+                  break;
+                case 'input':
+                  //***
+                  break;
+              }
+            };
+            //set input events
+            var input=filterBox.children('input:first');
+            //***
+          }
+          //bind the new li trigger
+          li.click(function(){
+            filterBox[0]['filterChangeAction'](jQuery(this));
+          });
+        }
+      }
+    }
+  }
+  function setCodemirrorContent(fpath,textarea,callback){
+    //get just the extension from the file path
+    var ext=fpath;
+    if(ext.indexOf('.')!==-1){
+      ext=ext.substring(ext.lastIndexOf('.')+'.'.length);
+    }else{ext='';}
+    ext=ext.toLowerCase();
+    //which codemirror mode to use based on the file path extension
+    var mode='';
+    switch(ext){
+      case 'js': mode='javascript'; break;
+      case 'html': mode='htmlmixed'; break;
+      case 'frag': mode='webglslfrag'; break;
+      case 'vert': mode='webglslvert'; break;
+      case 'txt': mode=''; break;
+      case 'json': mode='javascript'; break;
+      case 'css': mode='css'; break;
+      default:
+        break;
+    }
+    //set the codemirror config options
+    var config={};
+    config['value']=textarea.val();
+    config['lineNumbers']=true;
+    if(mode.length>0){
+      config['mode']=mode;
+    }
+    //init the editor textarea
+    var myCodeMirror = CodeMirror(function(el) {
+      //textarea.removeClass('raw');
+      textarea[0].parentNode.replaceChild(el, textarea[0]);
+    },config);
+    //callback function
+    if(callback!=undefined){
+      callback(myCodeMirror, mode);
+    }
+  }
   function addFileTab(fpath,fcontent){
     //get just the name without the path
     var fname=fpath;
     if(fname.indexOf('/')!==-1){
       fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
     }
-    //create the tab
+    //get key elements
     var tabsWrap=jQuery('#tabs:first');
-    //***
+    var ul=tabsWrap.children('ul:first');
+    var filterBox;
+    //init the ul list if not already init
+    if(ul.length<1){
+      tabsWrap.append('<ul><li name="_filter">'+getFilterInputStr('search tabs')+'</li></ul>');
+      ul=tabsWrap.children('ul:first');
+      var filterLi=ul.children('li:first');
+      filterBox=filterLi.children('span.filter-box:first');
+    }else{
+      filterBox=ul.children('li[name="_filter"]:first').children('span.filter-box:first');
+    }
+    //create the tab, if not exists already
+    if(ul.children('li[path="'+fpath+'"]:first').length<1){
+      ul.append('<li title="'+fpath+'" path="'+fpath+'"><span>'+fname+'</span></li>');
+      var newLi=ul.children('li:last');
+      //create the content for this tab
+      var contentWrap=jQuery('section#file-content:first');
+      if(contentWrap.children('div[path="'+fpath+'"]:first').length<1){
+        contentWrap.append('<div class="content-wrap" path="'+fpath+'"></div>');
+        var wrap=contentWrap.children('div:last');
+        wrap.append('<textarea class="raw"></textarea>');
+        var textarea=wrap.children('textarea:last');
+        textarea.val(fcontent);
+      }
+      var showTabContent=function(cWrap,cDiv,tabLi){
+        cWrap.children('div[path]').removeClass('active');
+        cDiv.addClass('active');
+        tabLi.parent().children('li').not('li[name="_filter"]').removeClass('active');
+        tabLi.addClass('active');
+      };
+      var newSpan=newLi.children('span:first');
+      newSpan.click(function(e){
+        var tLi=jQuery(this).parent();
+        var path=tLi.attr('path');
+        var cWrap=jQuery('section#file-content:first');
+        var cDiv=cWrap.children('div[path="'+path+'"]:first');
+        if(cDiv.length>0){
+          //if the textarea isn't codemirrored yet
+          var cta=cDiv.children('textarea.raw:first');
+          if(cta.length>0){
+            //show the content after codemirror does its thing
+            showTabContent(cWrap,cDiv,tLi);
+            //codemirror the code
+            setCodemirrorContent(path,cta,function(myCodeMirror,mode){
+              //save the code mirror objects in the div property list
+              cDiv[0]['codeMirror']={object:myCodeMirror,mode:mode};
+            });
+          }else{
+            //already code mirrored... show this content for this tab
+            showTabContent(cWrap,cDiv,tLi);
+          }
+        }
+      });
+    }
   }
   function clearProject(){
     var wrap=jQuery('#file-content:first');
