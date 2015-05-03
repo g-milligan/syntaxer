@@ -1,0 +1,166 @@
+<html>
+<head>
+<title>Syntaxer</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="shortcut icon" href="favicon.ico?nocache=syntaxer" />
+
+<link type="text/css" rel="stylesheet" href="css/styles.css" />
+<script type="text/javascript" src="js/codemirror.js"></script>
+<script type="text/javascript" src="js/mode/javascript.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript">
+  function initHud(){
+    var navJson={
+      project:{
+        new:{
+          _action:function(){
+            console.log('new file');
+          }
+        },
+        openrecent:{
+          _action:function(){
+            console.log('open recent');
+          }
+        },
+        save:{
+          _action:function(){
+            console.log('save file');
+          }
+        },
+        saveas:{
+          _action:function(){
+            console.log('saveas file');
+          }
+        }
+      },
+      edit:{
+        undo:{
+          _action:function(){
+            console.log('undo action');
+          }
+        },
+        redo:{
+          _action:function(){
+            console.log('redo action');
+          }
+        }
+      }
+    };
+    //loop through nav and init items
+    var hudWrap=jQuery('nav#hud:first');
+    var topUl=hudWrap.children('ul:first');
+    var initNavLevel=function(levelJson, ul, level){
+      ul.addClass('lvl'+level);
+      for(name in levelJson){
+        if(levelJson.hasOwnProperty(name)&&name.indexOf('_')!==0){
+          var li=ul.children('li[name="'+name+'"]:first')
+          if(li.length>0){
+            li.addClass('lvl'+level);
+            var itemJson=levelJson[name];
+            //menu item click event
+            var span=li.children('span:first');
+            if(span.length>0){
+              if(itemJson.hasOwnProperty('_action')){
+                var actionFunc=itemJson['_action'];
+                span[0]['navClickAction']=actionFunc;
+                span.click(function(e){
+                  e.preventDefault();
+                  jQuery(this)[0]['navClickAction'](li);
+                });
+              }
+            }
+            //if parent item
+            var subUl=li.children('ul:last');
+            if(subUl.length>0){
+              li.addClass('parent');
+              //recursive get the sub items
+              initNavLevel(itemJson, subUl, level+1);
+            }
+          }
+        }
+      }
+    };
+    initNavLevel(navJson, topUl, 0);
+  }
+  function addFileTab(fpath,fcontent){
+    //get just the name without the path
+    var fname=fpath;
+    if(fname.indexOf('/')!==-1){
+      fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
+    }
+    //create the tab
+    var tabsWrap=jQuery('#tabs:first');
+    //***
+  }
+  function clearProject(){
+    var wrap=jQuery('#file-content:first');
+    wrap.html('');
+    var tabs=jQuery('#tabs:first');
+    tabs.html('');
+  }
+  function openProjectFile(){
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.onreadystatechange=function(){
+      if (xmlhttp.readyState==4 && xmlhttp.status==200){
+        clearProject();
+        var str=xmlhttp.responseText;
+        var json=JSON.parse(str);
+        //if no errors
+        if(json.status==='ok'){
+          //for each project embedded "file"
+          if(json.hasOwnProperty('files')){
+            for(path in json.files){
+              if(json.files.hasOwnProperty(path)){
+                var fileJson=json.files[path];
+                if(fileJson.hasOwnProperty('content')){
+                  if(fileJson.hasOwnProperty('path')){
+                    //add the project file tab to the UI
+                    addFileTab(fileJson.path,fileJson.content);
+                  }
+                }
+              }
+            }
+          }
+        }else{
+          //returned errors...
+          //*** display json.status
+        }
+      }
+    }
+    xmlhttp.open("GET","/open-project",true);
+    xmlhttp.send();
+  }
+  function initSyntaxer(){
+    initHud();
+    openProjectFile();
+  }
+</script>
+</head>
+<body id="body" onload="javascript:initSyntaxer();">
+  <section id="file-content">
+
+  </section>
+  <nav id="tabs">
+
+  </nav>
+  <nav id="hud">
+    <ul>
+      <li name="project"><span>Project</span>
+        <ul>
+          <li name="new"><span>New</span></li>
+          <li name="openrecent"><span>Open Recent</span></li>
+          <li name="save"><span>Save</span></li>
+          <li name="saveas"><span>Save As</span></li>
+        </ul>
+      </li>
+      <li name="edit"><span>Edit</span>
+        <ul>
+          <li name="undo"><span>Undo</span></li>
+          <li name="redo"><span>Redo</span></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+</body>
+</html>

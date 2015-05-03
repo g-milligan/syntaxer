@@ -1,0 +1,119 @@
+$fs-hud:.8rem;
+
+#project-file-browser{width:0;height:0;visibility:hidden;}
+
+nav#hud{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:$h-hud;
+  background-color:#000;
+  box-shadow:0 2px 3px rgba(0,0,0,.9);
+  border-bottom: solid red 1px;
+
+  /*ALL LEVELS*/
+  ul{
+    padding:0;
+    margin:0;
+    display:block;
+    font-size:0;
+
+    li{
+      padding:0;
+      margin:0;
+      list-style:none;
+      font-size:$fs-hud;
+      position:relative;
+
+      span{
+        color:#fff;
+        cursor:pointer;
+        display: block;
+        height:100%;
+        font-family:$f-code;
+        white-space:nowrap;
+
+        @include transition(background-color .2s linear, color .1s linear);
+      }
+
+      ul{
+        display:none;
+        position:absolute;
+        top:100%;
+        left:0;
+        background-color:#000;
+      }
+
+      &:hover{
+        > span{
+          background-color:#fff;
+          color:#000;
+        }
+
+        > ul{
+          display:block;
+        }
+      }
+    }
+  }
+
+  /*LEVEL 0*/
+  ul.lvl0{
+    li.lvl0:first-child{
+      margin-left:.5rem;
+
+      > span{
+        padding-left:0;
+
+        &:before{
+          content:"";
+          display:inline-block;
+          background-image:url(../img/icon_syntaxer.svg);
+          background-repeat:no-repeat;
+          background-position:center;
+          background-size:80%;
+          width:$h-hud;
+          @include borderbox();
+          height:100%;
+          float: left;
+          margin:0 .5rem;
+        }
+
+      }
+    }
+
+    li.lvl0{
+      height:100%;
+      line-height:$h-hud;
+      display:inline-block;
+
+      > span{
+        padding:0 1rem;
+      }
+    }
+  }
+
+  /*LEVEL 1*/
+  ul.lvl1{
+    border:solid 1px red;
+    border-top:none;
+    box-shadow:-1px 2px 3px rgba(0,0,0,.9);
+    min-width: 100%;
+
+    li.lvl1{
+      display:block;
+      > span{
+        font-size:($fs-hud*.85);
+        line-height:130%;
+        padding:.2rem 1rem;
+      }
+    }
+    li.lvl1:last-child{
+      > span{
+        padding-bottom:.5rem;
+      }
+    }
+  }
+
+}

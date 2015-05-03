@@ -1,0 +1,10 @@
+nav#tabs{
+  position:fixed;
+  top:$h-hud;
+  left:0;
+  width:100%;
+  height:$h-tabs;
+  box-shadow: inset 0 0 1rem rgba(0,0,0,.3);
+  background-color: #939393;
+
+}

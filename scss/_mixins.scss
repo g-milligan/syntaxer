@@ -1,0 +1,50 @@
+/*
+ * USAGE EXAMPLES:
+ *
+ * @include transition(width .2s linear);
+ * @include transition(color .2s linear, background-color .3s linear);
+ * @include transition(color .2s linear, background-color .3s linear, width .5s linear);
+ * etc...
+ *
+ * */
+@mixin transition($defs...) {
+  -webkit-transition: $defs; -moz-transition: $defs; -ms-transition: $defs; -o-transition: $defs; transition: $defs;
+}
+
+/*
+When you have buttons that users are likely to double-click on,
+you don't want the double-clicking to select a bunch of random things.
+Apply ...
+
+  @include noselect()
+
+ ... to add the styles to disable the selection on something like a button.
+
+*/
+@mixin noselect(){
+  -moz-user-select:-moz-none; -moz-user-select:none; -o-user-select:none; -khtml-user-select:none; -webkit-user-select:none; -ms-user-select:none; user-select:none;
+}
+
+/*
+Usage:
+
+  @include breakpoint(700px){
+    ...
+  }
+
+*/
+@mixin breakpoint($bp){
+    @media screen and (max-width: $bp) {
+      @content;
+    }
+}
+
+/*
+Usage:
+
+  @include borderbox()
+
+*/
+@mixin borderbox {
+    box-sizing:border-box; -moz-box-sizing:border-box;
+}
