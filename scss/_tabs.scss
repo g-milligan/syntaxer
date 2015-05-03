@@ -11,10 +11,12 @@ nav#tabs{
 
   /*ALL LEVELS*/
   ul{
-    padding:0;
+    padding:0 0 0 3px;
     margin:0;
     display:block;
     font-size:0;
+    white-space:nowrap;
+    @include borderbox();
 
     /**************/
     li:first-child{display:none;}
@@ -26,6 +28,12 @@ nav#tabs{
       font-size:$fs-tabs;
       position:relative;
       display:inline-block;
+
+      &.has-changes > span:after{
+        content:" * ";
+        font-size: 130%;
+        vertical-align: middle;
+      }
 
       span{
         color:#fff;
@@ -48,15 +56,21 @@ nav#tabs{
         @include noselect();
       }
 
-      ul{
+      /*ul{
         display:none;
         position:absolute;
         top:100%;
         left:0;
         background-color:#000;
+      }*/
+
+      &.template{
+        > span{
+          background-color:#000;
+        }
       }
 
-      &:hover, &.active{
+      &:hover, &.active, &.template:hover, &.template.active{
         > span{
           background-color:#fff;
           color:#000;

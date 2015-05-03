@@ -17,79 +17,6 @@
 <!-- end modes -->
 <script type="text/javascript" src="js/jquery.min.js"></script>
 <script type="text/javascript">
-  function initHud(){
-    var navJson={
-      project:{
-        new:{
-          _action:function(){
-            console.log('new file');
-          }
-        },
-        openrecent:{
-          _action:function(){
-            console.log('open recent');
-          }
-        },
-        save:{
-          _action:function(){
-            console.log('save file');
-          }
-        },
-        saveas:{
-          _action:function(){
-            console.log('saveas file');
-          }
-        }
-      },
-      edit:{
-        undo:{
-          _action:function(){
-            console.log('undo action');
-          }
-        },
-        redo:{
-          _action:function(){
-            console.log('redo action');
-          }
-        }
-      }
-    };
-    //loop through nav and init items
-    var hudWrap=jQuery('nav#hud:first');
-    var topUl=hudWrap.children('ul:first');
-    var initNavLevel=function(levelJson, ul, level){
-      ul.addClass('lvl'+level);
-      for(name in levelJson){
-        if(levelJson.hasOwnProperty(name)&&name.indexOf('_')!==0){
-          var li=ul.children('li[name="'+name+'"]:first')
-          if(li.length>0){
-            li.addClass('lvl'+level);
-            var itemJson=levelJson[name];
-            //menu item click event
-            var span=li.children('span:first');
-            if(span.length>0){
-              if(itemJson.hasOwnProperty('_action')){
-                var actionFunc=itemJson['_action'];
-                span[0]['navClickAction']=actionFunc;
-                span.click(function(e){
-                  e.preventDefault();
-                  jQuery(this)[0]['navClickAction'](li);
-                });
-              }
-            }
-            //if parent item
-            var subUl=li.children('ul:last');
-            if(subUl.length>0){
-              li.addClass('parent');
-              //recursive get the sub items
-              initNavLevel(itemJson, subUl, level+1);
-            }
-          }
-        }
-      }
-    };
-    initNavLevel(navJson, topUl, 0);
-  }
   function getFilterInputStr(defaultTxt){
     if(defaultTxt==undefined){defaultTxt='filter';}
     var html='';
@@ -177,12 +104,18 @@
       //textarea.removeClass('raw');
       textarea[0].parentNode.replaceChild(el, textarea[0]);
     },config);
+    //codemirror editor events
+    myCodeMirror.on('change', function(){
+      jQuery('body:first').addClass('has-changes');
+      jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first').addClass('has-changes');
+    });
     //callback function
     if(callback!=undefined){
       callback(myCodeMirror, mode);
     }
   }
-  function addFileTab(fpath,fcontent){
+  function addFileTab(fpath,fcontent,isTemplateFile){
+    if(isTemplateFile==undefined){isTemplateFile=false;}
     //get just the name without the path
     var fname=fpath;
     if(fname.indexOf('/')!==-1){
@@ -205,6 +138,9 @@
     if(ul.children('li[path="'+fpath+'"]:first').length<1){
       ul.append('<li title="'+fpath+'" path="'+fpath+'"><span>'+fname+'</span></li>');
       var newLi=ul.children('li:last');
+      if(isTemplateFile){
+        newLi.addClass('template');
+      }
       //create the content for this tab
       var contentWrap=jQuery('section#file-content:first');
       if(contentWrap.children('div[path="'+fpath+'"]:first').length<1){
@@ -267,8 +203,10 @@
                 var fileJson=json.files[path];
                 if(fileJson.hasOwnProperty('content')){
                   if(fileJson.hasOwnProperty('path')){
+                    var isTemplateFile=false;
+                    if(path==='_.html'){isTemplateFile=true;}
                     //add the project file tab to the UI
-                    addFileTab(fileJson.path,fileJson.content);
+                    addFileTab(fileJson.path,fileJson.content,isTemplateFile);
                   }
                 }
               }
@@ -283,19 +221,176 @@
     xmlhttp.open("GET","/open-project",true);
     xmlhttp.send();
   }
+  function getPreviewWindow(){
+    var previewWindow;
+    if(document.body.hasOwnProperty('syntaxerPreviewWindow')){
+      previewWindow=document.body['syntaxerPreviewWindow'];
+      if(previewWindow.window==undefined){
+        previewWindow=undefined;
+      }
+    }
+    return previewWindow;
+  }
+  function refreshPreviewWindow(){
+    var previewWindow=getPreviewWindow();
+    if(previewWindow!=undefined){
+      var href=previewWindow.window.location.href;
+      if(href.indexOf('?')!==-1){
+        href=href.substring(0,href.indexOf('?'));
+      }
+      href+='?reload='+(new Date()).getTime();
+      previewWindow.window.location.href=href;
+    }
+    return previewWindow;
+  }
+  function openPreviewWindow(){
+    //strip off qs params
+    var host=document.location.href;
+    if(host.indexOf('?')!==-1){
+      host=host.substring(0,host.indexOf('?'));
+    }
+    //strip off path
+    if(host.lastIndexOf('/')!==-1){
+      host=host.substring(0, host.lastIndexOf('/'));
+    }
+    var width=window.innerWidth;
+    var height=window.innerHeight;
+    //open a popup window
+    document.body['syntaxerPreviewWindow']=window.open(host + '/preview', 'syntaxer-preview-window',
+      "toolbar=no, scrollbars=yes, resizable=yes, top=500, left=500, width="+width+", height="+height);
+  }
+  function initHud(){
+    var navJson={
+      project:{
+        new:{
+          _action:function(){
+            console.log('new file');
+          }
+        },
+        openrecent:{
+          _action:function(){
+            console.log('open recent');
+          }
+        },
+        save:{
+          _action:function(){
+            saveProject();
+          }
+        },
+        saveas:{
+          _action:function(){
+            console.log('saveas file');
+          }
+        }
+      },
+      edit:{
+        undo:{
+          _action:function(){
+            console.log('undo action');
+          }
+        },
+        redo:{
+          _action:function(){
+            console.log('redo action');
+          }
+        }
+      },
+      preview:{
+        showwindow:{
+          _action:function(){
+            openPreviewWindow();
+          }
+        },
+        reloadwindow:{
+          _action:function(){
+            openPreviewWindow();
+            refreshPreviewWindow();
+          }
+        }
+      }
+    };
+    //loop through nav and init items
+    var hudWrap=jQuery('nav#hud:first');
+    var topUl=hudWrap.children('ul:first');
+    var initNavLevel=function(levelJson, ul, level){
+      ul.addClass('lvl'+level);
+      for(name in levelJson){
+        if(levelJson.hasOwnProperty(name)&&name.indexOf('_')!==0){
+          var li=ul.children('li[name="'+name+'"]:first')
+          if(li.length>0){
+            li.addClass('lvl'+level);
+            var itemJson=levelJson[name];
+            //menu item click event
+            var span=li.children('span:first');
+            if(span.length>0){
+              if(itemJson.hasOwnProperty('_action')){
+                var actionFunc=itemJson['_action'];
+                span[0]['navClickAction']=actionFunc;
+                span.click(function(e){
+                  e.preventDefault();
+                  jQuery(this)[0]['navClickAction'](li);
+                });
+              }
+            }
+            //if parent item
+            var subUl=li.children('ul:last');
+            if(subUl.length>0){
+              li.addClass('parent');
+              //recursive get the sub items
+              initNavLevel(itemJson, subUl, level+1);
+            }
+          }
+        }
+      }
+    };
+    initNavLevel(navJson, topUl, 0);
+  }
+  function saveProject(){
+    //if there are any project changes
+    var bodyElem=jQuery('body:first');
+    if(bodyElem.hasClass('has-changes')){
+      //request project save
+      var xmlhttp = new XMLHttpRequest();
+      xmlhttp.onreadystatechange=function(){
+        if (xmlhttp.readyState==4 && xmlhttp.status==200){
+          //***
+        }else{
+          //*** display json.status
+        }
+      }
+      xmlhttp.open("GET","/save-project",true);
+      xmlhttp.send();
+    }
+  }
+  function initKeyEvents(){
+    jQuery(window).keydown(function(e) {
+      var ret=true;
+      //get character
+      var char=String.fromCharCode(e.keyCode); if(char==undefined){char='';}
+      char=char.toLowerCase();
+      //depending on character
+      switch(char){
+        case 's':
+          //if Command+S
+          if(e.metaKey||e.ctrlKey){
+            e.preventDefault(); ret=false;
+            saveProject();
+          }
+          break;
+      }
+      return ret;
+    });
+  }
   function initSyntaxer(){
     initHud();
     openProjectFile();
+    initKeyEvents();
   }
 </script>
 </head>
 <body id="body" onload="javascript:initSyntaxer();">
-  <section id="file-content">
-
-  </section>
-  <nav id="tabs">
-
-  </nav>
+  <section id="file-content"></section>
+  <nav id="tabs"></nav>
   <nav id="hud">
     <ul>
       <li name="project"><span>Project</span>
@@ -310,6 +405,12 @@
         <ul>
           <li name="undo"><span>Undo</span></li>
           <li name="redo"><span>Redo</span></li>
+        </ul>
+      </li>
+      <li name="preview"><span>Preview</span>
+        <ul>
+          <li name="showwindow"><span>Show Window</span></li>
+          <li name="reloadwindow"><span>Reload Window</span></li>
         </ul>
       </li>
     </ul>

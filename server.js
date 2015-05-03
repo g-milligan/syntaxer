@@ -86,7 +86,19 @@ var getSplitContent=function(html,fname){
   }
   return returnParts;
 };
-
+//remove <!-- [@project] ... [/@project] --> from the html string
+var removeProjectFilesJson=function(html){
+  //remove the project files from the htmlStr
+  if(html.lastIndexOf(startProjFiles)!==-1){
+    if(html.lastIndexOf(endProjFiles)!==-1){
+      //remove the project files from the htmlStr
+      var beforeProjFiles=html.substring(0,html.lastIndexOf(startProjFiles));
+      var afterProjFiles=html.substring(html.lastIndexOf(endProjFiles)+endProjFiles.length);
+      html=beforeProjFiles+afterProjFiles;
+    }
+  }
+  return html;
+};
 //if there is a file path to open
 if(file!==undefined&&file.trim().length>0){
   //if the file exists
@@ -143,6 +155,30 @@ if(file!==undefined&&file.trim().length>0){
               return qs;
             };
 
+            //create the preview index.html file
+            var setPreviewIndexHtml=function(html){
+              if(!fs.existsSync('./preview/')){
+                //create dist directory
+                fs.mkdirSync('./preview/');
+              }
+              if(fs.existsSync('./preview/index.html')){
+                //delete previous preview
+                fs.unlinkSync('./preview/index.html');
+              }
+              //write the preview html
+              fs.writeFileSync('./preview/index.html', html);
+            };
+
+            //request to save project changes
+            app.get('/save-project', function(req, res){
+              var fromUrl=req.headers.referer;
+              //if the request came from this local site
+              if(isSameHost(fromUrl)){
+                //***
+                res.send(JSON.stringify({status:'ok'}));
+              }
+            });
+
             //request to open a project file
             app.get('/open-project', function(req, res){
               var fromUrl=req.headers.referer;
@@ -158,10 +194,18 @@ if(file!==undefined&&file.trim().length>0){
                     var html=fs.readFileSync(fpath, 'utf8');
                     var projJson=getProjectFilesJson(html);
                     if(projJson!=undefined){
+                      //create the preview index.html
+                      setPreviewIndexHtml(html);
+                      //remove the project files json string from the html
+                      html=removeProjectFilesJson(html);
+                      //get the project name, if in the json
                       if(projJson.hasOwnProperty('name')){
                         resJson['name']=projJson.name;
                       }
                       var filesJson={};
+                      //add the template.html file
+                      var templateFileKey='_.html';
+                      filesJson[templateFileKey]={path:fpath,content:''};
                       //for each project file
                       for(var f=0;f<projJson.files.length;f++){
                         var fJson={};
@@ -170,20 +214,26 @@ if(file!==undefined&&file.trim().length>0){
                         if(pfname.indexOf('/')!==-1){
                           pfname=pfname.substring(pfname.lastIndexOf('/')+'/'.length);
                         }
-                        fJson['path']=pf;
-                        //fJson['name']=pfname;
-                        //try to get the chunk of content for this file
-                        var splitContent=getSplitContent(html,pfname);
-                        if(splitContent!=undefined){
-                          var pfcontent=splitContent[1];
-                          //get the file content
-                          fJson['content']=pfcontent;
-                        }else{
-                          //this project file doesn't actually have content inside the html
-                          fJson['content']='';
+                        //if this name doesn't conflict with special template file name
+                        if(templateFileKey!==pfname){
+                          fJson['path']=pf;
+                          //fJson['name']=pfname;
+                          //try to get the chunk of content for this file
+                          var splitContent=getSplitContent(html,pfname);
+                          if(splitContent!=undefined){
+                            var pfcontent=splitContent[1];
+                            //get the file content
+                            fJson['content']=pfcontent;
+                            //remove the content from the html template string
+                            html=splitContent[0]+splitContent[2];
+                          }else{
+                            //this project file doesn't actually have content inside the html
+                            fJson['content']='';
+                          }
+                          filesJson[pf]=fJson;
                         }
-                        filesJson[pf]=fJson;
                       }
+                      filesJson[templateFileKey]['content']=html;
                       resJson['files']=filesJson;
                       resJson['status']='ok';
                     }else{
