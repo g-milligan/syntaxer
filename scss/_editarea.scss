@@ -9,6 +9,10 @@ section#file-content{
   margin:0;
   padding:.5rem 0;
   @include borderbox();
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:25%;
+  background-image:url(../img/icon_syntaxer.svg);
 
   > div.content-wrap{
     display:none;
