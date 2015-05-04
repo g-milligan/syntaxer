@@ -178,10 +178,6 @@ if(file!==undefined&&file.trim().length>0){
                 //create dist directory
                 fs.mkdirSync('./preview/');
               }
-              if(fs.existsSync('./preview/index.html')){
-                //delete previous preview
-                fs.unlinkSync('./preview/index.html');
-              }
               //write the preview html
               fs.writeFileSync('./preview/index.html', html);
             };
