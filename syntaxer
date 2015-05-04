@@ -1,0 +1,9 @@
+#!/bin/sh
+
+NODE_CMD="$(command -v node)"
+
+cd /Users/username/syntaxer/
+
+$NODE_CMD server.js --$1
+
+exit 0
