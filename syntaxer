@@ -1,9 +1,26 @@
 #!/bin/sh
 
+#configure the correct full path to the syntaxer application
+SYNTAXER_ROOT="/Users/username/syntaxer/"
+
 NODE_CMD="$(command -v node)"
+DIRNAME_CMD="$(command -v dirname)"
+BASENAME_CMD="$(command -v basename)"
 
-cd /Users/username/syntaxer/
-
-$NODE_CMD server.js --$1
+#if file exists
+if [ -f "$1" ]
+then
+  #get full file path
+  DIR=$($DIRNAME_CMD "$1")
+  FILE=$($BASENAME_CMD "$1")
+  cd "$DIR"
+  FULL_PATH="$(pwd)/$FILE"
+  #go to the syntaxer root directory
+  cd "$SYNTAXER_ROOT"
+  #run the syntaxer application and pass the full path to the application
+  $NODE_CMD server.js --$FULL_PATH
+else
+  echo "\"$1\" doesn't exist"
+fi
 
 exit 0

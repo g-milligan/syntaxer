@@ -18,7 +18,7 @@ if(process.argv!=undefined&&process.argv.length>0){
 }
 //require
 var express = require('express');
-var open = require('open');
+var openBrowser = require('open');
 var app = express();
 var fs = require('fs');
 var bodyParser = require('body-parser'); //required for json post handling
@@ -254,11 +254,11 @@ if(file!==undefined&&file.trim().length>0){
                   }
                   //if any files were modified
                   if(numSaved>0){
-                    var plur='s';
+                    /*var plur='s';
                     if(numSaved===1){
                       plur='';
                     }
-                    console.log('Saving (' + numSaved + ') embedded tab-section'+plur+'...');
+                    console.log('Saving (' + numSaved + ') embedded tab-section'+plur+'...');*/
                     //write the changes
                     fs.writeFileSync('./preview/index.html', html);
                   }
@@ -347,8 +347,10 @@ if(file!==undefined&&file.trim().length>0){
             var server = app.listen(port, function () {
               console.log('Listening at http://%s:%s', host, port);
               console.log('Editing --> ' + file);
+              console.log('Open --> '+url);
+
+              openBrowser(url);
             });
-            open(url);
 
           }else{
             console.log('"'+file+'" malformed. Missing "'+endProjFiles+'"');
