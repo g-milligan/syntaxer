@@ -21,8 +21,7 @@ var express = require('express');
 var open = require('open');
 var app = express();
 var fs = require('fs');
-//var jsdom = require("jsdom");
-//var bodyParser = require('body-parser');
+var bodyParser = require('body-parser'); //required for json post handling
 
 //get the project files from an html string, return string object
 var getProjectFilesStr=function(html){
@@ -99,6 +98,19 @@ var removeProjectFilesJson=function(html){
   }
   return html;
 };
+var insertProjectFilesJson=function(html, jsonStr){
+  var closeBody='</body>';
+  //if there is a closing body tag in there
+  if(html.indexOf(closeBody)!==-1){
+    //first, make sure there is no project files json already
+    html=removeProjectFilesJson(html);
+    //insert the project files list string before the closing body tag
+    var beforeClose=html.substring(0,html.lastIndexOf(closeBody));
+    var atClose=html.substring(html.lastIndexOf(closeBody));
+    html=beforeClose+startProjFiles+jsonStr+endProjFiles+atClose;
+  }
+  return html;
+};
 //if there is a file path to open
 if(file!==undefined&&file.trim().length>0){
   //if the file exists
@@ -114,6 +126,11 @@ if(file!==undefined&&file.trim().length>0){
           if(htmlStr.indexOf(endProjFiles)!==-1){
             //syntaxer root
             app.use(express.static(__dirname));
+            app.use( bodyParser.json() ); // to support JSON-encoded bodies
+            app.use(bodyParser.urlencoded({ // to support URL-encoded bodies
+              extended: true
+            }));
+
             //open url
             var url='http://' + host + ':' + port + openFile;
 
@@ -170,12 +187,91 @@ if(file!==undefined&&file.trim().length>0){
             };
 
             //request to save project changes
-            app.get('/save-project', function(req, res){
+            app.post('/save-project', function(req, res){
               var fromUrl=req.headers.referer;
               //if the request came from this local site
               if(isSameHost(fromUrl)){
-                //***
-                res.send(JSON.stringify({status:'ok'}));
+                var resJson={}; var numSaved=0;
+                //if the preview file exists
+                if(fs.existsSync('./preview/index.html')){
+                  //read the existing file contents
+                  var html=fs.readFileSync('./preview/index.html', 'utf8');
+                  //update the html if the template.html layout was modified
+                  if(req.body.files.hasOwnProperty('_.html')){
+                    if(req.body.files['_.html'].hasOwnProperty('content')){
+                      numSaved++;
+                      //get the project json html
+                      var jsonStr=getProjectFilesStr(html);
+                      var json=JSON.parse(jsonStr);
+                      //save the embedded content so it can be restored
+                      var restoreContent=[];
+                      for(var f=0;f<json.files.length;f++){
+                        var fp=json.files[f];
+                        //get only the file name, no path
+                        var fn=fp;
+                        if(fn.indexOf('/')!==-1){
+                          fn=fn.substring(fn.lastIndexOf('/')+'/'.length);
+                        }
+                        var parts=getSplitContent(html,fn);
+                        if(parts!=undefined){
+                          restoreContent.push({name:fn,content:parts[1]});
+                        }
+                      }
+                      //reset to the updated template html (sans embedded file content)
+                      var templateHtml=req.body.files['_.html']['content'];
+                      html=templateHtml;
+                      //insert the embedded content back in
+                      for(var e=0;e<restoreContent.length;e++){
+                        var rName=restoreContent[e]['name'];
+                        var rContent=restoreContent[e]['content'];
+                        var parts=getSplitContent(html,rName);
+                        if(parts!=undefined){
+                          //restore embedded tab content
+                          html=parts[0]+rContent+parts[2];
+                        }
+                      }
+                      //insert the project json back in
+                      html=insertProjectFilesJson(html, jsonStr);
+                    }
+                  }
+                  //for each file to save
+                  for(path in req.body.files){
+                    if(req.body.files.hasOwnProperty(path)){
+                      if(path!=='_.html'){
+                        var fileJson=req.body.files[path];
+                        if(fileJson.hasOwnProperty('content')){
+                          numSaved++; var updatedContent=fileJson.content;
+                          //get only the file name, no path
+                          var fname=path;
+                          if(fname.indexOf('/')!==-1){
+                            fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
+                          }
+                          //update the content that's embedded in the html
+                          var contentParts=getSplitContent(html,fname);
+                          if(contentParts!=undefined){
+                            //update the html with the updatedContent
+                            html=contentParts[0]+updatedContent+contentParts[2];
+                          }
+                        }
+                      }
+                    }
+                  }
+                  //if any files were modified
+                  if(numSaved>0){
+                    var plur='s';
+                    if(numSaved===1){
+                      plur='';
+                    }
+                    console.log('Saving (' + numSaved + ') embedded tab-section'+plur+'...');
+                    //write the changes
+                    fs.writeFileSync('./preview/index.html', html);
+                  }
+                  resJson['status']='ok';
+                }else{
+                  resJson['status']='error, preview-file / save-destination doesn\'t exist.';
+                }
+                resJson['count']=numSaved;
+                res.send(JSON.stringify(resJson));
               }
             });
 
