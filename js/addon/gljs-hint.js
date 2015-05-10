@@ -80,10 +80,6 @@
            "__type": "",
            "__summary": "draw stuff"
         },
-        "enable": {
-           "__type": "",
-           "__summary": ""
-        },
         "enableVertexAttribArray": {
            "__type": "",
            "__summary": ""
@@ -124,18 +120,6 @@
   };
 
   CodeMirror.registerHelper("hint", "gljs", function(editor, options) {
-    //init return vars
-    //var list=["gl","getProgramParameter","graphics","getShader","getAttribLocation","getUniformLocation","green","get","getElementById"];
-    //get the line before and after the cursor
-    var lineSplit=getLineSplit(editor);
-    var list=getAutocompleteOptions(lineSplit[0], gljshints);
-
-    var cur = editor.getCursor(), curLine = editor.getLine(cur.line);
-    var end = cur.ch, start = end;
-
-    //return
-    return {list: list,
-      from: CodeMirror.Pos(cur.line, start),
-      to: CodeMirror.Pos(cur.line, end)};
+    return handleJsonHints(editor, gljshints);
   });
 });
