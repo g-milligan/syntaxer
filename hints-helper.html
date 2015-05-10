@@ -21,17 +21,34 @@
             }
           }
         }
+        //for each existing item that was not also found in the new parsed document
+        if(existingJson.hasOwnProperty('gl.')){
+          for(var key in existingJson['gl.']){
+            if(existingJson['gl.'].hasOwnProperty(key)){
+              if(key.indexOf('__')!==0){
+                if(items.indexOf(key)===-1){
+                  //add this existing item to the list of items
+                  items.push(key);
+                }
+              }
+            }
+          }
+        }
+        //sort the items
         items=items.sort();
+        //for each item, set the json and merge existing details in with this item
         for(var i=0;i<items.length;i++){
           var item=items[i];
-          ret['gl.'][item]={__type:'',__summary:''};
+          ret['gl.'][item]={__type:'',__tooltip:''};
           //restore existing properties
           if(existingJson!=undefined){
             if(existingJson.hasOwnProperty('gl.')){
               if(existingJson['gl.'].hasOwnProperty(item)){
                 for(var prop in existingJson['gl.'][item]){
                   if(existingJson['gl.'][item].hasOwnProperty(prop)){
-                    ret['gl.'][item][prop]=existingJson['gl.'][item][prop];
+                    if(!ret['gl.'][item].hasOwnProperty(prop)||ret['gl.'][item][prop].length<1){
+                      ret['gl.'][item][prop]=existingJson['gl.'][item][prop];
+                    }
                   }
                 }
               }

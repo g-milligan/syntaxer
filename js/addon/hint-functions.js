@@ -19,18 +19,20 @@ function getAutocompleteOptions(lineBeforeCursor,hintsJson){
           //this keyword follows the previous keyword?
           var isChained=false;
           if(index===0){
-            if(st.indexOf(key)!==-1){
+            if(st.toLowerCase().indexOf(key.toLowerCase())!==-1){
               isChained=true;
               triggerText+=key;
               triggerParts.push(key);
+              //remove string left of the first key (in case the first key appears more than once in one line)
+              st=st.substring(st.toLowerCase().lastIndexOf(key.toLowerCase()));
             }
           }else{
-            if(st.indexOf(key)===0){
+            if(st.toLowerCase().indexOf(key.toLowerCase())===0){
               isChained=true;
             }else{
               if(st.length<key.length){
                 //if this st is incomplete and could be completed as this key
-                if(key.indexOf(st)===0){
+                if(key.toLowerCase().indexOf(st.toLowerCase())===0){
                   options.push(key);
                   //if this is the first item in this level
                   if(partialIndex===0){
@@ -47,7 +49,7 @@ function getAutocompleteOptions(lineBeforeCursor,hintsJson){
           if(isChained){
             //remove this keyword from the string
             var shorterStr=st;
-            shorterStr=shorterStr.substring(shorterStr.indexOf(key)+key.length);
+            shorterStr=shorterStr.substring(shorterStr.toLowerCase().indexOf(key.toLowerCase())+key.length);
             //if not at the cursor
             if(shorterStr.length>0){
               //recursive call
@@ -72,10 +74,70 @@ function getAutocompleteOptions(lineBeforeCursor,hintsJson){
   //if there are any options available
   if(options.length>0){
     //add blank choice end (prevents auto writing the option if there is only one choice)
-    options.push('');
+    //---options.push('');
   }
   var ret={options:options, triggerText:triggerText, triggerParts:triggerParts, partialEntry:partialEntry};
   return ret;
+}
+//add icons, summaries, tooltips, and sub menus to hints menu
+var decorate_hints_menu_timeout;
+function decorateHintsMenu(aJson,hintsJson,tries){
+  if(tries==undefined){tries=0;}
+  //delay so that the hints menu will be open
+  clearTimeout(decorate_hints_menu_timeout);
+  decorate_hints_menu_timeout=setTimeout(function(){
+    var ul=jQuery('.CodeMirror-hints:first');
+    if(ul.length>0){
+      //get the json values for these option items (same level)
+      var triggerParts=aJson['triggerParts'];
+      var json=hintsJson;
+      for(var p=0;p<triggerParts.length;p++){
+        //if last trigger part
+        if(p+1===triggerParts.length){
+          //if the last part is NOT incomplete
+          if(!aJson['partialEntry']){
+            json=json[triggerParts[p]];
+          }
+        }else{
+          //not last trigger part
+          json=json[triggerParts[p]];
+        }
+      };
+      //for each option in the dropdown
+      ul.children('li.CodeMirror-hint').each(function(){
+        var li=jQuery(this);
+        var liTxt=li.text();
+        if(json.hasOwnProperty(liTxt)){
+          var itemJson=json[liTxt];
+          decorateHintItem(itemJson,li);
+        }
+      });
+    }else{
+      if(tries<20){
+        //recursive try again
+        decorateHintsMenu(aJson,hintsJson,tries+1);
+      }
+    }
+  },10);
+}
+//decorate one hint item
+function decorateHintItem(itemJson,li){
+  var propExists=function(name){
+    var exists=false;
+    if(itemJson.hasOwnProperty('__type')){
+      if(itemJson['__type'].length>0){
+        exists=true;
+      }
+    }
+    return exists;
+  };
+  if(propExists('__type')){
+    li.addClass('type_'+itemJson['__type']);
+    li.attr('option_type',itemJson['__type']);
+  }
+  if(propExists('__tooltip')){
+    li.attr('title',itemJson['__tooltip']);
+  }
 }
 //generic handle hints depending on hintsJson data
 function handleJsonHints(editor, hintsJson){
@@ -97,6 +159,8 @@ function handleJsonHints(editor, hintsJson){
       start-=lastPart.length;
     }
   }
+  //add icons, summaries, tooltips, and sub menus to hints menu
+  decorateHintsMenu(aJson,hintsJson);
   //return
   return {list: list,
     from: CodeMirror.Pos(cur.line, start),

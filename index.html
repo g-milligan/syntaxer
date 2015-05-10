@@ -180,8 +180,12 @@
       jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first').addClass('has-changes');
       //autocomplete
       if(myCodeMirror['myHintType']){
-        console.log('show hint');
-        myCodeMirror.showHint({hint:CodeMirror.hint[myCodeMirror['myHintType']]});
+        //show the hints dropdown
+        myCodeMirror.showHint({
+          completeSingle:false, //auto-complete when only one option remains?
+          closeOnUnfocus:false, //close options dropdown when lose focus?
+          hint:CodeMirror.hint[myCodeMirror['myHintType']] //what hints list?
+        });
       }
     });
     //callback function
