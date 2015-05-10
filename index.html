@@ -15,8 +15,75 @@
 <script type="text/javascript" src="js/mode/webglslvert.js"></script>
 <script type="text/javascript" src="js/mode/webglslfrag.js"></script>
 <!-- end modes -->
+<!-- addons -->
+<script type="text/javascript" src="js/addon/show-hint.js"></script>
+<script type="text/javascript" src="js/addon/hint-functions.js"></script>
+<script type="text/javascript" src="js/addon/gljs-hint.js"></script>
+<!--<script type="text/javascript" src="js/addon/anyword-hint.js"></script>-->
+<!-- end addons -->
 <script type="text/javascript" src="js/jquery.min.js"></script>
 <script type="text/javascript">
+  function getActiveTabLi(){
+    return jQuery('#tabs:first').children('ul:first').children('li.active[path]:first');
+  }
+  function getElemPath(arg){
+    var path;
+    if(arg!=undefined){
+      if(typeof arg==='string'){
+        path=arg;
+        //make sure this is a real path and not just a random string
+        if(jQuery('#tabs > ul > li[path="'+path+'"]:first').length<1){path=undefined;}
+      }else if(arg.attr){
+        //if this element doesn't have a path attribute
+        path=arg.attr('path');
+        if(path==undefined){path='';}
+        if(path.length<1){
+          //if a parent element has a path attribute
+          var parent=arg.parents('[path]:first');
+          if(parent.length>0){
+            path=parent.attr('path');
+          }else{
+            //no path associated with this element
+            path=undefined;
+          }
+        }
+      }
+    }
+    return path;
+  }
+  function getEditorDiv(which){
+    var div;
+    var path=getElemPath(which);
+    if(path!=undefined){
+      div=jQuery('#file-content:first').children('div[path="'+path+'"]:first');
+      if(div.length<1){
+        div=undefined;
+      }
+    }
+    return div;
+  }
+  function getCodeMirrorObj(which){
+    var cm;
+    //if there is a codemirror object for this
+    var div=getEditorDiv(which);
+    if(div!=undefined){
+      if(div[0].hasOwnProperty('codeMirror')){
+        cm=div[0]['codeMirror'];
+      }
+    }
+    return cm;
+  }
+  function getTabLi(which){
+    var li;
+    var path=getElemPath(which);
+    if(path!=undefined){
+      li=jQuery('#tabs:first').children('ul:first').children('li[path="'+path+'"]:first');
+      if(li.length<1){
+        li=undefined;
+      }
+    }
+    return li;
+  }
   function getFilterInputStr(defaultTxt){
     if(defaultTxt==undefined){defaultTxt='filter';}
     var html='';
@@ -80,9 +147,9 @@
     }else{ext='';}
     ext=ext.toLowerCase();
     //which codemirror mode to use based on the file path extension
-    var mode='';
+    var mode=''; var hintType;
     switch(ext){
-      case 'js': mode='javascript'; break;
+      case 'js': mode='javascript'; hintType='gljs'; break;
       case 'html': mode='htmlmixed'; break;
       case 'frag': mode='webglslfrag'; break;
       case 'vert': mode='webglslvert'; break;
@@ -96,6 +163,7 @@
     var config={};
     config['value']=textarea.val();
     config['lineNumbers']=true;
+    config['extraKeys']={'Ctrl-Space':'autocomplete'};
     if(mode.length>0){
       config['mode']=mode;
     }
@@ -104,10 +172,17 @@
       //textarea.removeClass('raw');
       textarea[0].parentNode.replaceChild(el, textarea[0]);
     },config);
+    myCodeMirror['myHintType']=hintType;
     //codemirror editor events
-    myCodeMirror.on('change', function(){
+    myCodeMirror.on('change', function(instance, object){
+      //indicate unsaved change
       jQuery('body:first').addClass('has-changes');
       jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first').addClass('has-changes');
+      //autocomplete
+      if(myCodeMirror['myHintType']){
+        console.log('show hint');
+        myCodeMirror.showHint({hint:CodeMirror.hint[myCodeMirror['myHintType']]});
+      }
     });
     //callback function
     if(callback!=undefined){
@@ -386,9 +461,55 @@
       xhr.send(JSON.stringify(saveData));
     }
   }
+  //handle toggle open insert menu
+  function insertMenu(){
+    //if there is an active tab
+    /*var tabLi=getActiveTabLi();
+    if(tabLi.length>0){
+      //if this tab li has a path (it should)
+      var path=getElemPath(tabLi);
+      if(path!=undefined){
+        //if there is an editor object for this menu (should exist)
+        var cm=getCodeMirrorObj(path);
+        if(cm!=undefined){
+          //get the path extension
+          var ext=path;
+          if(ext.indexOf('.')!==-1){
+            ext=ext.substring(ext.lastIndexOf('.')+'.'.length);
+          } ext=ext.toLowerCase(); ext=ext.trim();
+          if(ext==='html'){
+            if(tabLi.hasClass('template')){
+              ext='template';
+            }
+          }
+          //hint options
+          var options={
+            'template':['[file.extension]','test'],
+            'html':{},
+            'js':{},
+            'frag':{},
+            'vert':{}
+          };
+          //show options
+          if(options.hasOwnProperty(ext)){
+            //show options menu
+            cm['object'].showHint(options[ext]);
+          }
+        }
+      }
+    }*/
+  }
+  //handle detect key events
   function initKeyEvents(){
     jQuery(window).keydown(function(e) {
       var ret=true;
+      //function to decide if the ctl/cmd key is held
+      var isCtl=function(evt){
+        var is=false;
+        if(e.metaKey||e.ctrlKey){
+          is=true;
+        }return is;
+      };
       //get character
       var char=String.fromCharCode(e.keyCode); if(char==undefined){char='';}
       char=char.toLowerCase();
@@ -396,9 +517,16 @@
       switch(char){
         case 's':
           //if Command+S
-          if(e.metaKey||e.ctrlKey){
+          if(isCtl(e)){
             e.preventDefault(); ret=false;
             saveProject();
+          }
+          break;
+        case 'i':
+          //if Command+I
+          if(isCtl(e)){
+            e.preventDefault(); ret=false;
+            insertMenu();
           }
           break;
       }

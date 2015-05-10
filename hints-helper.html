@@ -1,0 +1,91 @@
+<html>
+  <head>
+    <title>Hints Helper</title>
+    <script type="text/javascript">
+      //match strings starting with gl.
+      function matchGlHints(existingJson){
+        var ret={'gl.':{}};
+        var items=[];
+        var ta=document.getElementById('code');
+        var str=ta.value;
+        var matches=str.match(/gl\.(\w+)/gi);
+        if(matches!=undefined){
+          if(matches.length>0){
+            //for each match
+            for(var m=0;m<matches.length;m++){
+              var match=matches[m];
+              match=match.substring('gl.'.length);
+              if(items.indexOf(match)===-1){
+                items.push(match);
+              }
+            }
+          }
+        }
+        items=items.sort();
+        for(var i=0;i<items.length;i++){
+          var item=items[i];
+          ret['gl.'][item]={__type:'',__summary:''};
+          //restore existing properties
+          if(existingJson!=undefined){
+            if(existingJson.hasOwnProperty('gl.')){
+              if(existingJson['gl.'].hasOwnProperty(item)){
+                for(var prop in existingJson['gl.'][item]){
+                  if(existingJson['gl.'][item].hasOwnProperty(prop)){
+                    ret['gl.'][item][prop]=existingJson['gl.'][item][prop];
+                  }
+                }
+              }
+            }
+          }
+        }
+        return ret;
+      }
+      function getHints(){
+        var existingInput=document.getElementById('existing');
+        var existing=existingInput.value.trim();
+        var existingJson=JSON.parse(existing);
+
+        var hintsInput=document.getElementById('hints');
+        hintsInput.value='';
+        //gl.
+        var glHints=matchGlHints(existingJson);
+        var glHintsStr=JSON.stringify(glHints, undefined, 3);
+        hintsInput.value+='//WEBGL JAVASCRIPT HINTS \n\n';
+        hintsInput.value+='var gljshints='+glHintsStr+';\n\n';
+        //...
+      }
+      function init(){
+        var existing=localStorage.getItem('hints-helper-merge-existing');
+        if(existing!=undefined){
+          if(existing.length>0){
+            document.getElementById('existing').value=existing;
+          }
+        }
+        document.getElementById('existing').onkeyup=function(){
+          localStorage.setItem('hints-helper-merge-existing',this.value);
+        };
+      }
+    </script>
+    <style type="text/css">
+      body{font-size:0;}
+      div.input,div.output{padding:0 .5rem;width:50%;display:inline-block;font-size:1rem;vertical-align:top;box-sizing:border-box;-moz-box-sizing: border-box;}
+      #code,#hints,#existing{width:100%;height:70%;font-size:1.1vw;}
+      #existing{height:30%;}
+      input.getHintsBtn{width:100%;height:3rem;font-size:1.5rem;background-color:#ccc;border:solid 1px #ccc;outline:none;cursor:pointer;}
+      input.getHintsBtn:hover{background-color:#E4E4E4;}
+    </style>
+  </head>
+  <body onload="javascript:init();">
+    <div class="input">
+      <input class="getHintsBtn" type="button" onclick="javascript:getHints();" value="get hints" />
+      <textarea id="code"></textarea>
+      <input class="getHintsBtn" type="button" onclick="javascript:getHints();" value="get hints" />
+    </div>
+    <div class="output">
+      <h3>Merge Existing JSON</h3>
+      <textarea id="existing"></textarea>
+      <h3>Output</h3>
+      <textarea id="hints"></textarea>
+    </div>
+  </body>
+</html>
