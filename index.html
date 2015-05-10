@@ -73,6 +73,23 @@
     }
     return cm;
   }
+  function getPathExt(which){
+    var ext;
+    var path=getElemPath(which);
+    if(path!=undefined){
+      ext=path;
+      if(ext.indexOf('.')!==-1){
+        ext=ext.substring(ext.lastIndexOf('.')+'.'.length);
+      } ext=ext.toLowerCase(); ext=ext.trim();
+      if(ext==='html'){
+        var tabLi=getTabLi(path);
+        if(tabLi.hasClass('template')){
+          ext='template';
+        }
+      }
+    }
+    return ext;
+  }
   function getTabLi(which){
     var li;
     var path=getElemPath(which);
@@ -468,7 +485,7 @@
   //handle toggle open insert menu
   function insertMenu(){
     //if there is an active tab
-    /*var tabLi=getActiveTabLi();
+    var tabLi=getActiveTabLi();
     if(tabLi.length>0){
       //if this tab li has a path (it should)
       var path=getElemPath(tabLi);
@@ -477,31 +494,14 @@
         var cm=getCodeMirrorObj(path);
         if(cm!=undefined){
           //get the path extension
-          var ext=path;
-          if(ext.indexOf('.')!==-1){
-            ext=ext.substring(ext.lastIndexOf('.')+'.'.length);
-          } ext=ext.toLowerCase(); ext=ext.trim();
-          if(ext==='html'){
-            if(tabLi.hasClass('template')){
-              ext='template';
-            }
-          }
-          //hint options
-          var options={
-            'template':['[file.extension]','test'],
-            'html':{},
-            'js':{},
-            'frag':{},
-            'vert':{}
-          };
-          //show options
-          if(options.hasOwnProperty(ext)){
-            //show options menu
-            cm['object'].showHint(options[ext]);
+          var ext=getPathExt(path);
+          if(ext!=undefined){
+            console.log(ext);
+            //***
           }
         }
       }
-    }*/
+    }
   }
   //handle detect key events
   function initKeyEvents(){
