@@ -48,3 +48,108 @@ section#file-content{
     }
   }
 }
+
+/*content menus*/
+
+$h-content-menu-btns:1.7rem;
+
+section#file-content{ .content-wrap{ .content-menus{
+
+  display:none;
+  position:absolute;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  @include borderbox();
+  background-color:rgba(0,0,0,.7);
+  border:solid 5px #fff;
+  z-index:99;
+
+  .menu-btns{
+    position:absolute;
+    right:0;
+    top:0;
+    width:100%;
+    height:$h-content-menu-btns;
+    @include borderbox();
+    background-color:rgba(0,0,0,.1);
+    border-bottom:solid 1px #fff;
+    text-align:right;
+
+    > div{
+      display:inline-block;
+      height:100%;
+      min-width:$h-content-menu-btns;
+      @include borderbox();
+      box-shadow:inset 0 0 1rem rgba(0,0,0,.7);
+      background-color:rgb(116, 10, 10);
+      border:solid 1px #fff;
+      cursor:pointer;
+      @include transition(background-color .3s linear);
+
+      &:hover{
+        background-color:rgb(255, 16, 16);
+      }
+    }
+  }
+
+  .menu-bodies{
+    position:absolute;
+    left:0;
+    top:0;
+    padding-top:$h-content-menu-btns;
+    width:100%;
+    height:100%;
+    @include borderbox();
+    background-color:#EAEAEA;
+    box-shadow:inset 0 0 3rem #ADADAD;
+
+    .menu-body{
+      @include borderbox();
+      display:none;
+      background-color:transparent;
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:100%;
+      padding-top:$h-content-menu-btns;
+
+      > h1{
+        position:absolute;
+        top:0;
+        left:0;
+        margin:0;
+        padding:0 0 0 .5rem;
+        font-size:($h-content-menu-btns*.5);
+        line-height:$h-content-menu-btns;
+        height:$h-content-menu-btns;
+        white-space:nowrap;
+        @include borderbox();
+        font-style:italic;
+        font-family:$f-code;
+        color:rebeccapurple;
+      }
+
+      > .scroll{
+        overflow:auto;
+        position:absolute;
+        left:0;
+        top:0;
+        width:100%;
+        height:100%;
+        padding-top:$h-content-menu-btns;
+      }
+
+      &.active{
+        display:block;
+      }
+    }
+  }
+
+} } }
+
+section#file-content{ .content-wrap.show-content-menu{ .content-menus{
+  display:block;
+} } }

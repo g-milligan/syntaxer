@@ -101,6 +101,76 @@
     }
     return li;
   }
+  //create or open the content menu, eg: when you press Command+I
+  function openContentMenu(menuType){
+    //==REUSE VALUES FOR CERTAIN MENU TYPES==
+    var insertTitle='Insert';
+    var insertOnOpen=function(){
+      console.log('insert open');
+    };
+    var insertOnClose=function(){
+      console.log('insert close');
+    };
+    //==CONFIGURE MENU TYPES==
+    var menusJson={
+      insert:{
+        template:{
+          title:insertTitle, onopen:insertOnOpen, onclose:insertOnClose
+        },
+        js:{
+          title:insertTitle, onopen:insertOnOpen, onclose:insertOnClose
+        }
+      }
+    };
+    //==CREATE OR OPEN THE MENU==
+    if(menusJson.hasOwnProperty(menuType)){
+      var json=menusJson[menuType];
+      //get active conten div
+      var divWrap=getEditorDiv(getActiveTabLi());
+      //get extension for active file
+      var ext=getPathExt(divWrap);
+      if(json.hasOwnProperty(ext)){
+        json=json[ext];
+        var menuBodiesWrap=divWrap.children('.content-menus:last').children('.menu-bodies:last');
+        var menuBody=menuBodiesWrap.children('[name="'+menuType+'"]:first');
+        //if this menuType isn't already created for this active tab
+        if(menuBody.length<1){
+          //create the menu
+          menuBodiesWrap.append('<div name="'+menuType+'" class="menu-body"><h1>'+json['title']+'</h1><div class="scroll"></div></div>');
+          menuBody=menuBodiesWrap.children('[name="'+menuType+'"]:last');
+          //*** add menu content
+          //close handler
+          menuBody[0]['contentMenuClose']=function(){
+            menuBody.removeClass('active');
+            menuBodiesWrap.parent().parent().removeClass('show-content-menu');
+            if(json.hasOwnProperty('onclose')){
+              json['onclose']();
+            }
+          };
+          //open handler
+          menuBody[0]['contentMenuOpen']=function(){
+            menuBodiesWrap.parent().parent().addClass('show-content-menu');
+            menuBody.parent().children('.active').removeClass('active');
+            menuBody.addClass('active');
+            if(json.hasOwnProperty('onopen')){
+              json['onopen']();
+            }
+          };
+          //open the menu
+          menuBody[0]['contentMenuOpen']();
+        }else{
+          //menu body already created...
+
+          //toggle open the menu
+          if(menuBody.hasClass('active')){
+            menuBody[0]['contentMenuClose']();
+          }else{
+            menuBody[0]['contentMenuOpen']();
+          }
+        }
+      }
+    }
+  }
   function getFilterInputStr(defaultTxt){
     if(defaultTxt==undefined){defaultTxt='filter';}
     var html='';
@@ -157,6 +227,7 @@
     }
   }
   function setCodemirrorContent(fpath,textarea,callback){
+    var wrap=textarea.parent();
     //get just the extension from the file path
     var ext=fpath;
     if(ext.indexOf('.')!==-1){
@@ -203,6 +274,21 @@
           closeOnUnfocus:false, //close options dropdown when lose focus?
           hint:CodeMirror.hint[myCodeMirror['myHintType']] //what hints list?
         });
+      }
+    });
+    //create a placeholder for the content menus
+    wrap.append('<div class="content-menus"></div>');
+    var subMenus=wrap.children('.content-menus:last');
+    subMenus.append('<div class="menu-bodies"></div>');
+    subMenus.append('<div class="menu-btns"><div title="back to code" class="btn-cancel"></div></div>');
+    var btnsWrap=subMenus.children('.menu-btns:first');
+    var btnCancel=btnsWrap.children('.btn-cancel:first');
+    //standard content menu events
+    btnCancel.click(function(){
+      var divWrap=getEditorDiv(getActiveTabLi());
+      var divActive=divWrap.children('.content-menus:last').children('.menu-bodies:first').children('.active:first');
+      if(divActive.length>0){
+        divActive[0]['contentMenuClose']();
       }
     });
     //callback function
@@ -482,27 +568,6 @@
       xhr.send(JSON.stringify(saveData));
     }
   }
-  //handle toggle open insert menu
-  function insertMenu(){
-    //if there is an active tab
-    var tabLi=getActiveTabLi();
-    if(tabLi.length>0){
-      //if this tab li has a path (it should)
-      var path=getElemPath(tabLi);
-      if(path!=undefined){
-        //if there is an editor object for this menu (should exist)
-        var cm=getCodeMirrorObj(path);
-        if(cm!=undefined){
-          //get the path extension
-          var ext=getPathExt(path);
-          if(ext!=undefined){
-            console.log(ext);
-            //***
-          }
-        }
-      }
-    }
-  }
   //handle detect key events
   function initKeyEvents(){
     jQuery(window).keydown(function(e) {
@@ -530,7 +595,7 @@
           //if Command+I
           if(isCtl(e)){
             e.preventDefault(); ret=false;
-            insertMenu();
+            openContentMenu('insert');
           }
           break;
       }
