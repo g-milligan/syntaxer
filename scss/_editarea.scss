@@ -129,17 +129,16 @@ section#file-content{ .content-wrap{ .content-menus{
         @include borderbox();
         font-style:italic;
         font-family:$f-code;
-        color:rebeccapurple;
+        color:#A0A0A0;
       }
 
       > .scroll{
         overflow:auto;
         position:absolute;
         left:0;
-        top:0;
+        top:$h-content-menu-btns;
+        bottom:0;
         width:100%;
-        height:100%;
-        padding-top:$h-content-menu-btns;
       }
 
       &.active{
