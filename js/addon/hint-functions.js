@@ -8,8 +8,10 @@ function getLineSplit(editor){
   var aftStr=lStr.substring(cIndex);
   return [preStr,aftStr];
 }
-function getAutocompleteOptions(lineBeforeCursor,hintsJson,editor){
+function getAutocompleteOptions(lineSplit,hintsJson,editor){
+  var lineBeforeCursor=lineSplit[0]; var lineAfterCursor=lineSplit[1];
   var options=[]; var triggerText=''; var triggerParts=[]; var partialEntry=false;
+  //*** save pre-dynamic autocomplete history so it can be deleted later?
   //function to replace dynamic values in keys
   var insertDynamicStr=function(str,jsonItem){
     var strs=[];
@@ -79,8 +81,14 @@ function getAutocompleteOptions(lineBeforeCursor,hintsJson,editor){
               isChained=true;
               triggerText+=key;
               triggerParts.push(key);
-              //remove string left of the first key (in case the first key appears more than once in one line)
-              st=st.substring(st.toLowerCase().indexOf(key.toLowerCase()));
+              //if autcomplete line is being daisy chaned and not complete yet
+              if(lineAfterCursor.trim().length<1){
+                //remove string left of the first key (in case the first key appears more than once in one line)
+                st=st.substring(st.toLowerCase().indexOf(key.toLowerCase()));
+              }else{
+                //remove string left of the first key (in case the first key appears more than once in one line)
+                st=st.substring(st.toLowerCase().lastIndexOf(key.toLowerCase()));
+              }
             }
           }else{
             if(st.toLowerCase().indexOf(key.toLowerCase())===0){
@@ -304,7 +312,7 @@ function addJsonHints(addKey, obj, hintsJson){
 function handleJsonHints(editor, hintsJson){
   //get the autocomplete data including the possible options and the text that triggered these options
   var lineSplit=getLineSplit(editor);
-  var aJson=getAutocompleteOptions(lineSplit[0], hintsJson, editor);
+  var aJson=getAutocompleteOptions(lineSplit, hintsJson, editor);
   var list=aJson['options'];
   var triggerParts=aJson['triggerParts'];
   //get the cursor position to figure out what existing text (if any) should be removed before autocomplete happens

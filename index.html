@@ -34,8 +34,18 @@
     if(arg!=undefined){
       if(typeof arg==='string'){
         path=arg;
-        //make sure this is a real path and not just a random string
-        if(jQuery('#tabs > ul > li[path="'+path+'"]:first').length<1){path=undefined;}
+        if(path!=='.'){
+          //make sure this is a real path and not just a random string
+          if(jQuery('#tabs > ul > li[path="'+path+'"]:first').length<1){path=undefined;}
+        }else{
+          //get the current active for '.'
+          var li=getActiveTabLi();
+          path=li.attr('path');
+          if(path!=undefined){
+            path=path.trim();
+            if(path.length<1){path=undefined;}
+          }
+        }
       }else if(arg.attr){
         //if this element doesn't have a path attribute
         path=arg.attr('path');
@@ -53,6 +63,17 @@
       }
     }
     return path;
+  }
+  function getPathName(which){
+    var name;
+    var path=getElemPath(which);
+    if(path!=undefined){
+      name=path;
+      if(name.indexOf('/')!==-1){
+        name=name.substring(name.lastIndexOf('/')+'/'.length);
+      }
+    }
+    return name;
   }
   function getEditorDiv(which){
     var div;
@@ -163,6 +184,38 @@
           }
           return include;
         };
+        var stopBefore=function(which){
+          var stopNow=false;
+          if(json!=undefined){
+            if(json.hasOwnProperty('stop_before')){
+              var name=getPathName(which);
+              var stopName=json['stop_before'];
+              if(stopName==='.'){
+                stopName=getPathName('.');
+              }
+              if(stopName===name){
+                stopNow=true;
+              }
+            }
+          }
+          return stopNow;
+        };
+        var stopAfter=function(which){
+          var stopNow=false;
+          if(json!=undefined){
+            if(json.hasOwnProperty('stop_after')){
+              var name=getPathName(which);
+              var stopName=json['stop_after'];
+              if(stopName==='.'){
+                stopName=getPathName('.');
+              }
+              if(stopName===name){
+                stopNow=true;
+              }
+            }
+          }
+          return stopNow;
+        };
         //function to decide if this file's data should be included in return
         var includeData=function(which){
           //include file data based on include exclude rules
@@ -183,43 +236,54 @@
           }
           return include;
         };
-        //get the template.html content
-        var temContent=getFileContent(temPath);
-        if(includeData(temPath)){
-          if(hasAll(temContent)){
-            if(hasSome(temContent)){
-              data.push({path:temPath, content:temContent});
+        if(!stopBefore(temPath)){
+          //get the template.html content
+          var temContent=getFileContent(temPath);
+          if(includeData(temPath)){
+            if(hasAll(temContent)){
+              if(hasSome(temContent)){
+                data.push({path:temPath, content:temContent});
+              }
             }
           }
-        }
-        var tabsUl=jQuery('#tabs:first').children('ul:first');
-        //get all of the potential file names between [...] TRIANGLE_STRIP
-        var matches=temContent.match(/\[(.*?)\]/g); var prevMatch='';
-        for(var m=0;m<matches.length;m++){
-          var match=matches[m];
-          match=match.substring('['.length);
-          match=match.substring(0, match.length-']'.length);
-          if(match.trim().indexOf('/')===0){
-            if(prevMatch.trim()===match.substring(match.indexOf('/')+'/'.length).trim()){
-              //get the tab with this file name
-              var li=tabsUl.children('li[path$="'+prevMatch+'"]:first');
-              var liPath=getElemPath(li);
-              if(liPath!=undefined){
-                //include this tab's file data?
-                if(includeData(liPath,liContent)){
-                  var liContent=getFileContent(liPath);
-                  if(hasAll(liContent)){
-                    if(hasSome(liContent)){
-                      data.push({path:liPath, content:liContent});
+          if(!stopAfter(temPath)){
+            var tabsUl=jQuery('#tabs:first').children('ul:first');
+            //get all of the potential file names between [...] TRIANGLE_STRIP
+            var matches=temContent.match(/\[(.*?)\]/g); var prevMatch='';
+            for(var m=0;m<matches.length;m++){
+              var match=matches[m];
+              match=match.substring('['.length);
+              match=match.substring(0, match.length-']'.length);
+              var prevPath='';
+              if(match.trim().indexOf('/')===0){
+                if(prevMatch.trim()===match.substring(match.indexOf('/')+'/'.length).trim()){
+                  //get the tab with this file name
+                  var li=tabsUl.children('li[path$="'+prevMatch+'"]:first');
+                  var liPath=getElemPath(li); prevPath=liPath;
+                  if(liPath!=undefined){
+                    if(!stopBefore(liPath)){
+                      //include this tab's file data?
+                      if(includeData(liPath,liContent)){
+                        var liContent=getFileContent(liPath);
+                        if(hasAll(liContent)){
+                          if(hasSome(liContent)){
+                            data.push({path:liPath, content:liContent});
+                          }
+                        }
+                      }
+                    }else{
+                      break;
                     }
                   }
                 }
               }
+              prevMatch=match;
+              if(stopAfter(prevPath)){
+                break;
+              }
             }
           }
-          prevMatch=match;
         }
-
       }
     }
     return data;
@@ -393,6 +457,20 @@
       if(myCodeMirror['myHintType']){
         //show the hints dropdown
         myCodeMirror.showHint({
+          eventTrigger:'change',
+          completeSingle:false, //auto-complete when only one option remains?
+          closeOnUnfocus:false, //close options dropdown when lose focus?
+          hint:CodeMirror.hint[myCodeMirror['myHintType']] //what hints list?
+        });
+      }
+    });
+    //when mouse cursor position changes
+    myCodeMirror.on('cursorActivity', function(instance, object){
+      //autocomplete
+      if(myCodeMirror['myHintType']){
+        //show the hints dropdown
+        myCodeMirror.showHint({
+          eventTrigger:'cursorActivity',
           completeSingle:false, //auto-complete when only one option remains?
           closeOnUnfocus:false, //close options dropdown when lose focus?
           hint:CodeMirror.hint[myCodeMirror['myHintType']] //what hints list?
