@@ -26,6 +26,9 @@
   function getActiveTabLi(){
     return jQuery('#tabs:first').children('ul:first').children('li.active[path]:first');
   }
+  function getTemplateTabLi(){
+    return jQuery('#tabs:first').children('ul:first').children('li.template:first');
+  }
   function getElemPath(arg){
     var path;
     if(arg!=undefined){
@@ -100,6 +103,126 @@
       }
     }
     return li;
+  }
+  //get the current editor code for a tab
+  function getFileContent(which){
+    var content;
+    var div=getEditorDiv(which);
+    if(div!=undefined){
+      //if the code mirror editor is initialized for this div
+      if(div[0].hasOwnProperty('codeMirror')){
+        content=div[0]['codeMirror']['object'].getValue();
+      }else{
+        //code mirror not initialized, so just get the content from the textarea
+        var ta=div.children('textarea.raw:first');
+        if(ta.length>0){
+          content=ta.val();
+        }
+      }
+    }
+    return content;
+  }
+  //get the ordered file contents (from the editor)
+  function getFileContents(json){
+    var data=[];
+    var temLi=getTemplateTabLi();
+    if(temLi.length>0){
+      var temPath=getElemPath(temLi);
+      if(temPath!=undefined){
+        //function to make sure a file contains one or more strings
+        var hasSome=function(cont){
+          var include=false;
+          if(json.hasOwnProperty('has_some') && json.has_some.length>0){
+            if(cont!=undefined){
+              for(var c=0;c<json.has_some.length;c++){
+                if(cont.indexOf(json.has_some[c])!==-1){
+                  include=true;
+                  break;
+                }
+              }
+            }
+          }else{
+            include=true;
+          }
+          return include;
+        };
+        //function to make sure a file contains one or more strings
+        var hasAll=function(cont){
+          var include=true;
+          if(json.hasOwnProperty('has_all') && json.has_all.length>0){
+            if(cont!=undefined){
+              for(var c=0;c<json.has_all.length;c++){
+                if(cont.indexOf(json.has_all[c])===-1){
+                  include=false;
+                  break;
+                }
+              }
+            }else{
+              include=false;
+            }
+          }
+          return include;
+        };
+        //function to decide if this file's data should be included in return
+        var includeData=function(which){
+          //include file data based on include exclude rules
+          var include=true;
+          if(json!=undefined){
+            var ext=getPathExt(which);
+            if(json.hasOwnProperty('include_ext')){
+              include=false;
+              if(json['include_ext'].indexOf(ext)!==-1){
+                include=true;
+              }
+            }
+            if(json.hasOwnProperty('exclude_ext')){
+              if(json['exclude_ext'].indexOf(ext)!==-1){
+                include=false;
+              }
+            }
+          }
+          return include;
+        };
+        //get the template.html content
+        var temContent=getFileContent(temPath);
+        if(includeData(temPath)){
+          if(hasAll(temContent)){
+            if(hasSome(temContent)){
+              data.push({path:temPath, content:temContent});
+            }
+          }
+        }
+        var tabsUl=jQuery('#tabs:first').children('ul:first');
+        //get all of the potential file names between [...] TRIANGLE_STRIP
+        var matches=temContent.match(/\[(.*?)\]/g); var prevMatch='';
+        for(var m=0;m<matches.length;m++){
+          var match=matches[m];
+          match=match.substring('['.length);
+          match=match.substring(0, match.length-']'.length);
+          if(match.trim().indexOf('/')===0){
+            if(prevMatch.trim()===match.substring(match.indexOf('/')+'/'.length).trim()){
+              //get the tab with this file name
+              var li=tabsUl.children('li[path$="'+prevMatch+'"]:first');
+              var liPath=getElemPath(li);
+              if(liPath!=undefined){
+                //include this tab's file data?
+                if(includeData(liPath,liContent)){
+                  var liContent=getFileContent(liPath);
+                  if(hasAll(liContent)){
+                    if(hasSome(liContent)){
+                      data.push({path:liPath, content:liContent});
+                    }
+                  }
+                }
+              }
+            }
+          }
+          prevMatch=match;
+        }
+
+      }
+    }
+    return data;
   }
   //create or open the content menu, eg: when you press Command+I
   function openContentMenu(menuType){

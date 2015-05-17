@@ -8,13 +8,69 @@ function getLineSplit(editor){
   var aftStr=lStr.substring(cIndex);
   return [preStr,aftStr];
 }
-function getAutocompleteOptions(lineBeforeCursor,hintsJson){
+function getAutocompleteOptions(lineBeforeCursor,hintsJson,editor){
   var options=[]; var triggerText=''; var triggerParts=[]; var partialEntry=false;
+  //function to replace dynamic values in keys
+  var insertDynamicStr=function(str,jsonItem){
+    var strs=[];
+    var origStr=str;
+    //if there are dynamic values in this string
+    if(str.indexOf('__%')!==-1){
+      //dynamic functions for this json (if any)
+      var dynFuncs;
+      if(jsonItem.hasOwnProperty('__%')){
+        dynFuncs=jsonItem['__%'];
+      }
+      if(dynFuncs!=undefined){
+        for(d in dynFuncs){
+          if(dynFuncs.hasOwnProperty(d)){
+            if(str.indexOf('__%'+d)!==-1){
+              //get the dynamic value, if any
+              var results=dynFuncs[d](editor);
+              if(results!=undefined){
+                //convert string to one-item array
+                if(typeof results==='string'){
+                  results=[results];
+                }
+                //for each different dynamic result
+                var re=new RegExp('__%'+d,'g');
+                for(var r=0;r<results.length;r++){
+                  var resultStr=str;
+                  //replace placeholder with result
+                  resultStr=resultStr.replace(re,results[r]);
+                  //if no more __%
+                  if(resultStr.indexOf('__%')===-1){
+                    //add this dynamic option to the json (to allow daisy chain after this dynamic option)
+                    if(!jsonItem.hasOwnProperty(resultStr)){
+                      jsonItem[resultStr]=jsonItem[origStr];
+                      if(strs.indexOf(resultStr)===-1){
+                        strs.push(resultStr);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }else{
+      //no dynamic __%values in this str...
+
+      //if no strings were added to the list
+      if(strs.length<1){
+        strs.push(str);
+      }
+    }
+    return strs;
+  };
+  //function to recursively get keys
   var getNextKeys=function(st,json,index){
     //figure out which start keys are in the str
     var partialIndex=0;
     for(var key in json){
       if(json.hasOwnProperty(key)){
+        //if this is a key that could be an autocomplete value
         if(key.indexOf('__')!==0){
           //this keyword follows the previous keyword?
           var isChained=false;
@@ -24,16 +80,23 @@ function getAutocompleteOptions(lineBeforeCursor,hintsJson){
               triggerText+=key;
               triggerParts.push(key);
               //remove string left of the first key (in case the first key appears more than once in one line)
-              st=st.substring(st.toLowerCase().lastIndexOf(key.toLowerCase()));
+              st=st.substring(st.toLowerCase().indexOf(key.toLowerCase()));
             }
           }else{
             if(st.toLowerCase().indexOf(key.toLowerCase())===0){
               isChained=true;
+              triggerText+=key;
+              triggerParts.push(key);
             }else{
               if(st.length<key.length){
                 //if this st is incomplete and could be completed as this key
                 if(key.toLowerCase().indexOf(st.toLowerCase())===0){
-                  options.push(key);
+                  var newOptions=insertDynamicStr(key,json[key]);
+                  for(var n=0;n<newOptions.length;n++){
+                    if(options.indexOf(newOptions[n])===-1){
+                      options.push(newOptions[n]);
+                    }
+                  }
                   //if this is the first item in this level
                   if(partialIndex===0){
                     triggerText+=st;
@@ -59,7 +122,12 @@ function getAutocompleteOptions(lineBeforeCursor,hintsJson){
               for(var subKey in json[key]){
                 if(json[key].hasOwnProperty(subKey)){
                   if(subKey.indexOf('__')!==0){
-                    options.push(subKey);
+                    var newOptions=insertDynamicStr(subKey,json[key]);
+                    for(var n=0;n<newOptions.length;n++){
+                      if(options.indexOf(newOptions[n])===-1){
+                        options.push(newOptions[n]);
+                      }
+                    }
                   }
                 }
               }
@@ -104,10 +172,23 @@ function decorateHintsMenu(aJson,hintsJson,tries){
         }
       };
       //for each option in the dropdown
+      var isFirst=true;
       ul.children('li.CodeMirror-hint').each(function(){
         var li=jQuery(this);
         var liTxt=li.text();
         if(json.hasOwnProperty(liTxt)){
+          //if this is the first hint item to decorate
+          if(isFirst){
+            isFirst=false;
+            //add help summary for all items, if available
+            if(json.hasOwnProperty('__summary')){
+              var summary=json['__summary'].trim();
+              if(summary.length>0){
+                console.log(summary); //***
+              }
+            }
+          }
+          //decorate one hint item
           var itemJson=json[liTxt];
           decorateHintItem(itemJson,li);
         }
@@ -134,16 +215,96 @@ function decorateHintItem(itemJson,li){
   if(propExists('__type')){
     li.addClass('type_'+itemJson['__type']);
     li.attr('option_type',itemJson['__type']);
+    li.attr('title',itemJson['__type']);
   }
-  if(propExists('__tooltip')){
-    li.attr('title',itemJson['__tooltip']);
+}
+//get the key that indicates if the native object properties have already been loaded into autocomplete
+function getJsonHintsKey(key){
+  return '__'+key+'_hints';
+}
+//check for the key that indicates if the native object properties have already been loaded into autocomplete
+function hasJsonHintsKey(key,hintsJson){
+  var has=false;
+  //if these hints aren't already added
+  key=getJsonHintsKey(key);
+  if(hintsJson.hasOwnProperty(key)){
+    has=hintsJson[key];
+  }
+  return has;
+}
+//add the properties and functions of obj to the hintsJson
+function addJsonHints(addKey, obj, hintsJson){
+  //if these hints aren't already added
+  if(!hasJsonHintsKey(addKey,hintsJson)){
+    var topKey=addKey;
+    addKey=getJsonHintsKey(addKey);
+    //init hintsJson
+    hintsJson[addKey]=true;
+    if(!hintsJson.hasOwnProperty(topKey)){
+      hintsJson[topKey]={};
+    }
+    //check if a json property is filled out, non-empty
+    var hasKey=function(k,o){
+      var has=false;
+      if(o.hasOwnProperty(k)){
+        if(typeof o[k]==='string'){
+          if(o[k].trim().length>0){
+            has=true;
+          }
+        }else{
+          has=true;
+        }
+      }
+      return has;
+    };
+    //set json item data
+    var setData=function(k,o){
+      //if doesn't already have type
+      if(!hasKey('__type',hintsJson[topKey][k])){
+        //set type
+        var type=typeof o[k];
+        hintsJson[topKey][k]['__type']=type;
+        //depending on the type
+        switch (type) {
+          case 'function':
+            //get the funciton signature
+            var funcStr=o[k].toString();
+            var sig=funcStr;
+            if(sig.indexOf('(')!==-1){
+              sig=sig.substring(sig.indexOf('(')+'('.length);
+            }
+            if(sig.indexOf('{')!==-1){
+              sig=sig.substring(0,sig.indexOf('{'));
+            }
+            if(sig.lastIndexOf(')')!==-1){
+              sig=sig.substring(0, sig.lastIndexOf(')'));
+            }
+            sig=sig.trim();
+            //most likely sig will be an empty string because native functions don't list their args
+            hintsJson[topKey][k]['('+sig+');']={};
+            break;
+        }
+      }
+    };
+    //for each property in obj
+    for(var key in obj){
+      if(obj.hasOwnProperty(key)){
+        //if this property isn't already in hintsJson
+        if(!hintsJson[topKey].hasOwnProperty(key)){
+          //init the json for this item
+          hintsJson[topKey][key]={};
+        }
+        //make sure the data is set for this item
+        setData(key,obj);
+      }
+    }
   }
 }
 //generic handle hints depending on hintsJson data
 function handleJsonHints(editor, hintsJson){
   //get the autocomplete data including the possible options and the text that triggered these options
   var lineSplit=getLineSplit(editor);
-  var aJson=getAutocompleteOptions(lineSplit[0], hintsJson);
+  var aJson=getAutocompleteOptions(lineSplit[0], hintsJson, editor);
   var list=aJson['options'];
   var triggerParts=aJson['triggerParts'];
   //get the cursor position to figure out what existing text (if any) should be removed before autocomplete happens
@@ -165,4 +326,82 @@ function handleJsonHints(editor, hintsJson){
   return {list: list,
     from: CodeMirror.Pos(cur.line, start),
     to: CodeMirror.Pos(cur.line, end)};
+}
+function getTabContents(json){
+  //get the code string, editorValue, to parse in order to find autocomplete values
+  var editorValue='';
+  //get the selected files' contents
+  var filesData=getFileContents(json);
+  for(var f=0;f<filesData.length;f++){
+    //append this file's data to this editorValue string
+    editorValue+=filesData[f]['content'];
+  }
+  return editorValue;
+}
+//match a pattern like "shaderProgram = gl.createProgram();" to return "shaderProgram"
+function matchLeftFuncAssign(str, defaultRet, funcName, globalFlag){
+  var ret=[];
+  var reg=new RegExp('(\\w+|\\w+\\.\\w+)[ ]?=[ ]?'+funcName+'[ ]?\\(', globalFlag);
+  var matches=str.match(reg);
+  if(matches!=undefined){
+    for(var m=0;m<matches.length;m++){
+      var match=matches[m];
+      if(match.indexOf('=')!==-1){
+        match=match.substring(0,match.indexOf('='));
+        match=match.trim();
+        if(ret.indexOf(match)===-1){
+          ret.push(match);
+        }
+      }
+    }
+  }
+  if(ret.length<1){ret=[defaultRet];}
+  return ret;
+}
+
+//match a pattern like "vertices = [" to return "vertices"
+function matchLeftArrayAssign(str, defaultRet, globalFlag){
+  var ret=[];
+  var reg=new RegExp('(\\w+|\\w+\\.\\w+)[ ]?=[ |\\n]?\\[', globalFlag);
+  var matches=str.match(reg);
+  if(matches!=undefined){
+    for(var m=0;m<matches.length;m++){
+      var match=matches[m];
+      if(match.indexOf('=')!==-1){
+        match=match.substring(0,match.indexOf('='));
+        match=match.trim();
+        if(ret.indexOf(match)===-1){
+          ret.push(match);
+        }
+      }
+    }
+  }
+  if(ret.length<1){ret=[defaultRet];}
+  return ret;
+}
+
+//match a pattern like "attribute vec3 aVertexPosition;" to return "aVertexPosition"
+function matchFieldName(str, defaultRet, fieldType, globalFlag){
+  var ret=[];
+  var reg=new RegExp(fieldType+' [\\w ](.*);', globalFlag);
+  var matches=str.match(reg);
+  if(matches!=undefined){
+    for(var m=0;m<matches.length;m++){
+      var match=matches[m];
+      if(match.indexOf(' ')!==-1){
+        if(match.indexOf(';')!==-1){
+          match=match.substring(0,match.indexOf(';'));
+          match=match.trim();
+          var sp=match.split(' ');
+          match=sp[sp.length-1];
+          match=match.trim();
+          if(ret.indexOf(match)===-1){
+            ret.push(match);
+          }
+        }
+      }
+    }
+  }
+  if(ret.length<1){ret=[defaultRet];}
+  return ret;
 }
