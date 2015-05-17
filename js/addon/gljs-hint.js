@@ -13,6 +13,7 @@
   //WEBGL JAVASCRIPT HINTS
 
   var gljshints={
+    "gtest.":{"test":{}},
    "gl.": {
       "activeTexture": {
          "__type": "function",
@@ -629,39 +630,51 @@
       },
       "vertexAttribPointer": {
          "__type": "function",
-         "__summary":"Which shader-attribute pointer?",
+         "__complete":"(__%pointer,__%itemSize,__%dataType,__%normalize,__%stride,__%offset);",
          "__%":{
            pointer:function(){
              var str=getTabContents({include_ext:['js'],has_some:['gl.getAttribLocation']});
-             return matchLeftFuncAssign(str,'pointer','gl\\.getAttribLocation','g');
-           }
-         },
-         "(__%pointer,": {
-           "__summary":"How many values per vertex coordinate?",
-           "__%":{
-             itemSize:function(){
-               var str=getTabContents({include_ext:['js']});
-               return '/*itemSize*/'; //***
-             }
+             return {
+               options: matchLeftFuncAssign(str,'pointer','gl\\.getAttribLocation','g'),
+               type: 'number',
+               summary: 'Index of target attribute in the buffer bound to gl.ARRAY_BUFFER'
+             };
            },
-           " __%itemSize,":{
-             "__summary":"Which data type, for each number component in the array?",
-             "__%":{
-               type:function(){return ['gl.FLOAT','gl.FIXED'];}
-             },
-             " __%type,":{
-               "__summary":"FALSE = values are converted to fixed point values when accessed... TRUE = values are normalized when accessed.",
-               "__%":{
-                 normalize:function(){return ['false','true'];}
-               },
-               " __%normalize,":{
-                "__summary":"The offset (bytes) between the beginning of consecutive vertex attributes. Default = 0, max = 255. Must be a multiple of type.",
-                " 0,":{
-                  "__summary":"The offset (bytes) of the first component of the first vertex attribute in the array. Default is 0, where vertex attributes are tightly packed. Must be a multiple of type.",
-                  " 0);":{}
-                }
-               }
-             }
+           itemSize:function(){
+             var str=getTabContents({include_ext:['js']});
+             return {
+               options: ['/*itemSize*/'], //***
+               type: 'number',
+               summary: 'The number of components per attribute. Must be 1,2,3,or 4. Default is 4.'
+             };
+           },
+           dataType:function(){
+             return {
+               options: ['gl.FLOAT','gl.FIXED'],
+               type: 'number',
+               summary: 'Specifies the data type of each component in the array.'
+             };
+           },
+           normalize:function(){
+             return {
+               options: ['false','true'],
+               type: 'boolean',
+               summary: 'FALSE = Values are converted to fixed point values when accessed. TRUE = Values are normalized when accessed.'
+             };
+           },
+           stride:function(){
+             return {
+               options: ['0'],
+               type: 'number',
+               summary: 'Specifies the offset in bytes between the beginning of consecutive vertex attributes. Default value is 0, maximum is 255. Must be a multiple of type.'
+             };
+           },
+           offset:function(){
+             return {
+               options: ['0'],
+               type: 'number',
+               summary: 'Specifies an offset in bytes of the first component of the first vertex attribute in the array. Default is 0 which means that vertex attributes are tightly packed. Must be a multiple of type.'
+             };
            }
          }
       },

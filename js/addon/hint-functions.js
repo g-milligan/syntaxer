@@ -13,7 +13,12 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
   var options=[]; var triggerText=''; var triggerParts=[]; var partialEntry=false;
   //*** save pre-dynamic autocomplete history so it can be deleted later?
   //function to replace dynamic values in keys
-  var insertDynamicStr=function(str,jsonItem){
+
+
+
+
+
+  /*var insertDynamicStr=function(str,jsonItem){
     var strs=[];
     var origStr=str;
     //if there are dynamic values in this string
@@ -65,32 +70,52 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
       }
     }
     return strs;
+  };*/
+
+
+  var addOption=function(newOption){
+    if(options.indexOf(newOption)===-1){
+      options.push(newOption);
+    }
   };
-  //function to recursively get keys
-  var getNextKeys=function(st,json,index){
+
+  var addToTriggerText=function(str){
+    triggerText+=str;
+    triggerParts.push(str);
+  };
+
+  var isPartialOf=function(part, full){
+    var is=false;
+    //if part is at the start of full
+    if(full.toLowerCase().indexOf(part.toLowerCase())===0){
+      if(part.length<full.length){
+        is=true;
+      }
+    }
+    return is;
+  };
+
+
+  /*//function to recursively get keys, where trigger parts are parsed out of the st
+  var getNextKeys=function(st,json,levelIndex){
     //figure out which start keys are in the str
     var partialIndex=0;
     for(var key in json){
       if(json.hasOwnProperty(key)){
         //if this is a key that could be an autocomplete value
         if(key.indexOf('__')!==0){
-          //this keyword follows the previous keyword?
+          //if this is the first level in the daisy chain of keywords
           var isChained=false;
-          if(index===0){
+          if(levelIndex===0){
             if(st.toLowerCase().indexOf(key.toLowerCase())!==-1){
               isChained=true;
               triggerText+=key;
               triggerParts.push(key);
-              //if autcomplete line is being daisy chaned and not complete yet
-              if(lineAfterCursor.trim().length<1){
-                //remove string left of the first key (in case the first key appears more than once in one line)
-                st=st.substring(st.toLowerCase().indexOf(key.toLowerCase()));
-              }else{
-                //remove string left of the first key (in case the first key appears more than once in one line)
-                st=st.substring(st.toLowerCase().lastIndexOf(key.toLowerCase()));
-              }
+              //remove string left of the first key (in case the first key appears more than once in one line)
+              st=st.substring(st.toLowerCase().indexOf(key.toLowerCase()));
             }
           }else{
+            //not first level in the word daisy-chain... if ***
             if(st.toLowerCase().indexOf(key.toLowerCase())===0){
               isChained=true;
               triggerText+=key;
@@ -99,12 +124,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
               if(st.length<key.length){
                 //if this st is incomplete and could be completed as this key
                 if(key.toLowerCase().indexOf(st.toLowerCase())===0){
-                  var newOptions=insertDynamicStr(key,json[key]);
-                  for(var n=0;n<newOptions.length;n++){
-                    if(options.indexOf(newOptions[n])===-1){
-                      options.push(newOptions[n]);
-                    }
-                  }
+                  addOption(key);
                   //if this is the first item in this level
                   if(partialIndex===0){
                     triggerText+=st;
@@ -124,18 +144,13 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
             //if not at the cursor
             if(shorterStr.length>0){
               //recursive call
-              getNextKeys(shorterStr,json[key],index+1);
+              getNextKeys(shorterStr,json[key],levelIndex+1);
             }else{
               //at the cursor... get each of the possible next items
               for(var subKey in json[key]){
                 if(json[key].hasOwnProperty(subKey)){
                   if(subKey.indexOf('__')!==0){
-                    var newOptions=insertDynamicStr(subKey,json[key]);
-                    for(var n=0;n<newOptions.length;n++){
-                      if(options.indexOf(newOptions[n])===-1){
-                        options.push(newOptions[n]);
-                      }
-                    }
+                    addOption(subKey);
                   }
                 }
               }
@@ -144,14 +159,104 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         }
       }
     }
+  };*/
+
+  //function to recursively get keys, where trigger parts are parsed out of the st
+  var getNextKeys=function(st,json,levelIndex){
+    if(levelIndex===0){
+      //trim the left part of the string (string is the text left of the cursor)
+      st=st.trimLeft();
+      //if there is text in which to search for keys
+      if(st.length>0){
+        var triggerTxtUpdated=false;
+        //==SELECT FIRST LEVEL KEYS==
+        for(var key in json){
+          if(json.hasOwnProperty(key)){
+            //if this is a key that could be an autocomplete value
+            if(key.indexOf('__')!==0){
+              //if the text may surpass the length of this key
+              if(st.length>key.length){
+                //if key is the first part of st
+                if(isPartialOf(key, st)){
+                  //recursive call to the second level of possible text options
+
+
+
+                  //*** this is where there could be a dead-end for triggerParts, etc... loop through possible keys? in json[key]???
+
+
+
+                  var shorterKey=st.substring(key.length);
+                  getNextKeys(shorterKey,json[key],levelIndex+1);
+                }
+              //if the text could match the key exactly
+              }else if(st.length===key.length){
+                if(st.toLowerCase()===key.toLowerCase()){
+                  //recursive call to the second level of possible text options
+                  getNextKeys('',json[key],levelIndex+1);
+                  //if trigger text not already updated for this level
+                  if(!triggerTxtUpdated){
+                    addToTriggerText(st); triggerTxtUpdated=true;
+                  }
+                }
+              //if the text may be an incomplete (partial-entry) of a key
+              }else if(st.length<key.length){
+                //if st is the first part of key
+                if(isPartialOf(st, key)){
+                  //add autocomplete option
+                  addOption(key);
+                  partialEntry=true;
+                  //if trigger text not already updated for this level
+                  if(!triggerTxtUpdated){
+                    addToTriggerText(st); triggerTxtUpdated=true;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }else{
+      //==SELECT SUB LEVEL KEYS==
+      for(var key in json){
+        if(json.hasOwnProperty(key)){
+          //if this is a key that could be an autocomplete value
+          if(key.indexOf('__')!==0){
+            //if reached the end of the string, left of the cursor
+            if(st.length<1){
+              //add autocomplete option
+              addOption(key);
+            }
+            //if the text may surpass the length of this key
+            else if(st.length>key.length){
+              //if key is the first part of st
+              if(isPartialOf(key, st)){
+                //***
+              }
+            //if the text could match the key exactly
+            }else if(st.length===key.length){
+              if(st.toLowerCase()===key.toLowerCase()){
+                //***
+              }
+            //if the text may be an incomplete (partial-entry) of a key
+            }else if(st.length<key.length){
+              //if st is the first part of key
+              if(isPartialOf(st, key)){
+                //***
+              }
+            }
+          }
+        }
+      }
+    }
   };
+
+
+
+
   //start getting the applicable options depending on text entry so far
   getNextKeys(lineBeforeCursor,hintsJson,0);
-  //if there are any options available
-  if(options.length>0){
-    //add blank choice end (prevents auto writing the option if there is only one choice)
-    //---options.push('');
-  }
+  //return data
   var ret={options:options, triggerText:triggerText, triggerParts:triggerParts, partialEntry:partialEntry};
   return ret;
 }
