@@ -9,79 +9,47 @@ function getLineSplit(editor){
   return [preStr,aftStr];
 }
 function getAutocompleteOptions(lineSplit,hintsJson,editor){
-  var lineBeforeCursor=lineSplit[0]; var lineAfterCursor=lineSplit[1];
-  var options=[]; var triggerText=''; var triggerParts=[]; var partialEntry=false;
-  //*** save pre-dynamic autocomplete history so it can be deleted later?
-  //function to replace dynamic values in keys
+  var lineBeforeCursor=lineSplit[0]; var lineAfterCursor=lineSplit[1]; var isAfterCursor=false;
 
+  var options=[]; //autocomplete options
+  var triggerText=''; //the text that triggered the autocomplete options (left of cursor)
+  var triggerParts=[]; //the split text that triggered the autocomplete options (left of cursor)
+  var postTriggerText=''; //the text that can trigger autocomplete options (right of cursor)
+  var postTriggerParts=[] //the split text that can trigger autocomplete options (right of cursor)
+  var partialEntry=false; //is the cursor dividing an autocomplete key (as a partial key), eg: "ke | y" ? Or is the cursor after the full key, eg: "key|"
 
-
-
-
-  /*var insertDynamicStr=function(str,jsonItem){
-    var strs=[];
-    var origStr=str;
-    //if there are dynamic values in this string
-    if(str.indexOf('__%')!==-1){
-      //dynamic functions for this json (if any)
-      var dynFuncs;
-      if(jsonItem.hasOwnProperty('__%')){
-        dynFuncs=jsonItem['__%'];
-      }
-      if(dynFuncs!=undefined){
-        for(d in dynFuncs){
-          if(dynFuncs.hasOwnProperty(d)){
-            if(str.indexOf('__%'+d)!==-1){
-              //get the dynamic value, if any
-              var results=dynFuncs[d](editor);
-              if(results!=undefined){
-                //convert string to one-item array
-                if(typeof results==='string'){
-                  results=[results];
-                }
-                //for each different dynamic result
-                var re=new RegExp('__%'+d,'g');
-                for(var r=0;r<results.length;r++){
-                  var resultStr=str;
-                  //replace placeholder with result
-                  resultStr=resultStr.replace(re,results[r]);
-                  //if no more __%
-                  if(resultStr.indexOf('__%')===-1){
-                    //add this dynamic option to the json (to allow daisy chain after this dynamic option)
-                    if(!jsonItem.hasOwnProperty(resultStr)){
-                      jsonItem[resultStr]=jsonItem[origStr];
-                      if(strs.indexOf(resultStr)===-1){
-                        strs.push(resultStr);
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+  var addToTriggerText=function(str){
+    //if before the cursor
+    if(!isAfterCursor){
+      triggerText+=str;
+      triggerParts.push(str);
     }else{
-      //no dynamic __%values in this str...
-
-      //if no strings were added to the list
-      if(strs.length<1){
-        strs.push(str);
-      }
-    }
-    return strs;
-  };*/
-
-
-  var addOption=function(newOption){
-    if(options.indexOf(newOption)===-1){
-      options.push(newOption);
+      //is after the cursor
+      postTriggerText+=str;
+      postTriggerParts.push(str);
     }
   };
 
-  var addToTriggerText=function(str){
-    triggerText+=str;
-    triggerParts.push(str);
+  var addOption=function(newOption,partialStr,longestContinueStr){
+    //if before the cursor
+    if(!isAfterCursor){
+      //if this option isn't already in the array
+      if(options.indexOf(newOption)===-1){
+        //add this option to the array
+        options.push(newOption);
+        //get the continuation of partialStr, that will make up newOption, eg: partialStr + afterPartialStr = newOption
+        var afterPartialStr=newOption.substring(partialStr.length);
+        //if lineAfterCursor already completes this option
+        if(lineAfterCursor.indexOf(afterPartialStr)===0){
+          //if this new continuation string is the longest, so far, in this level
+          if(longestContinueStr.length<afterPartialStr.length){
+            //set the new longest continuation string (that appears after the cursor)
+            longestContinueStr=afterPartialStr;
+          }
+        }
+      }
+    }
+    return longestContinueStr;
   };
 
   var isPartialOf=function(part, full){
@@ -95,81 +63,40 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
     return is;
   };
 
-
-  /*//function to recursively get keys, where trigger parts are parsed out of the st
-  var getNextKeys=function(st,json,levelIndex){
-    //figure out which start keys are in the str
-    var partialIndex=0;
-    for(var key in json){
-      if(json.hasOwnProperty(key)){
-        //if this is a key that could be an autocomplete value
-        if(key.indexOf('__')!==0){
-          //if this is the first level in the daisy chain of keywords
-          var isChained=false;
-          if(levelIndex===0){
-            if(st.toLowerCase().indexOf(key.toLowerCase())!==-1){
-              isChained=true;
-              triggerText+=key;
-              triggerParts.push(key);
-              //remove string left of the first key (in case the first key appears more than once in one line)
-              st=st.substring(st.toLowerCase().indexOf(key.toLowerCase()));
-            }
-          }else{
-            //not first level in the word daisy-chain... if ***
-            if(st.toLowerCase().indexOf(key.toLowerCase())===0){
-              isChained=true;
-              triggerText+=key;
-              triggerParts.push(key);
-            }else{
-              if(st.length<key.length){
-                //if this st is incomplete and could be completed as this key
-                if(key.toLowerCase().indexOf(st.toLowerCase())===0){
-                  addOption(key);
-                  //if this is the first item in this level
-                  if(partialIndex===0){
-                    triggerText+=st;
-                    triggerParts.push(st);
-                    partialEntry=true;
-                  }
-                  //next partial option
-                  partialIndex++;
-                }
-              }
-            }
-          }
-          if(isChained){
-            //remove this keyword from the string
-            var shorterStr=st;
-            shorterStr=shorterStr.substring(shorterStr.toLowerCase().indexOf(key.toLowerCase())+key.length);
-            //if not at the cursor
-            if(shorterStr.length>0){
-              //recursive call
-              getNextKeys(shorterStr,json[key],levelIndex+1);
-            }else{
-              //at the cursor... get each of the possible next items
-              for(var subKey in json[key]){
-                if(json[key].hasOwnProperty(subKey)){
-                  if(subKey.indexOf('__')!==0){
-                    addOption(subKey);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  };*/
-
   //function to recursively get keys, where trigger parts are parsed out of the st
   var getNextKeys=function(st,json,levelIndex){
+    //handle possible daisy chained keys AFTER the cursor position
+    var continueAfterCursor=function(nextStr){
+      //if reached the end of the left side of the cursor and there is a key to continue after the cursor
+      if(nextStr.length>0){
+        //if the key finished on the left side of the cursor, but continues on the right side of the cursor
+        var nextKey=nextStr;
+        if(partialEntry){
+          // ke | y ... put the full key together
+          nextKey=triggerParts[triggerParts.length-1]+nextStr;
+        }
+        //the json should have this key, but double check
+        if(json.hasOwnProperty(nextKey)){
+          //officially now after the cursor
+          isAfterCursor=true;
+          //completion already happened after the cursor, so forget the completion options
+          options=[];
+          //add the first post cursor data
+          addToTriggerText(nextStr);
+          //recursive call to the next daisy chain part
+          var shorterKey=lineAfterCursor.substring(nextStr.length);
+          getNextKeys(shorterKey,json[nextKey],levelIndex+1);
+        }
+      }
+    };
+    //if at the first level
     if(levelIndex===0){
       //trim the left part of the string (string is the text left of the cursor)
       st=st.trimLeft();
       //if there is text in which to search for keys
       if(st.length>0){
-        var triggerTxtUpdated=false;
-        //==SELECT FIRST LEVEL KEYS==
+        var triggerTxtUpdated=false; var longestContinueStr='';
+        //==DETERMINE FIRST LEVEL OPTIONS==
         for(var key in json){
           if(json.hasOwnProperty(key)){
             //if this is a key that could be an autocomplete value
@@ -178,46 +105,71 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
               if(st.length>key.length){
                 //if key is the first part of st
                 if(isPartialOf(key, st)){
+                  //if trigger text not already updated for this level
+                  if(!triggerTxtUpdated){addToTriggerText(key); triggerTxtUpdated=true;}
                   //recursive call to the second level of possible text options
-
-
-
-                  //*** this is where there could be a dead-end for triggerParts, etc... loop through possible keys? in json[key]???
-
-
-
                   var shorterKey=st.substring(key.length);
                   getNextKeys(shorterKey,json[key],levelIndex+1);
                 }
               //if the text could match the key exactly
               }else if(st.length===key.length){
                 if(st.toLowerCase()===key.toLowerCase()){
+                  //if trigger text not already updated for this level
+                  if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
                   //recursive call to the second level of possible text options
                   getNextKeys('',json[key],levelIndex+1);
-                  //if trigger text not already updated for this level
-                  if(!triggerTxtUpdated){
-                    addToTriggerText(st); triggerTxtUpdated=true;
-                  }
                 }
               //if the text may be an incomplete (partial-entry) of a key
               }else if(st.length<key.length){
                 //if st is the first part of key
                 if(isPartialOf(st, key)){
-                  //add autocomplete option
-                  addOption(key);
                   partialEntry=true;
                   //if trigger text not already updated for this level
-                  if(!triggerTxtUpdated){
-                    addToTriggerText(st); triggerTxtUpdated=true;
-                  }
+                  if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
+                  //add autocomplete option
+                  longestContinueStr=addOption(key,st,longestContinueStr);
                 }
               }
             }
           }
         }
+        //handle possible daisy chained keys AFTER the cursor position
+        continueAfterCursor(longestContinueStr);
       }
-    }else{
-      //==SELECT SUB LEVEL KEYS==
+    }else if(json.hasOwnProperty('__complete')){
+      //==DETERMINE AUTOCOMPLETE FORMAT==
+
+      //if reached the end of the string, left of the cursor
+      if(st.length<1){
+        //start handling post cursor chain
+        st=lineAfterCursor;
+        //officially now after the cursor
+        isAfterCursor=true;
+      }
+      //for each dynamic __% function in the autocomplete format
+      var autoCompleteStr=json['__complete'];
+      if(json.hasOwnProperty('__%')){
+        for(var fun in json['__%']){
+          if(json['__%'].hasOwnProperty(fun)){
+            //if this dynamic placeholder value is in the autoCompleteStr
+            if(autoCompleteStr.indexOf('__%'+fun)!==-1){
+              var resultJson=json['__%'][fun]();
+              //***
+            }
+          }
+        }
+      }
+
+      //*** figure out how to divide st into different parts
+
+      console.log('AUTOCOMPLETE: '+json['__complete']);
+      console.log('EXISTING: '+st);
+      //***
+
+    }else if(levelIndex>0){
+      //not the first daisy chain level
+      var triggerTxtUpdated=false; var longestContinueStr='';
+      //==DETERMINE SUB LEVEL OPTIONS==
       for(var key in json){
         if(json.hasOwnProperty(key)){
           //if this is a key that could be an autocomplete value
@@ -225,39 +177,54 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
             //if reached the end of the string, left of the cursor
             if(st.length<1){
               //add autocomplete option
-              addOption(key);
+              longestContinueStr=addOption(key,'',longestContinueStr);
             }
             //if the text may surpass the length of this key
             else if(st.length>key.length){
               //if key is the first part of st
               if(isPartialOf(key, st)){
-                //***
+                //if trigger text not already updated for this level
+                if(!triggerTxtUpdated){addToTriggerText(key); triggerTxtUpdated=true;}
+                //recursive call to the second level of possible text options
+                var shorterKey=st.substring(key.length);
+                getNextKeys(shorterKey,json[key],levelIndex+1);
               }
             //if the text could match the key exactly
             }else if(st.length===key.length){
               if(st.toLowerCase()===key.toLowerCase()){
-                //***
+                //if trigger text not already updated for this level
+                if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
+                //recursive call to the second level of possible text options
+                getNextKeys('',json[key],levelIndex+1);
               }
             //if the text may be an incomplete (partial-entry) of a key
             }else if(st.length<key.length){
               //if st is the first part of key
               if(isPartialOf(st, key)){
-                //***
+                partialEntry=true;
+                //if trigger text not already updated for this level
+                if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
+                //add autocomplete option
+                longestContinueStr=addOption(key,st,longestContinueStr);
               }
             }
           }
         }
       }
+      //handle possible daisy chained keys AFTER the cursor position
+      continueAfterCursor(longestContinueStr);
     }
   };
-
-
-
 
   //start getting the applicable options depending on text entry so far
   getNextKeys(lineBeforeCursor,hintsJson,0);
   //return data
-  var ret={options:options, triggerText:triggerText, triggerParts:triggerParts, partialEntry:partialEntry};
+  var ret={
+    options:options,
+    triggerText:triggerText, triggerParts:triggerParts,
+    postTriggerText:postTriggerText, postTriggerParts:postTriggerParts,
+    partialEntry:partialEntry
+  };
   return ret;
 }
 //add icons, summaries, tooltips, and sub menus to hints menu
