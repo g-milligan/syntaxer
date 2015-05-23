@@ -630,53 +630,58 @@
       },
       "vertexAttribPointer": {
          "__type": "function",
-         "__complete":"(__%pointer,__%itemSize,__%dataType,__%normalize,__%stride,__%offset);",
-         "__%":{
-           pointer:function(){
+         "__complete":['(',
+           {pointer:function(){
              var str=getTabContents({include_ext:['js'],has_some:['gl.getAttribLocation']});
              return {
                options: matchLeftFuncAssign(str,'pointer','gl\\.getAttribLocation','g'),
+               postfix:', ',
                type: 'number',
                summary: 'Index of target attribute in the buffer bound to gl.ARRAY_BUFFER'
              };
-           },
-           itemSize:function(){
+           }},
+           {itemSize:function(){
              var str=getTabContents({include_ext:['js']});
              return {
                options: ['/*itemSize*/'], //***
+               postfix:', ',
                type: 'number',
                summary: 'The number of components per attribute. Must be 1,2,3,or 4. Default is 4.'
              };
-           },
-           dataType:function(){
+           }},
+           {dataType:function(){
              return {
                options: ['gl.FLOAT','gl.FIXED'],
+               postfix:', ',
                type: 'number',
                summary: 'Specifies the data type of each component in the array.'
              };
-           },
-           normalize:function(){
+           }},
+           {normalize:function(){
              return {
                options: ['false','true'],
+               postfix:', ',
                type: 'boolean',
                summary: 'FALSE = Values are converted to fixed point values when accessed. TRUE = Values are normalized when accessed.'
              };
-           },
-           stride:function(){
+           }},
+           {stride:function(){
              return {
                options: ['0'],
+               postfix:', ',
                type: 'number',
                summary: 'Specifies the offset in bytes between the beginning of consecutive vertex attributes. Default value is 0, maximum is 255. Must be a multiple of type.'
              };
-           },
-           offset:function(){
+           }},
+           {offset:function(){
              return {
                options: ['0'],
+               postfix:', ',
                type: 'number',
                summary: 'Specifies an offset in bytes of the first component of the first vertex attribute in the array. Default is 0 which means that vertex attributes are tightly packed. Must be a multiple of type.'
              };
-           }
-         }
+           }},
+         ');']
       },
       "viewport": {
          "__type": "function",
@@ -692,7 +697,7 @@
       //get a real webgl context object
       var canvas=document.createElement('canvas');
       var ctx=canvas.getContext('webgl')||canvas.getContext('experimental-webgl');
-      ctx=Object.getPrototypeOf(ctx);
+      //+++ctx=Object.getPrototypeOf(ctx);
       //add items that are found on a real gl object
       addJsonHints('gl.', ctx, gljshints);
     }

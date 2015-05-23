@@ -89,52 +89,114 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         }
       }
     };
+    //st.length>key.length
+    var stGtKey=function(k,s,callback){
+      var is=false;
+      //if the text may surpass the length of this key
+      if(s.length>k.length){ is=true;
+        //if key is the first part of st
+        if(isPartialOf(k, s)){
+          callback();
+        }
+      } return is;
+    };
+    //st.length<key.length
+    var stLtKey=function(k,s,callback){
+      var is=false;
+      //if the text may surpass the length of this key
+      if(s.length<k.length){ is=true;
+        //if key is the first part of st
+        if(isPartialOf(s, k)){
+          callback();
+        }
+      } return is;
+    };
+    //st.length===key.length
+    var stEqualsKey=function(k,s,callback){
+      var is=false;
+      //if the text may surpass the length of this key
+      if(s.length===k.length){ is=true;
+        //if key is the first part of st
+        if(s.toLowerCase()===k.toLowerCase()){
+          callback();
+        }
+      } return is;
+    };
+    //st.length<1
+    var stIsBlank=function(s,callback){
+      var is=false;
+      //if the text may surpass the length of this key
+      if(s.length<1){
+        is=true; callback();
+      } return is;
+    };
+    //cycles through the keys at different levels to determine the viable autocomplete options
+    var cycleThroughKeys=function(){
+      //not the first daisy chain level
+      var triggerTxtUpdated=false; var longestContinueStr='';
+      //==DETERMINE NESTED/DAISY-CHAINED AUTOCOMPLETE OPTIONS==
+      for(var key in json){
+        if(json.hasOwnProperty(key)){
+          //if this is a key that could be an autocomplete value
+          if(key.indexOf('__')!==0){
+
+            //if after the first key level
+            if(levelIndex>0){
+              //if st is blank, ''
+              if(stIsBlank(st,function(){
+                //add autocomplete option
+                longestContinueStr=addOption(key,'',longestContinueStr);
+              })){continue;}
+            }
+
+            //if st.length>key.length and st starts with key
+            if(stGtKey(key,st,function(){
+              //if trigger text not already updated for this level
+              if(!triggerTxtUpdated){addToTriggerText(key); triggerTxtUpdated=true;}
+              //recursive call to the second level of possible text options
+              var shorterKey=st.substring(key.length);
+              getNextKeys(shorterKey,json[key],levelIndex+1);
+            })){continue;}
+
+            //if st.length===key.length and st equals key
+            if(stEqualsKey(key,st,function(){
+              //if trigger text not already updated for this level
+              if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
+              //recursive call to the second level of possible text options
+              getNextKeys('',json[key],levelIndex+1);
+            })){continue;}
+
+            //if st.length<key.length and key starts with st
+            if(stLtKey(key,st,function(){
+              partialEntry=true;
+              //if trigger text not already updated for this level
+              if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
+              //add autocomplete option
+              longestContinueStr=addOption(key,st,longestContinueStr);
+            })){continue;}
+
+          }
+        }
+      }
+      //handle possible daisy chained keys AFTER the cursor position
+      continueAfterCursor(longestContinueStr);
+    };
     //if at the first level
     if(levelIndex===0){
       //trim the left part of the string (string is the text left of the cursor)
       st=st.trimLeft();
       //if there is text in which to search for keys
       if(st.length>0){
-        var triggerTxtUpdated=false; var longestContinueStr='';
-        //==DETERMINE FIRST LEVEL OPTIONS==
-        for(var key in json){
-          if(json.hasOwnProperty(key)){
-            //if this is a key that could be an autocomplete value
-            if(key.indexOf('__')!==0){
-              //if the text may surpass the length of this key
-              if(st.length>key.length){
-                //if key is the first part of st
-                if(isPartialOf(key, st)){
-                  //if trigger text not already updated for this level
-                  if(!triggerTxtUpdated){addToTriggerText(key); triggerTxtUpdated=true;}
-                  //recursive call to the second level of possible text options
-                  var shorterKey=st.substring(key.length);
-                  getNextKeys(shorterKey,json[key],levelIndex+1);
-                }
-              //if the text could match the key exactly
-              }else if(st.length===key.length){
-                if(st.toLowerCase()===key.toLowerCase()){
-                  //if trigger text not already updated for this level
-                  if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
-                  //recursive call to the second level of possible text options
-                  getNextKeys('',json[key],levelIndex+1);
-                }
-              //if the text may be an incomplete (partial-entry) of a key
-              }else if(st.length<key.length){
-                //if st is the first part of key
-                if(isPartialOf(st, key)){
-                  partialEntry=true;
-                  //if trigger text not already updated for this level
-                  if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
-                  //add autocomplete option
-                  longestContinueStr=addOption(key,st,longestContinueStr);
-                }
-              }
-            }
-          }
+        if(st.indexOf(';')!==-1){
+          //trim off string left of the last ;
+          st=st.substring(st.lastIndexOf(';')+';'.length);
+          st=st.trimLeft();
         }
-        //handle possible daisy chained keys AFTER the cursor position
-        continueAfterCursor(longestContinueStr);
+        //if there is STILL text in which to search for keys
+        if(st.length>0){
+          //recursive loop through daisy chained key levels
+          cycleThroughKeys();
+        }
       }
     }else if(json.hasOwnProperty('__complete')){
       //==DETERMINE AUTOCOMPLETE FORMAT==
@@ -146,73 +208,13 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         //officially now after the cursor
         isAfterCursor=true;
       }
-      //for each dynamic __% function in the autocomplete format
-      var autoCompleteStr=json['__complete'];
-      if(json.hasOwnProperty('__%')){
-        for(var fun in json['__%']){
-          if(json['__%'].hasOwnProperty(fun)){
-            //if this dynamic placeholder value is in the autoCompleteStr
-            if(autoCompleteStr.indexOf('__%'+fun)!==-1){
-              var resultJson=json['__%'][fun]();
-              //***
-            }
-          }
-        }
-      }
 
-      //*** figure out how to divide st into different parts
-
-      console.log('AUTOCOMPLETE: '+json['__complete']);
-      console.log('EXISTING: '+st);
+      // json['__complete'] --> array of parts to complete
       //***
 
     }else if(levelIndex>0){
-      //not the first daisy chain level
-      var triggerTxtUpdated=false; var longestContinueStr='';
-      //==DETERMINE SUB LEVEL OPTIONS==
-      for(var key in json){
-        if(json.hasOwnProperty(key)){
-          //if this is a key that could be an autocomplete value
-          if(key.indexOf('__')!==0){
-            //if reached the end of the string, left of the cursor
-            if(st.length<1){
-              //add autocomplete option
-              longestContinueStr=addOption(key,'',longestContinueStr);
-            }
-            //if the text may surpass the length of this key
-            else if(st.length>key.length){
-              //if key is the first part of st
-              if(isPartialOf(key, st)){
-                //if trigger text not already updated for this level
-                if(!triggerTxtUpdated){addToTriggerText(key); triggerTxtUpdated=true;}
-                //recursive call to the second level of possible text options
-                var shorterKey=st.substring(key.length);
-                getNextKeys(shorterKey,json[key],levelIndex+1);
-              }
-            //if the text could match the key exactly
-            }else if(st.length===key.length){
-              if(st.toLowerCase()===key.toLowerCase()){
-                //if trigger text not already updated for this level
-                if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
-                //recursive call to the second level of possible text options
-                getNextKeys('',json[key],levelIndex+1);
-              }
-            //if the text may be an incomplete (partial-entry) of a key
-            }else if(st.length<key.length){
-              //if st is the first part of key
-              if(isPartialOf(st, key)){
-                partialEntry=true;
-                //if trigger text not already updated for this level
-                if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
-                //add autocomplete option
-                longestContinueStr=addOption(key,st,longestContinueStr);
-              }
-            }
-          }
-        }
-      }
-      //handle possible daisy chained keys AFTER the cursor position
-      continueAfterCursor(longestContinueStr);
+      //recursive loop through daisy chained key levels
+      cycleThroughKeys();
     }
   };
 
@@ -368,7 +370,7 @@ function addJsonHints(addKey, obj, hintsJson){
     };
     //for each property in obj
     for(var key in obj){
-      if(obj.hasOwnProperty(key)){
+      if(obj[key]){
         //if this property isn't already in hintsJson
         if(!hintsJson[topKey].hasOwnProperty(key)){
           //init the json for this item
