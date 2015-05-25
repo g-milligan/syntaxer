@@ -392,6 +392,8 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
                     addToTriggerText(st); st='';
                     //indicate that the string after the cursor is being processed now
                     indicateIfAfterCursor(result);
+                    //continue followed format
+                    followFormat=true;
                   //if there is nothing after the cursor
                   }else if(lineAfterCursor.trim().length<1){
                     //for each option that begins with st
@@ -412,11 +414,34 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
                       //indicate that the string after the cursor is being processed now
                       indicateIfAfterCursor(result);
                     }
+                    //continue followed format
+                    //+++followFormat=true;
+                  //if the st + lineAfterCursor contains the skipToSt
+                  }else if((st+lineAfterCursor).indexOf(skipToSt)!==-1){
+                    //this is an incomplete split
+                    indicatePartialEntry();
+                    //separate the text, beforeSkipTo
+                    var indexOfSkipTo=(st+lineAfterCursor).indexOf(skipToSt);
+                    var beforeSkipTo=st.substring(0,indexOfSkipTo);
+                    //add the part before the skipToSt starts
+                    addToTriggerText(beforeSkipTo);
+                    st=st.substring(beforeSkipTo.length);
+                    var finishLen=skipToSt.length-st.length;
+                    //add the partial substring that makes up the first part of skipToSt
+                    addToTriggerText(st); st='';
+                    //indicate that the string after the cursor is being processed now
+                    indicateIfAfterCursor();
+                    //finish consuming the partial skipToSt
+                    var finishSt=st.substring(0, finishLen);
+                    st=st.substring(finishLen);
+                    addToTriggerText(finishSt);
+                    //continue followed format
+                    followFormat=true;
                   }
                 }
-              }
-              //if the string to skip to exists in st
-              if(st.indexOf(skipToSt)!==-1){
+              }else{
+                //the string to skip to exists in st...
+
                 //get the string before skipToSt
                 var trigTxt=st.substring(0,st.indexOf(skipToSt));
                 //add this trigger text
@@ -425,9 +450,8 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
                 st=st.substring(trigTxt.length);
                 //process the postfix string too
                 followFormat=eatPreSt(origSkipToSt);
-              }else{
-                //st doesn't contain the next skipToSt... doesn't follow the complete format
-                followFormat=false;
+                //continue followed format
+                followFormat=true;
               }
             }
           }
@@ -501,6 +525,63 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
 
   //start getting the applicable options depending on text entry so far
   getNextKeys(lineBeforeCursor,hintsJson,0);
+
+  //get the summary, type, etc of the data
+  var getDataAtCursor=function(aJson){
+    var dataJson={hasAnnotation:false,type:'',key:'',summary:'',options:aJson['options']};
+    if(aJson.hasOwnProperty('dataAtCursor')){
+      if(aJson['dataAtCursor']!=undefined){
+        var prefix='';
+        //if the cursor is not inside a __complete format
+        if(aJson['completeIsIn']!=='triggerParts'){
+          //then all the data items should begin with __
+          prefix='__';
+          //set the key
+          var lastBeforeCur='', firstAfterCur='';
+          if(aJson['triggerParts'].length>0){
+            lastBeforeCur=aJson['triggerParts'][aJson['triggerParts'].length-1];
+          }
+          if(aJson['postTriggerParts'].length>0){
+            firstAfterCur=aJson['postTriggerParts'][0];
+          }
+          if(aJson['partialEntry']){
+            dataJson['key']=lastBeforeCur+firstAfterCur;
+          }else{
+            //not partial entry
+            dataJson['key']=lastBeforeCur;
+          }
+        }
+        //for each viable data item (annotation data)
+        for(var key in aJson['dataAtCursor']){
+          if(aJson['dataAtCursor'].hasOwnProperty(key)){
+            if(key.indexOf(prefix)===0){
+              if(key!=='__complete'&&key!=='options'){
+                //get value
+                var val=aJson['dataAtCursor'][key];
+                //value not blank?
+                if(val!=undefined){
+                  if(typeof val==='string'){
+                    if(val.length>0){
+                      dataJson['hasAnnotation']=true;
+                    }
+                  }else{
+                    dataJson['hasAnnotation']=true;
+                  }
+                }
+                //if value not blank
+                if(dataJson['hasAnnotation']){
+                  //set the viable data item into the return object
+                  dataJson[key.replace(prefix,'')]=val;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return dataJson;
+  };
+
   //return data
   var ret={
     options:options,
@@ -511,17 +592,106 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
     completeFormatTxt:completeFormatTxt, completeFormatParts:completeFormatParts,
     dataAtCursor:dataAtCursor
   };
+  ret['dataAtCursor']=getDataAtCursor(ret);
   return ret;
 }
 //show info like the function signature, plus summary of whatever part has focus
 function showHintsInfo(aJson){
-  var title='', summary='', type='';
-  if(aJson.hasOwnProperty('dataAtCursor')){
-    if(aJson['dataAtCursor']!=undefined){
-      console.log(aJson.dataAtCursor);
-      //***
+  //title html
+  var titleHtml='';
+  var getTitleHtml=function(){
+    var html='';
+    //is this part a substring in the __complete format?
+    var isInCompleteFormat=false, completeFormatIndex=-1, finishedFormat=false;
+    var isCompletePart=function(leftOrRight,index){
+      //if not already in the __complete format parts
+      if(!isInCompleteFormat){
+        //which side of the cursor?
+        var currentPartsName='';
+        switch (leftOrRight) {
+          case 'left': currentPartsName='triggerParts'; break;
+          case 'right': currentPartsName='postTriggerParts'; break;
+        }
+        if(currentPartsName.length>0){
+          if(aJson['completeIsIn']===currentPartsName){
+            if(index===aJson['indexOfComplete']){
+              isInCompleteFormat=true;
+            }
+          }
+        }
+      }
+      //if at the __complete format
+      if(isInCompleteFormat){
+        //next complete format index
+        completeFormatIndex++;
+        //reached the end of the complete format?
+        if(completeFormatIndex+1===aJson['completeFormatParts'].length){
+          finishedFormat=true;
+        }
+      }
+      return isInCompleteFormat;
+    };
+    //for each part left of the cursor
+    for(var l=0;l<aJson['triggerParts'].length;l++){
+      if(!finishedFormat){
+        var part=aJson['triggerParts'][l];
+        //indicate if entered the parts inside the __complete format
+        var completeClass='';
+        if(isCompletePart('left',l)){
+          completeClass=' complete';
+          part=aJson['completeFormatParts'][completeFormatIndex];
+        }
+        //if first part
+        if(l===0){
+          html+='<span class="left-side">'; //start .left-side
+        }
+        //if last part
+        if(finishedFormat || l+1===aJson['triggerParts'].length){
+          html+='<span class="focus part'+completeClass+'">'+part+'</span>'; //focus part
+          html+='</span>'; //end .left-side
+        }else{
+          //not last in left side...
+          html+='<span class="part'+completeClass+'">'+part+'</span>'; //part
+        }
+      }else{
+        break;}
     }
-  }
+    //for each part right of the cursor
+    for(var r=0;r<aJson['postTriggerParts'].length;r++){
+      if(!finishedFormat){
+        var part=aJson['postTriggerParts'][r];
+        //indicate if entered the parts inside the __complete format
+        var completeClass='';
+        if(isCompletePart('right',r)){
+          completeClass=' complete';
+          part=aJson['completeFormatParts'][completeFormatIndex];
+        }
+        //if first part
+        var focusClass='';
+        if(r===0){
+          html+='<span class="right-side">'; //start .right-side
+          //if partialEntry
+          if(aJson['partialEntry']){
+            focusClass='focus ';
+          }
+        }
+        html+='<span class="'+focusClass+'part'+completeClass+'">'+part+'</span>'; //part
+        //if last part
+        if(finishedFormat || r+1===aJson['postTriggerParts'].length){
+          html+='</span>'; //end .right-side
+        }
+      }else{
+        break;}
+    }
+    //if any text was entered
+    if(html.length>0){
+      html='<span class="trigger-text">'+html+'</span>';
+    }
+    return html;
+  };
+  titleHtml=getTitleHtml();
+  jQuery('#hints-info:first').children('.info-title:first').html(titleHtml);
+  //***
 }
 //add icons, summaries, tooltips, and sub menus to hints menu
 var decorate_hints_menu_timeout;

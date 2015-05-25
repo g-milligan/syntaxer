@@ -17,6 +17,20 @@
     box-shadow: inset 0 0 1rem rgba(0, 0, 0, 0.2);
     background-color: #CACACA;
     border-bottom: solid .1rem #7f1171;
+
+    .trigger-text{
+      .left-side{
+
+      }
+      .right-size{
+
+      }
+      .part{
+        &.focus{
+          font-weight:bold;
+        }
+      }
+    }
   }
   .info-body{
     @include borderbox();

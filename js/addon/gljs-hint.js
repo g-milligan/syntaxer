@@ -15,6 +15,8 @@
   var gljshints={
     "gtest.":{"test":{}},
    "gl.": {
+      "__type":"object",
+      "__summary":"The WebGLRenderingContext is the primary object used for interacting with webgl graphics. The context provides access to many native WebGL properties and methods.",
       "activeTexture": {
          "__type": "function",
          "();": {}
@@ -630,6 +632,7 @@
       },
       "vertexAttribPointer": {
          "__type": "function",
+         "__summary":"The first argument is a pointer value, linked to a shader program field; used to tell the shader program to update one of its fields values.",
          "__complete":[
            {pointer:{
              options:function(){
@@ -644,7 +647,7 @@
            {itemSize:{
              options:function(){
                var str=getTabContents({include_ext:['js']});
-               return ['/*itemSize*/'];
+               return ['/*itemSize*/']; //***
              },
              post:', ', type: 'number',
              summary: 'The number of components per attribute. Must be 1,2,3,or 4. Default is 4.'
@@ -653,7 +656,7 @@
              options:function(){
                return ['gl.FLOAT','gl.FIXED'];
              },
-             post:', ', type: 'number',
+             post:',, ', type: 'number',
              summary: 'Specifies the data type of each component in the array.'
            }},
            {normalize:{
