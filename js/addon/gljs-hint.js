@@ -634,7 +634,9 @@
            {pointer:{
              options:function(){
                var str=getTabContents({include_ext:['js'],has_some:['gl.getAttribLocation']});
-               return matchLeftFuncAssign(str,'pointer','gl\\.getAttribLocation','g');
+               var ops=matchLeftFuncAssign(str,'pointer','gl\\.getAttribLocation','g');
+               ops.push('shadoopie'); //***
+               return ops;
              },
              pre:'(', post:', ', type: 'number',
              summary: 'Index of target attribute in the buffer bound to gl.ARRAY_BUFFER'

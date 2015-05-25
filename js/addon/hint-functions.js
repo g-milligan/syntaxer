@@ -19,6 +19,17 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
   var partialEntry=false; //is the cursor dividing an autocomplete key (as a partial key), eg: "ke | y" ? Or is the cursor after the full key, eg: "key|"
   var indexOfComplete=-1; //the index, in either postTriggerParts OR triggerParts, where the __complete format starts
   var completeIsIn=''; //does the __complete format start in postTriggerText or triggerParts
+  var completeFormatTxt=''; //like triggerText, exept this is exclusively for the __complete format, not what's actually entered text
+  var completeFormatParts=[]; //like triggerParts, exept this is exclusively for the __complete format, not what's actually entered text
+  var dataAtCursor; //json data for the triggerPart, at the cursor
+
+  var saveDataAtCursor=function(data){
+    //if not already beyond the cursor
+    if(!isAfterCursor){
+      //set the latest json level
+      dataAtCursor=data;
+    }
+  };
 
   var indicatePartialEntry=function(){
     //if not already after the cursor
@@ -53,28 +64,6 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
     }
   };
 
-  var addOption=function(newOption,partialStr,longestContinueStr){
-    //if before the cursor
-    if(!isAfterCursor){
-      //if this option isn't already in the array
-      if(options.indexOf(newOption)===-1){
-        //add this option to the array
-        options.push(newOption);
-        //get the continuation of partialStr, that will make up newOption, eg: partialStr + afterPartialStr = newOption
-        var afterPartialStr=newOption.substring(partialStr.length);
-        //if lineAfterCursor already completes this option
-        if(lineAfterCursor.indexOf(afterPartialStr)===0){
-          //if this new continuation string is the longest, so far, in this level
-          if(longestContinueStr.length<afterPartialStr.length){
-            //set the new longest continuation string (that appears after the cursor)
-            longestContinueStr=afterPartialStr;
-          }
-        }
-      }
-    }
-    return longestContinueStr;
-  };
-
   var isPartialOf=function(part, full){
     var is=false;
     //if part is at the start of full
@@ -84,6 +73,36 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
       }
     }
     return is;
+  };
+
+  var addOption=function(newOption,partialStr,longestContinueStr,jsonData){
+    //if before the cursor
+    if(!isAfterCursor){
+      //if this option could complete the current text
+      if(isPartialOf(partialStr+lineAfterCursor, newOption) || isPartialOf(newOption, partialStr+lineAfterCursor)){
+        //only show options when at the end of the line
+        if(lineAfterCursor.trim().length<1){
+          //if this option isn't already in the array
+          if(options.indexOf(newOption)===-1){
+            //add this option to the array
+            options.push(newOption);
+          }
+        }
+        //get the continuation of partialStr, that will make up newOption, eg: partialStr + afterPartialStr = newOption
+        var afterPartialStr=newOption.substring(partialStr.length);
+        //if lineAfterCursor already completes this option
+        if(lineAfterCursor.indexOf(afterPartialStr)===0){
+          //if this new continuation string is the longest, so far, in this level
+          if(longestContinueStr.length<afterPartialStr.length){
+            //set the new longest continuation string (that appears after the cursor)
+            longestContinueStr=afterPartialStr;
+            //set the most recent json data that could belong to the text part, where the cursor is set
+            saveDataAtCursor(jsonData);
+          }
+        }
+      }
+    }
+    return longestContinueStr;
   };
 
   //function to recursively get keys, where trigger parts are parsed out of the st
@@ -100,6 +119,8 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         }
         //the json should have this key, but double check
         if(json.hasOwnProperty(nextKey)){
+          //set the data, for the part focused by the cursor
+          saveDataAtCursor(json[nextKey]);
           //officially now after the cursor
           isAfterCursor=true;
           //completion already happened after the cursor, so forget the completion options
@@ -124,16 +145,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
       } return is;
     };
     //st.length<key.length
-    var stLtKey=function(k,s,callback){
-      var is=false;
-      //if the text may surpass the length of this key
-      if(s.length<k.length){ is=true;
-        //if key is the first part of st
-        if(isPartialOf(s, k)){
-          callback();
-        }
-      } return is;
-    };
+    var stLtKey=function(k,s,callback){ return stGtKey(s,k,callback); };
     //st.length===key.length
     var stEqualsKey=function(k,s,callback){
       var is=false;
@@ -168,7 +180,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
               //if st is blank, ''
               if(stIsBlank(st,function(){
                 //add autocomplete option
-                longestContinueStr=addOption(key,'',longestContinueStr);
+                longestContinueStr=addOption(key,'',longestContinueStr,json[key]);
               })){continue;}
             }
 
@@ -183,6 +195,8 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
 
             //if st.length===key.length and st equals key
             if(stEqualsKey(key,st,function(){
+              //save data for the part on which the cursor has focus
+              saveDataAtCursor(json[key]);
               //if trigger text not already updated for this level
               if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
               //recursive call to the second level of possible text options
@@ -196,7 +210,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
               //if trigger text not already updated for this level
               if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
               //add autocomplete option
-              longestContinueStr=addOption(key,st,longestContinueStr);
+              longestContinueStr=addOption(key,st,longestContinueStr,json[key]);
             })){continue;}
 
           }
@@ -227,13 +241,15 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
       var addAutoCompleteOptions=function(op, postfix){
         if(postfix==undefined){postfix='';}
         if(typeof op==='string'){
+          op+=postfix; op=op.trim();
           if(options.indexOf(op)===-1){
-            options.push(op+postfix);
+            options.push(op);
           }
         }else{
           for(var o=0;o<op.length;o++){
-            if(options.indexOf(op[o])===-1){
-              options.push(op[o]+postfix);
+            var newOp=op[o]+postfix; newOp=newOp.trim();
+            if(options.indexOf(newOp)===-1){
+              options.push(newOp);
             }
           }
         }
@@ -249,14 +265,40 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
             st=lineAfterCursor;
             //officially now after the cursor
             isAfterCursor=true;
-            //if the data for the current item (where the cursor is located) is given
-            if(result!=undefined){
-              //if an options function is given
-              if(result.hasOwnProperty('options')){
-                //set the auto complete options for the part positioned at the cursor
-                var op=result['options']();
-                var post=''; if(result.hasOwnProperty('post')){post=result['post'];}
-                addAutoCompleteOptions(op, post);
+            //if partial entry or at the end of the line
+            if(partialEntry||st.length<1){
+              //if the data for the current item (where the cursor is located) is given
+              if(result!=undefined){
+                //if an options function is given
+                if(result.hasOwnProperty('options')){
+                  //set the auto complete options for the part positioned at the cursor
+                  var op=result['options']();
+                  if(op.length>0){
+                    //filter out the options that don't begin with the partial text
+                    var partTxt=triggerParts[triggerParts.length-1];
+                    var filteredOp=[];
+                    for(var o=0;o<op.length;o++){
+                      if(isPartialOf(partTxt, op[o])){
+                        filteredOp.push(op[o]);
+                      }
+                    }
+                    //if there are no filtered options available
+                    if(filteredOp.length<1){
+                      //display all non filtered options
+                      filteredOp=op;
+                    }
+                    //postfix string for the options
+                    var post='';
+                    if(result.hasOwnProperty('post')){
+                      //if the text to the right of the cursor is blank
+                      if(st.trim().length<1){
+                        post=result['post'];
+                      }
+                    }
+                    //add the options
+                    addAutoCompleteOptions(filteredOp, post);
+                  }
+                }
               }
             }
           }
@@ -288,21 +330,31 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
                   trigTxt+=frontSt[f];
                   st=st.substring(1);
                 }else{
-                  //the entered text fails to fullfill the completion format up to this point... if SOME of the pre text was fullfilled
-                  if(trigTxt.length>0){
-                    //indicate that this is a partial entry
-                    indicatePartialEntry();
+                  //if not already partial entry
+                  if(!partialEntry){
+                    //the entered text fails to fullfill the completion format up to this point... if SOME of the pre text was fullfilled
+                    if(trigTxt.length>0){
+                      //indicate that this is a partial entry
+                      indicatePartialEntry();
+                    }
+                    //suggest to autocomplete frontSt
+                    addAutoCompleteOptions(frontSt);
                   }
-                  //suggest to autocomplete frontSt
-                  addAutoCompleteOptions(frontSt);
                   break;
                 }
               }
             }
           }
         }else{
-          //string is blank after cursor... so suggest to autocomplete frontSt
-          addAutoCompleteOptions(frontSt);
+          //st is blank...
+
+          //if the string after the cursor is also blank
+          if(lineAfterCursor.trim().length<1){
+            //so suggest to autocomplete the entire frontSt, if not already partial entry
+            if(!partialEntry){
+              addAutoCompleteOptions(frontSt);
+            }
+          }
         }
         //if any or all of the pre text is fullfilled by the text entry
         if(trigTxt.length>0){ addToTriggerText(trigTxt); }
@@ -340,6 +392,26 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
                     addToTriggerText(st); st='';
                     //indicate that the string after the cursor is being processed now
                     indicateIfAfterCursor(result);
+                  //if there is nothing after the cursor
+                  }else if(lineAfterCursor.trim().length<1){
+                    //for each option that begins with st
+                    var op=result['options'](); var opFound=false;
+                    for(var o=0;o<op.length;o++){
+                      if(isPartialOf(st, op[o])){
+                        //add this as one option to choose
+                        addAutoCompleteOptions(op[o], origSkipToSt);
+                        opFound=true;
+                      }
+                    }
+                    //if st partially fullfills an autocomplete option
+                    if(opFound){
+                      //this is an incomplete split
+                      indicatePartialEntry();
+                      //add the partial text
+                      addToTriggerText(st); st='';
+                      //indicate that the string after the cursor is being processed now
+                      indicateIfAfterCursor(result);
+                    }
                   }
                 }
               }
@@ -362,8 +434,11 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         }
         return followFormat;
       };
-      //the general format for the auto-complete
-      var completeFormat=''; var followsFormat=true; var skipAhead=false;
+      //add to the format template for the __complete data
+      var addToCompleteFormat=function(formatTxt){
+        completeFormatTxt+=formatTxt; completeFormatParts.push(formatTxt);
+      };
+      var followsFormat=true; var skipAhead=false;
       //loop through the parts of the auto complete format
       for(var c=0;c<json['__complete'].length;c++){
         var part=json['__complete'][c];
@@ -372,11 +447,14 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           if(part.hasOwnProperty(k)){
             //get data for this completion part
             var result=part[k];
+            result['key']=k;
+            //save the latest data, if not already beyond the cursor
+            saveDataAtCursor(result);
             //prefix string
             if(result.hasOwnProperty('pre')){
               var pre=result['pre'];
               if(pre.length>0){
-                completeFormat+=pre;
+                addToCompleteFormat(pre);
                 //if the entry so far still follows this format
                 if(followsFormat){
                   //remove the pre string from the front of st
@@ -393,12 +471,12 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
               }
             }
             //placeholder name
-            completeFormat+=k;
+            addToCompleteFormat(k);
             //postfix string
             if(result.hasOwnProperty('post')){
               var post=result['post'];
               if(post.length>0){
-                completeFormat+=post;
+                addToCompleteFormat(post);
                 //if the entry so far still follows this format
                 if(followsFormat){
                   post=post.trim();
@@ -415,9 +493,6 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         }
       }
 
-      // json['__complete'] --> array of parts to complete
-      //***
-
     }else if(levelIndex>0){
       //recursive loop through daisy chained key levels
       cycleThroughKeys();
@@ -432,20 +507,33 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
     triggerText:triggerText, triggerParts:triggerParts,
     postTriggerText:postTriggerText, postTriggerParts:postTriggerParts,
     partialEntry:partialEntry,
-    indexOfComplete:indexOfComplete, completeIsIn:completeIsIn
+    indexOfComplete:indexOfComplete, completeIsIn:completeIsIn,
+    completeFormatTxt:completeFormatTxt, completeFormatParts:completeFormatParts,
+    dataAtCursor:dataAtCursor
   };
   return ret;
 }
+//show info like the function signature, plus summary of whatever part has focus
+function showHintsInfo(aJson){
+  var title='', summary='', type='';
+  if(aJson.hasOwnProperty('dataAtCursor')){
+    if(aJson['dataAtCursor']!=undefined){
+      console.log(aJson.dataAtCursor);
+      //***
+    }
+  }
+}
 //add icons, summaries, tooltips, and sub menus to hints menu
 var decorate_hints_menu_timeout;
-function decorateHintsMenu(aJson,hintsJson,tries){
+function decorateHintsMenu(lineSplit,hintsJson,aJson,tries){
   if(tries==undefined){tries=0;}
   //delay so that the hints menu will be open
   clearTimeout(decorate_hints_menu_timeout);
   decorate_hints_menu_timeout=setTimeout(function(){
     var ul=jQuery('.CodeMirror-hints:first');
     if(ul.length>0){
-      //get the json values for these option items (same level)
+      //***
+      /*//get the json values for these option items (same level)
       var triggerParts=aJson['triggerParts'];
       var json=hintsJson;
       for(var p=0;p<triggerParts.length;p++){
@@ -473,7 +561,7 @@ function decorateHintsMenu(aJson,hintsJson,tries){
             if(json.hasOwnProperty('__summary')){
               var summary=json['__summary'].trim();
               if(summary.length>0){
-                console.log(summary); //***
+                console.log(summary);
               }
             }
           }
@@ -481,11 +569,11 @@ function decorateHintsMenu(aJson,hintsJson,tries){
           var itemJson=json[liTxt];
           decorateHintItem(itemJson,li);
         }
-      });
+      });*/
     }else{
       if(tries<20){
         //recursive try again
-        decorateHintsMenu(aJson,hintsJson,tries+1);
+        decorateHintsMenu(lineSplit,hintsJson,aJson,tries+1);
       }
     }
   },10);
@@ -591,26 +679,36 @@ function addJsonHints(addKey, obj, hintsJson){
 }
 //generic handle hints depending on hintsJson data
 function handleJsonHints(editor, hintsJson){
-  //get the autocomplete data including the possible options and the text that triggered these options
+  //get the text before and after the cursor
   var lineSplit=getLineSplit(editor);
+  //get the autocomplete data including the possible options and the text daisy-chain that triggered these options
   var aJson=getAutocompleteOptions(lineSplit, hintsJson, editor);
   var list=aJson['options'];
-  var triggerParts=aJson['triggerParts'];
+  var triggerParts=aJson['triggerParts']; //before the cursor
+  var postTriggerParts=aJson['postTriggerParts']; //after the cursor
   //get the cursor position to figure out what existing text (if any) should be removed before autocomplete happens
   var cur = editor.getCursor(), curLine = editor.getLine(cur.line);
   var end = cur.ch, start = end;
   //if there is partial text that should be removed before autocomplete happens
   if(aJson['partialEntry']){
-    //if there are any daisy-chained keywords, "parts"
+    //if there are any daisy-chained keywords, "parts" before the cursor
     if(triggerParts.length>0){
-      //get the last daisy chained word in the series
-      var lastPart=triggerParts[triggerParts.length-1];
-      //delete this word before writing it again in the editor
-      start-=lastPart.length;
+      //start at what point before the cursor?
+      start-=triggerParts[triggerParts.length-1].length;
+      //if there are any daisy chained-parts after the cursor
+      if(postTriggerParts.length>0){
+        //start at what point after the cursor?
+        end+=postTriggerParts[0].length;
+      }
     }
   }
-  //add icons, summaries, tooltips, and sub menus to hints menu
-  decorateHintsMenu(aJson,hintsJson);
+  //show info like the function signature, plus summary of whatever part has focus
+  showHintsInfo(aJson);
+  //if there are any option hints
+  if(list.length>0){
+    //add icons, and other decorative styles to dropdown hints
+    decorateHintsMenu(lineSplit,hintsJson,aJson);
+  }
   //return
   return {list: list,
     from: CodeMirror.Pos(cur.line, start),

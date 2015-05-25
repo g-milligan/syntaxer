@@ -448,33 +448,62 @@
       textarea[0].parentNode.replaceChild(el, textarea[0]);
     },config);
     myCodeMirror['myHintType']=hintType;
+    //function to keep track of the last cursor position to prevent both change and cursorActivity events from firing consecutively
+    var updateCursorPos=function(){
+      var newCurPos=myCodeMirror.getCursor();
+      myCodeMirror['myCursorPos']={line:newCurPos.line, ch:newCurPos.ch};
+    };
+    var ifCursorPosNeedsUpdate=function(){
+      var needsUpdate=true;
+      if(myCodeMirror.hasOwnProperty('myCursorPos') && myCodeMirror['myCursorPos']!=undefined){
+        var myCurPos=myCodeMirror['myCursorPos'];
+        var newCurPos=myCodeMirror.getCursor();
+        //if no line change
+        if(myCurPos.line===newCurPos.line){
+          //if no character change
+          if(myCurPos.ch===newCurPos.ch){
+            needsUpdate=false;
+          }
+        }
+      }
+      //if needs update
+      if(needsUpdate){
+        //then update cursor position
+        updateCursorPos();
+      }
+      return needsUpdate;
+    };
     //codemirror editor events
     myCodeMirror.on('change', function(instance, object){
-      //indicate unsaved change
-      jQuery('body:first').addClass('has-changes');
-      jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first').addClass('has-changes');
-      //autocomplete
-      if(myCodeMirror['myHintType']){
-        //show the hints dropdown
-        myCodeMirror.showHint({
-          eventTrigger:'change',
-          completeSingle:false, //auto-complete when only one option remains?
-          closeOnUnfocus:false, //close options dropdown when lose focus?
-          hint:CodeMirror.hint[myCodeMirror['myHintType']] //what hints list?
-        });
+      if(ifCursorPosNeedsUpdate()){
+        //indicate unsaved change
+        jQuery('body:first').addClass('has-changes');
+        jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first').addClass('has-changes');
+        //autocomplete
+        if(myCodeMirror['myHintType']){
+          //show the hints dropdown
+          myCodeMirror.showHint({
+            eventTrigger:'change',
+            completeSingle:false, //auto-complete when only one option remains?
+            closeOnUnfocus:false, //close options dropdown when lose focus?
+            hint:CodeMirror.hint[myCodeMirror['myHintType']] //what hints list?
+          });
+        }
       }
     });
     //when mouse cursor position changes
     myCodeMirror.on('cursorActivity', function(instance, object){
-      //autocomplete
-      if(myCodeMirror['myHintType']){
-        //show the hints dropdown
-        myCodeMirror.showHint({
-          eventTrigger:'cursorActivity',
-          completeSingle:false, //auto-complete when only one option remains?
-          closeOnUnfocus:false, //close options dropdown when lose focus?
-          hint:CodeMirror.hint[myCodeMirror['myHintType']] //what hints list?
-        });
+      if(ifCursorPosNeedsUpdate()){
+        //autocomplete
+        if(myCodeMirror['myHintType']){
+          //show the hints dropdown
+          myCodeMirror.showHint({
+            eventTrigger:'cursorActivity',
+            completeSingle:false, //auto-complete when only one option remains?
+            closeOnUnfocus:false, //close options dropdown when lose focus?
+            hint:CodeMirror.hint[myCodeMirror['myHintType']] //what hints list?
+          });
+        }
       }
     });
     //create a placeholder for the content menus
@@ -812,6 +841,10 @@
 </head>
 <body id="body" onload="javascript:initSyntaxer();">
   <section id="file-content"></section>
+  <section id="hints-info">
+    <div class="info-title"></div>
+    <div class="info-body"></div>
+  </section>
   <nav id="tabs"></nav>
   <nav id="hud">
     <ul>

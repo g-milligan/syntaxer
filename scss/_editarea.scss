@@ -5,7 +5,7 @@ section#file-content{
   position:fixed;
   left:0;
   top:($h-hud+$h-tabs);
-  bottom:0;
+  bottom:$h-hints-info-title;
   margin:0;
   padding:.5rem 0;
   @include borderbox();
@@ -22,7 +22,7 @@ section#file-content{
     width:100%;
     height:100%;
     @include borderbox();
-    border-bottom: solid .3rem #7f1171;
+    border-bottom: solid .1rem #7f1171;
 
     > div.CodeMirror{
       height:auto;
