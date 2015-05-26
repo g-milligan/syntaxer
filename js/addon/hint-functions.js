@@ -26,8 +26,10 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
   var saveDataAtCursor=function(data){
     //if not already beyond the cursor
     if(!isAfterCursor){
-      //set the latest json level
-      dataAtCursor=data;
+      if(data!=undefined){
+        //set the latest json level
+        dataAtCursor=data;
+      }
     }
   };
 
@@ -96,8 +98,6 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           if(longestContinueStr.length<afterPartialStr.length){
             //set the new longest continuation string (that appears after the cursor)
             longestContinueStr=afterPartialStr;
-            //set the most recent json data that could belong to the text part, where the cursor is set
-            saveDataAtCursor(jsonData);
           }
         }
       }
@@ -119,8 +119,14 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         }
         //the json should have this key, but double check
         if(json.hasOwnProperty(nextKey)){
-          //set the data, for the part focused by the cursor
-          saveDataAtCursor(json[nextKey]);
+          //if finished with left side
+          if(st.length<1){
+            //left of cursor data: save data for the part on which the cursor has focus
+            saveDataAtCursor(json);
+          }else{
+            //left + right of cursor data: save data for the part on which the cursor has focus
+            saveDataAtCursor(json[nextKey]);
+          }
           //officially now after the cursor
           isAfterCursor=true;
           //completion already happened after the cursor, so forget the completion options
@@ -238,282 +244,249 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
       }
     }else if(json.hasOwnProperty('__complete')){
       //==DETERMINE AUTOCOMPLETE FORMAT==
-      var addAutoCompleteOptions=function(op, postfix){
-        if(postfix==undefined){postfix='';}
-        if(typeof op==='string'){
-          op+=postfix; op=op.trim();
-          if(options.indexOf(op)===-1){
-            options.push(op);
-          }
-        }else{
-          for(var o=0;o<op.length;o++){
-            var newOp=op[o]+postfix; newOp=newOp.trim();
-            if(options.indexOf(newOp)===-1){
-              options.push(newOp);
-            }
-          }
-        }
-      };
-      //indicate when after the cursor
-      var indicateIfAfterCursor=function(result){
-        st=st.trim();
-        //if not already after cursor
-        if(!isAfterCursor){
-          //if reached the end of the string, left of the cursor
-          if(st.length<1){
-            //start handling post cursor chain
-            st=lineAfterCursor;
-            //officially now after the cursor
-            isAfterCursor=true;
-            //if partial entry or at the end of the line
-            if(partialEntry||st.length<1){
-              //if the data for the current item (where the cursor is located) is given
-              if(result!=undefined){
-                //if an options function is given
-                if(result.hasOwnProperty('options')){
-                  //set the auto complete options for the part positioned at the cursor
-                  var op=result['options']();
-                  if(op.length>0){
-                    //filter out the options that don't begin with the partial text
-                    var partTxt=triggerParts[triggerParts.length-1];
-                    var filteredOp=[];
-                    for(var o=0;o<op.length;o++){
-                      if(isPartialOf(partTxt, op[o])){
-                        filteredOp.push(op[o]);
-                      }
-                    }
-                    //if there are no filtered options available
-                    if(filteredOp.length<1){
-                      //display all non filtered options
-                      filteredOp=op;
-                    }
-                    //postfix string for the options
-                    var post='';
-                    if(result.hasOwnProperty('post')){
-                      //if the text to the right of the cursor is blank
-                      if(st.trim().length<1){
-                        post=result['post'];
-                      }
-                    }
-                    //add the options
-                    addAutoCompleteOptions(filteredOp, post);
-                  }
-                }
-              }
-            }
-          }
-        }
-        //indicate where the __complete section starts within the trigger parts
-        setIndexOfComplete();
-      };
-      //initial check for after cursor
-      indicateIfAfterCursor();
-      //function to consume a pre format text part
-      var eatPreSt=function(frontSt){
-        var followFormat=false; var trigTxt='';
-        //detect if processing text after the cursor
-        indicateIfAfterCursor();
-        //if the st is not ended
-        if(st.length>0){
-          //if there is a frontSt
-          if(frontSt!=undefined){
-            //trim the frontSt if it's not entirely spaces
-            if(frontSt.trim().length>0){
-              frontSt=frontSt.trim();
-            }
-            //if frontSt not blank
-            if(frontSt.length>0){
-              //for each letter of the entry that fullfills this pre text string
-              for(var f=0;f<frontSt.length;f++){
-                if(st.indexOf(frontSt[f])===0){
-                  //the entered text fullfills this single character of the completion format
-                  trigTxt+=frontSt[f];
-                  st=st.substring(1);
-                }else{
-                  //if not already partial entry
-                  if(!partialEntry){
-                    //the entered text fails to fullfill the completion format up to this point... if SOME of the pre text was fullfilled
-                    if(trigTxt.length>0){
-                      //indicate that this is a partial entry
-                      indicatePartialEntry();
-                    }
-                    //suggest to autocomplete frontSt
-                    addAutoCompleteOptions(frontSt);
-                  }
-                  break;
-                }
-              }
-            }
-          }
-        }else{
-          //st is blank...
 
-          //if the string after the cursor is also blank
-          if(lineAfterCursor.trim().length<1){
-            //so suggest to autocomplete the entire frontSt, if not already partial entry
-            if(!partialEntry){
-              addAutoCompleteOptions(frontSt);
-            }
+      //handle basic placeholder format, not including what's actually written
+      var txtParts=[]; var dynamicPlaceholder='</__%__/>';
+      var setPlaceholderFormat=function(result){
+        //add to the format template for the __complete data
+        var addToCompleteFormat=function(formatTxt){
+          if(formatTxt.length>0){
+            completeFormatTxt+=formatTxt; completeFormatParts.push(formatTxt);
           }
+        };
+        //build the txt parts used to parse out the actual entered text
+        var addToTxtParts=function(part){
+          txtParts.push(part);
+        };
+        //prefix string
+        if(result.hasOwnProperty('pre')){
+          addToCompleteFormat(result['pre']); addToTxtParts(result['pre']);
         }
-        //if any or all of the pre text is fullfilled by the text entry
-        if(trigTxt.length>0){ addToTriggerText(trigTxt); }
-        //if the st still follows the completion format
-        if(trigTxt.length===frontSt.length){
-          followFormat=true;
+        //placeholder name
+        addToCompleteFormat(result['key']); addToTxtParts(dynamicPlaceholder);
+        //postfix string
+        if(result.hasOwnProperty('post')){
+          addToCompleteFormat(result['post']); addToTxtParts(result['post']);
         }
-        return followFormat;
       };
-      //function to consume a pre format text part
-      var skipToPost=function(skipToSt,result){
-        var followFormat=false;
-        //detect if processing text after the cursor
-        indicateIfAfterCursor(result);
-        //if the st is not ended
-        if(st.length>0){
-          //if there is a frontSt
-          if(skipToSt!=undefined){
-            var origSkipToSt=skipToSt;
-            //trim the skipToSt if it's not entirely spaces
-            if(skipToSt.trim().length>0){
-              skipToSt=skipToSt.trim();
-            }
-            //if skipToSt not blank
-            if(skipToSt.length>0){
-              //if the string to skip to does not exist in st
-              if(st.indexOf(skipToSt)===-1){
-                //if not already right of the cursor
-                if(!isAfterCursor){
-                  //if the string AFTER the cursor contains the skipToSt
-                  if(lineAfterCursor.indexOf(skipToSt)!==-1){
-                    //this is an incomplete split
-                    indicatePartialEntry();
-                    //add the partial text
-                    addToTriggerText(st); st='';
-                    //indicate that the string after the cursor is being processed now
-                    indicateIfAfterCursor(result);
-                    //continue followed format
-                    followFormat=true;
-                  //if there is nothing after the cursor
-                  }else if(lineAfterCursor.trim().length<1){
-                    //for each option that begins with st
-                    var op=result['options'](); var opFound=false;
-                    for(var o=0;o<op.length;o++){
-                      if(isPartialOf(st, op[o])){
-                        //add this as one option to choose
-                        addAutoCompleteOptions(op[o], origSkipToSt);
-                        opFound=true;
-                      }
-                    }
-                    //if st partially fullfills an autocomplete option
-                    if(opFound){
-                      //this is an incomplete split
-                      indicatePartialEntry();
-                      //add the partial text
-                      addToTriggerText(st); st='';
-                      //indicate that the string after the cursor is being processed now
-                      indicateIfAfterCursor(result);
-                    }
-                    //continue followed format
-                    //+++followFormat=true;
-                  //if the st + lineAfterCursor contains the skipToSt
-                  }else if((st+lineAfterCursor).indexOf(skipToSt)!==-1){
-                    //this is an incomplete split
-                    indicatePartialEntry();
-                    //separate the text, beforeSkipTo
-                    var indexOfSkipTo=(st+lineAfterCursor).indexOf(skipToSt);
-                    var beforeSkipTo=st.substring(0,indexOfSkipTo);
-                    //add the part before the skipToSt starts
-                    addToTriggerText(beforeSkipTo);
-                    st=st.substring(beforeSkipTo.length);
-                    var finishLen=skipToSt.length-st.length;
-                    //add the partial substring that makes up the first part of skipToSt
-                    addToTriggerText(st); st='';
-                    //indicate that the string after the cursor is being processed now
-                    indicateIfAfterCursor();
-                    //finish consuming the partial skipToSt
-                    var finishSt=st.substring(0, finishLen);
-                    st=st.substring(finishLen);
-                    addToTriggerText(finishSt);
-                    //continue followed format
-                    followFormat=true;
-                  }
-                }
-              }else{
-                //the string to skip to exists in st...
-
-                //get the string before skipToSt
-                var trigTxt=st.substring(0,st.indexOf(skipToSt));
-                //add this trigger text
-                addToTriggerText(trigTxt);
-                //trim off trigTxt from st
-                st=st.substring(trigTxt.length);
-                //process the postfix string too
-                followFormat=eatPreSt(origSkipToSt);
-                //continue followed format
-                followFormat=true;
-              }
-            }
-          }
-        }
-        return followFormat;
-      };
-      //add to the format template for the __complete data
-      var addToCompleteFormat=function(formatTxt){
-        completeFormatTxt+=formatTxt; completeFormatParts.push(formatTxt);
-      };
-      var followsFormat=true; var skipAhead=false;
       //loop through the parts of the auto complete format
+      var results=[];
       for(var c=0;c<json['__complete'].length;c++){
         var part=json['__complete'][c];
         //get the first json key in this part json
         for(k in part){
           if(part.hasOwnProperty(k)){
             //get data for this completion part
-            var result=part[k];
-            result['key']=k;
-            //save the latest data, if not already beyond the cursor
-            saveDataAtCursor(result);
-            //prefix string
-            if(result.hasOwnProperty('pre')){
-              var pre=result['pre'];
-              if(pre.length>0){
-                addToCompleteFormat(pre);
-                //if the entry so far still follows this format
-                if(followsFormat){
-                  //remove the pre string from the front of st
-                  pre=pre.trim();
-                  //if need to skip ahead
-                  if(skipAhead){
-                    skipAhead=false;
-                    followsFormat=skipToPost(pre,result);
-                  }else{
-                    //consume prefix
-                    followsFormat=eatPreSt(pre);
-                  }
-                }
-              }
-            }
-            //placeholder name
-            addToCompleteFormat(k);
-            //postfix string
-            if(result.hasOwnProperty('post')){
-              var post=result['post'];
-              if(post.length>0){
-                addToCompleteFormat(post);
-                //if the entry so far still follows this format
-                if(followsFormat){
-                  post=post.trim();
-                  followsFormat=skipToPost(post,result);
-                }
-              }
-            }else{
-              //skip ahead for the next pre
-              skipAhead=true;
-            }
+            var result=part[k]; result['key']=k; results.push(result);
+            //handle basic placeholder format, not including what's actually written
+            setPlaceholderFormat(result);
             //break after finding the key
             break;
           }
+        }
+      }
+      //trims non-white-space-text, or leaves it alone (if it's all white space)
+      var trimIfNotAllWhitespace=function(str){
+        //if NOT entirely made up of white space
+        if(str.trim().length>0){
+          //trim the string
+          str=str.trim();
+        } return str;
+      };
+      //get an item from txtParts at the given index
+      var getNonDynamicAtIndex=function(index){
+        var str='';
+        //if this text part is not a dynamic placeholder
+        if(txtParts[index]!==dynamicPlaceholder){
+          str=txtParts[index];
+        } return str;
+      };
+      //get the next chunk of text between the next pre and post, returns undefined if the __complete format is not followed
+      var completeEntry=st+lineAfterCursor;
+      var getNextBetween=function(pre, post){
+        var between; var foundPre;
+        //if not already reached the end of the entry
+        if(completeEntry.length>0){
+          //if there is either a separator before or after this dynamicPlaceholder
+          if(pre.length>0 || post.length>0){
+            completeEntry=completeEntry.trimLeft();
+            //if pre is in the correct spot
+            var preTrim=trimIfNotAllWhitespace(pre);
+            if(preTrim.length<1 || completeEntry.indexOf(preTrim)===0){
+              //if pre is not empty
+              if(preTrim.length>0){
+                //trim off pre
+                completeEntry=completeEntry.substring(pre.length);
+                //save the found pre text
+                foundPre=pre;
+              }
+              //if post is in there
+              var postTrim=trimIfNotAllWhitespace(post);
+              if(postTrim.length<1 || completeEntry.indexOf(postTrim)!==-1){
+                //if there is no post
+                if(postTrim.length<1){
+                  //end of the line
+                  between=completeEntry; completeEntry='';
+                //if there is post
+                }else if(completeEntry.indexOf(postTrim)!==-1){
+                  //get text before the post
+                  between=completeEntry.substring(0, completeEntry.indexOf(postTrim));
+                  //trim off between
+                  completeEntry=completeEntry.substring(between.length);
+                }
+              }
+            }
+          }
+        } return {between:between, foundPre:foundPre};
+      };
+      var addCompleteOptions=function(result, args){
+        if(result!=undefined){
+          if(args==undefined){args={};}
+          if(!args.hasOwnProperty('startsWith')){args['startsWith']='';}
+          if(!args.hasOwnProperty('addAfter')){args['addAfter']='';}
+          var optionsArray=[];
+          //if using the options function
+          if(result.hasOwnProperty('options')){
+            optionsArray=result['options']();
+          }else{
+            //result should be an array
+            optionsArray=result;
+          }
+          //filtering options
+          options=[];
+          for(var o=0;o<optionsArray.length;o++){
+            var aop=optionsArray[o];
+            if(args['startsWith']==='' || isPartialOf(args['startsWith'], aop)){
+              options.push(aop+args['addAfter']);
+            }
+          }
+        }
+      };
+      //process the next part called eatMe, which follows the __complete format. result is the json data (eg: options) for this text part
+      var eatSt=function(eatMe, result){
+        var cursorSwap=false;
+        if(eatMe!=undefined){
+          //if not an empty meal
+          if(eatMe.length>0){
+            var consumed=false;
+            //if left of the cursor still
+            if(!isAfterCursor){
+              //if eatMe is too big (or just right) for st to eat (if moving past the cursor will happen)
+              if(st.length<eatMe.length){
+                //if not already reached the end of the left string
+                if(st.length>0){
+                  //set the starting index of the __complete format (if not already set)
+                  setIndexOfComplete();
+                  //consume what you can, left of the cursor
+                  addToTriggerText(st);
+                }
+                //subtract what's already finished from what's remaining
+                eatMe=eatMe.substring(st.length);
+                //set the data belonging to the part that is focused by the cursor
+                saveDataAtCursor(result);
+                //switch to the right of the cursor
+                st=lineAfterCursor; isAfterCursor=true; cursorSwap=true;
+                //if not already finished off eatMe
+                if(eatMe.length>0){
+                  //finish the remaining part of this meal
+                  addToTriggerText(eatMe); st=st.substring(eatMe.length);
+                  //indicate that you had to cut the meal into partial sections
+                  indicatePartialEntry();
+                  //show unfiltered auto complete options
+                  addCompleteOptions(result);
+                }
+                //meal finished
+                consumed=true;
+              }
+            }
+            //set the starting index of the __complete format (if not already set)
+            setIndexOfComplete();
+            //if the meal is not finished yet
+            if(!consumed){
+              //finish the meal
+              addToTriggerText(eatMe); st=st.substring(eatMe.length);
+              //if left of the cursor still
+              if(!isAfterCursor){
+                //but not when this eatMe function is called next time...
+                if(st.length<1){
+                  //set the data belonging to the part that is focused by the cursor
+                  saveDataAtCursor(result);
+                  //show auto complete options (cursor is at right edge of part)
+                  addCompleteOptions(result, {startsWith:eatMe});
+                }
+              }
+            }
+          }
+        }
+        return cursorSwap;
+      };
+      //for each text part in the __complete format
+      var formatFollowed=true; var placeHolderIndex=0; var lastNonPhIndex=-1;
+      for(var t=0;t<txtParts.length;t++){
+        //if this is a dynamic placeholder part
+        if(txtParts[t]===dynamicPlaceholder){
+          lastNonPhIndex=-1;
+          //get the json data for this text part
+          var result=results[placeHolderIndex];
+          //figure out if there is a separator BEFORE this dynamicPlaceholder
+          var pre=''; //if not the first text part
+          if(t>0){ pre=getNonDynamicAtIndex(t-1); }
+          //figure out if there is a separator AFTER this dynamicPlaceholder
+          var post=''; //if not the last text part
+          if(t+1!==txtParts.length){ post=getNonDynamicAtIndex(t+1); }
+          //get whatever is between the pre and post
+          var next=getNextBetween(pre, post);
+          var between=next['between'];
+          //if there is no breakdown in the format, (format followed so far)
+          if(between==undefined){formatFollowed=false;}
+          if(formatFollowed){
+            //consume the next string part(s) in the format
+            eatSt(pre); eatSt(between, result);
+          }else{
+            //there was a breakdown in the format, format not followed completely...
+
+            //if there is one more pre string that fullfills the format... sneak it in
+            if(next['foundPre']!=undefined){ eatSt(pre); }
+
+            //if the __complete format has started to be written
+            if(indexOfComplete>-1){
+              //if writing out the format and haven't quite finished yet
+              if(lineAfterCursor.trim().length<1){
+                //show the data for the current section
+                saveDataAtCursor(result);
+                //add anything after each option?
+                var addAfter='';
+                if(result.hasOwnProperty('post')){ addAfter=result['post']; }
+                //show some auto complete options
+                addCompleteOptions(result, {startsWith:st, addAfter:addAfter});
+              }
+            }else{
+              //format not started... suggest the first part of the __complete format
+              if(pre.length>0){
+                //if writing out the format and haven't quite finished yet
+                if(lineAfterCursor.trim().length<1){
+                  //show some auto complete options
+                  addCompleteOptions([pre]);
+                }
+              }
+            }
+            //quit at this point; the format is no longer followed
+            break;
+          }
+          //next placeholder index
+          placeHolderIndex++;
+        }else{
+          //not a placeholder... remember the last Non-placeholder index
+          lastNonPhIndex=t;
+        }
+      }
+      //if the format was completely followed
+      if(formatFollowed){
+        //if there is a final, non-placeholder format part to consume
+        if(lastNonPhIndex>-1){
+          var pre=txtParts[lastNonPhIndex]; var next=getNextBetween(pre, '');
+          //if there is one more pre string that fullfills the format... sneak it in
+          if(next['foundPre']!=undefined){ eatSt(pre); }
         }
       }
 
@@ -597,11 +570,12 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
 }
 //show info like the function signature, plus summary of whatever part has focus
 function showHintsInfo(aJson){
+  console.log(aJson['dataAtCursor']);
   //title html
   var titleHtml='';
   var getTitleHtml=function(){
     var html='';
-    //is this part a substring in the __complete format?
+    /*//is this part a substring in the __complete format?
     var isInCompleteFormat=false, completeFormatIndex=-1, finishedFormat=false;
     var isCompletePart=function(leftOrRight,index){
       //if not already in the __complete format parts
@@ -686,7 +660,7 @@ function showHintsInfo(aJson){
     //if any text was entered
     if(html.length>0){
       html='<span class="trigger-text">'+html+'</span>';
-    }
+    }*/
     return html;
   };
   titleHtml=getTitleHtml();
