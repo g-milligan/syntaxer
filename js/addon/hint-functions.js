@@ -363,11 +363,15 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         }
       };
       //process the next part called eatMe, which follows the __complete format. result is the json data (eg: options) for this text part
-      var eatSt=function(eatMe, result){
+      var eatSt=function(eatMe, isBetweenTxt, result){
         var cursorSwap=false;
         if(eatMe!=undefined){
-          //if not an empty meal
-          if(eatMe.length>0){
+          //not edible if there's nothing to eat (blank text) unless...
+          var isEdible=(eatMe.length>0);
+          //allow blank text for between-placeholder
+          if(isBetweenTxt){ isEdible=true; }
+          //if not an empty meal, or if this is between text
+          if(isEdible){
             var consumed=false;
             //if left of the cursor still
             if(!isAfterCursor){
@@ -441,14 +445,14 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           if(between==undefined){formatFollowed=false;}
           if(formatFollowed){
             //consume the next string part(s) in the format
-            eatSt(pre); eatSt(between, result);
+            eatSt(pre, false); eatSt(between, true, result);
           }else{
-            //there was a breakdown in the format, format not followed completely...
+            //INCOMPLETE FORMAT: there was a breakdown in the format, format not followed completely...
 
             //if there is one more pre string that fullfills the format... sneak it in
-            if(next['foundPre']!=undefined){ eatSt(pre); }
+            if(next['foundPre']!=undefined){ eatSt(pre, false); }
 
-            //if the __complete format has started to be written
+            //if any part of __complete format has been written
             if(indexOfComplete>-1){
               //if writing out the format and haven't quite finished yet
               if(lineAfterCursor.trim().length<1){
@@ -486,7 +490,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         if(lastNonPhIndex>-1){
           var pre=txtParts[lastNonPhIndex]; var next=getNextBetween(pre, '');
           //if there is one more pre string that fullfills the format... sneak it in
-          if(next['foundPre']!=undefined){ eatSt(pre); }
+          if(next['foundPre']!=undefined){ eatSt(pre, false); }
         }
       }
 
