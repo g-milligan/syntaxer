@@ -493,12 +493,12 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           //get whatever is between the pre and post
           var next=getNextBetween(pre, post);
           var between=next['between'];
-          pre=next['foundPre']; //if the pre (with optional whitespace) doesn't have whitespace in st
           //save the surrounding separators
-          result['left']=pre; result['right']=post;
+          result['left']=next['foundPre']; result['right']=post;
           //if there is no breakdown in the format, (format followed so far)
           if(between==undefined){formatFollowed=false;}
           if(formatFollowed){
+            pre=next['foundPre']; //if the pre (with optional whitespace) doesn't have whitespace in st
             //consume the next string part(s) in the format
             var prePosFlag=eatSt(pre, false);
             var betweenPosFlag=eatSt(between, true);
@@ -761,6 +761,12 @@ function showHintsInfo(aJson){
   }
   //set the new hint info title
   jQuery('#hints-info:first').children('.info-title:first').html(titleHtml);
+
+  //*** set class for elements not touching the __complete parts
+  //*** set type classes to each part
+  //*** set not-written-yet classes
+  //*** add type:key popup?
+  //*** where to put the full summary... on hover over the title?
 }
 //add icons, summaries, tooltips, and sub menus to hints menu
 function decorateHintsMenu(lineSplit,hintsJson,aJson){
