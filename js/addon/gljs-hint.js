@@ -700,7 +700,6 @@
       //add items that are found on a real gl object
       addJsonHints('gl.', ctx, gljshints);
     }
-    //create the hints and any information related to the current code-line chain
-    return handleJsonHints(editor, gljshints);
+    return handleJsonHints(editor, gljshints, options.eventTrigger);
   });
 });

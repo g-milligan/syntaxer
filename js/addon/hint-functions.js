@@ -8,6 +8,14 @@ function getLineSplit(editor){
   var aftStr=lStr.substring(cIndex);
   return [preStr,aftStr];
 }
+//trims non-white-space-text, or leaves it alone (if it's all white space)
+function trimIfNotAllWhitespace(str){
+  //if NOT entirely made up of white space
+  if(str.trim().length>0){
+    //trim the string
+    str=str.trim();
+  } return str;
+}
 function getAutocompleteOptions(lineSplit,hintsJson,editor){
   var lineBeforeCursor=lineSplit[0]; var lineAfterCursor=lineSplit[1]; var isAfterCursor=false;
 
@@ -23,9 +31,10 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
   var completeFormatParts=[]; //like triggerParts, exept this is exclusively for the __complete format, not what's actually entered text
   var dataAtCursor; //json data for the triggerPart, at the cursor
 
-  var saveDataAtCursor=function(data){
-    //if not already beyond the cursor
-    if(!isAfterCursor){
+  var saveDataAtCursor=function(data, forceAfterCursor){
+    if(forceAfterCursor==undefined){forceAfterCursor=false;}
+    //if not already beyond the cursor, or if forcing this data save
+    if(!isAfterCursor || forceAfterCursor){
       if(data!=undefined){
         //set the latest json level
         dataAtCursor=data;
@@ -285,14 +294,6 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           }
         }
       }
-      //trims non-white-space-text, or leaves it alone (if it's all white space)
-      var trimIfNotAllWhitespace=function(str){
-        //if NOT entirely made up of white space
-        if(str.trim().length>0){
-          //trim the string
-          str=str.trim();
-        } return str;
-      };
       //get an item from txtParts at the given index
       var getNonDynamicAtIndex=function(index){
         var str='';
@@ -363,66 +364,77 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         }
       };
       //process the next part called eatMe, which follows the __complete format. result is the json data (eg: options) for this text part
-      var eatSt=function(eatMe, isBetweenTxt, result){
-        var cursorSwap=false;
+      var eatSt=function(eatMe, isBetweenTxt){
+        var cursorPosFlag='', cursorSwap=false;
         if(eatMe!=undefined){
           //not edible if there's nothing to eat (blank text) unless...
           var isEdible=(eatMe.length>0);
-          //allow blank text for between-placeholder
+          //allow blank text for between-placeholder string
           if(isBetweenTxt){ isEdible=true; }
           //if not an empty meal, or if this is between text
           if(isEdible){
-            var consumed=false;
+            cursorPosFlag='ateMe';
             //if left of the cursor still
             if(!isAfterCursor){
-              //if eatMe is too big (or just right) for st to eat (if moving past the cursor will happen)
-              if(st.length<eatMe.length){
-                //if not already reached the end of the left string
-                if(st.length>0){
+              //if moving past the cursor will happen (cursorSwap will be true)
+              if(st.length<=eatMe.length){
+                //if starting new part immediately after the cursor, like "|eatMe" (NOT partialEntry)
+                if(st.length===0){
+                  //switch to the right of the cursor, so st="eatMe..."
+                  st=lineAfterCursor; isAfterCursor=true;
                   //set the starting index of the __complete format (if not already set)
                   setIndexOfComplete();
-                  //consume what you can, left of the cursor
-                  addToTriggerText(st);
-                }
-                //subtract what's already finished from what's remaining
-                eatMe=eatMe.substring(st.length);
-                //set the data belonging to the part that is focused by the cursor
-                saveDataAtCursor(result);
-                //switch to the right of the cursor
-                st=lineAfterCursor; isAfterCursor=true; cursorSwap=true;
-                //if not already finished off eatMe
-                if(eatMe.length>0){
-                  //finish the remaining part of this meal
-                  addToTriggerText(eatMe); st=st.substring(eatMe.length);
+                  //add the eatMe trigger text
+                  addToTriggerText(eatMe);
+                  //bite off the eatMe text
+                  st=st.substring(eatMe.length);
+                  cursorPosFlag='|ateMe';
+                //if ending whole part immediately before the cursor, like "eatMe|" (NOT partialEntry)
+                }else if(st.length===eatMe.length){
+                  //set the starting index of the __complete format (if not already set)
+                  setIndexOfComplete();
+                  //add the eatMe trigger text
+                  addToTriggerText(eatMe);
+                  //switch to the right of the cursor
+                  isAfterCursor=true;
+                  //bite off the eatMe text so st=""
+                  st=st.substring(eatMe.length);
+                  //st should now be blank so load the text right of the cursor now, so st="nextpart..."
+                  st=lineAfterCursor;
+                  cursorPosFlag='ateMe|';
+                //the cursor splits the "eat|Me" (IS partialEntry)
+                }else{
+                  //get the two parts of eatMe (before and after cursor)
+                  var eatBefore=eatMe.substring(0, st.length);
+                  var eatAfter=eatMe.substring(st.length);
+                  //set the starting index of the __complete format (if not already set)
+                  setIndexOfComplete();
+                  //add the eatBefore trigger text
+                  addToTriggerText(eatBefore);
                   //indicate that you had to cut the meal into partial sections
                   indicatePartialEntry();
-                  //show unfiltered auto complete options
-                  addCompleteOptions(result);
+                  //switch to the right of the cursor
+                  isAfterCursor=true;
+                  //add the eatAfter trigger text
+                  addToTriggerText(eatAfter);
+                  //bite off the eatMe text
+                  st=lineAfterCursor.substring(eatAfter.length);
+                  cursorPosFlag='ate|Me';
                 }
-                //meal finished
-                consumed=true;
+                //the cursor swap did happen (now working with text that is right of the cursor)
+                cursorSwap=true;
               }
             }
-            //set the starting index of the __complete format (if not already set)
-            setIndexOfComplete();
             //if the meal is not finished yet
-            if(!consumed){
+            if(!cursorSwap){
+              //set the starting index of the __complete format (if not already set)
+              setIndexOfComplete();
               //finish the meal
               addToTriggerText(eatMe); st=st.substring(eatMe.length);
-              //if left of the cursor still
-              if(!isAfterCursor){
-                //but not when this eatMe function is called next time...
-                if(st.length<1){
-                  //set the data belonging to the part that is focused by the cursor
-                  saveDataAtCursor(result);
-                  //show auto complete options (cursor is at right edge of part)
-                  addCompleteOptions(result, {startsWith:eatMe});
-                }
-              }
             }
           }
         }
-        return cursorSwap;
+        return cursorPosFlag;
       };
       //for each text part in the __complete format
       var formatFollowed=true; var placeHolderIndex=0; var lastNonPhIndex=-1;
@@ -438,6 +450,8 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           //figure out if there is a separator AFTER this dynamicPlaceholder
           var post=''; //if not the last text part
           if(t+1!==txtParts.length){ post=getNonDynamicAtIndex(t+1); }
+          //save the surrounding separators
+          result['left']=pre; result['right']=post;
           //get whatever is between the pre and post
           var next=getNextBetween(pre, post);
           var between=next['between'];
@@ -445,7 +459,48 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           if(between==undefined){formatFollowed=false;}
           if(formatFollowed){
             //consume the next string part(s) in the format
-            eatSt(pre, false); eatSt(between, true, result);
+            var prePosFlag=eatSt(pre, false);
+            var betweenPosFlag=eatSt(between, true);
+            //was the cursor found first touching the pre or between string?
+            var cursorPosFlag=betweenPosFlag; var isPartialInPre=false;
+            if(prePosFlag.indexOf('|')!==-1){
+              cursorPosFlag=prePosFlag;
+              isPartialInPre=partialEntry; //AND if the pre text has partial, like "pr|e"
+            }
+            //if the cursor is NOT inside pre (partialEntry)
+            if(!isPartialInPre){
+              //is the cursor inside the __complete format or on at the start of the __complete format, after the function?
+              var cursorIsInComplete=true;
+              //if this is the first time the __complete format has begun
+              if(placeHolderIndex===0){
+                //if the cursor is at the very left edge of the __complete format (also touching the previous part)
+                if((prePosFlag+betweenPosFlag).indexOf('|')===0){
+                  cursorIsInComplete=false;
+                }
+              }
+              //if the cursor is NOT at the very left edge of the __complete format (also touching the previous part)
+              if(cursorIsInComplete){
+                //if any of st was consumed
+                if(cursorPosFlag.length>0){
+                  //if swapped to the right side of the cursor when eatSt() was processed
+                  if(cursorPosFlag.indexOf('|')!==-1){
+                    var startsWith='';
+                    //show the data for the current section
+                    saveDataAtCursor(result, true);
+                    //if the cursor is at the end of "ateMe|"
+                    if(cursorPosFlag.lastIndexOf('|')===cursorPosFlag.length-'|'.length){
+                      //if the cursor is after "between|", not "pre"
+                      if(betweenPosFlag.indexOf('|')!==-1){
+                        //then filter options based on "between"
+                        startsWith=between;
+                      }
+                    }
+                    //show some auto complete options that begin with "ateMe"
+                    addCompleteOptions(result, {startsWith:startsWith});
+                  }
+                }
+              }
+            }
           }else{
             //INCOMPLETE FORMAT: there was a breakdown in the format, format not followed completely...
 
@@ -456,8 +511,11 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
             if(indexOfComplete>-1){
               //if writing out the format and haven't quite finished yet
               if(lineAfterCursor.trim().length<1){
-                //show the data for the current section
-                saveDataAtCursor(result);
+                //if the dataAtCursor is not already set
+                if(dataAtCursor==undefined){
+                  //show the data for the current section
+                  saveDataAtCursor(result, true);
+                }
                 //add anything after each option?
                 var addAfter='';
                 if(result.hasOwnProperty('post')){ addAfter=result['post']; }
@@ -574,6 +632,9 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
 }
 //show info like the function signature, plus summary of whatever part has focus
 function showHintsInfo(aJson){
+
+  //*** call mpm back before 6:00.p
+
   console.log(aJson['dataAtCursor']);
   //title html
   var titleHtml='';
@@ -826,7 +887,7 @@ function addJsonHints(addKey, obj, hintsJson){
   }
 }
 //generic handle hints depending on hintsJson data
-function handleJsonHints(editor, hintsJson){
+function handleJsonHints(editor, hintsJson, eventTrigger){
   //get the text before and after the cursor
   var lineSplit=getLineSplit(editor);
   //get the autocomplete data including the possible options and the text daisy-chain that triggered these options
@@ -834,21 +895,26 @@ function handleJsonHints(editor, hintsJson){
   var list=aJson['options'];
   var triggerParts=aJson['triggerParts']; //before the cursor
   var postTriggerParts=aJson['postTriggerParts']; //after the cursor
+  var dataAtCursor=aJson['dataAtCursor'];
   //get the cursor position to figure out what existing text (if any) should be removed before autocomplete happens
   var cur = editor.getCursor(), curLine = editor.getLine(cur.line);
   var end = cur.ch, start = end;
+  //get the string immediately before the cursor
+  var lastTrigPart='';
+  if(triggerParts.length>0){
+    lastTrigPart=triggerParts[triggerParts.length-1];
+  }
+  //get the string immediately after the cursor
+  var firstPostPart='';
+  if(postTriggerParts.length>0){
+    firstPostPart=postTriggerParts[0];
+  }
   //if there is partial text that should be removed before autocomplete happens
   if(aJson['partialEntry']){
-    //if there are any daisy-chained keywords, "parts" before the cursor
-    if(triggerParts.length>0){
-      //start at what point before the cursor?
-      start-=triggerParts[triggerParts.length-1].length;
-      //if there are any daisy chained-parts after the cursor
-      if(postTriggerParts.length>0){
-        //start at what point after the cursor?
-        end+=postTriggerParts[0].length;
-      }
-    }
+    //start at *: "*part|ial"
+    start-=lastTrigPart.length;
+    //end at *: "part|ial*"
+    end+=firstPostPart.length;
   }
   //show info like the function signature, plus summary of whatever part has focus
   showHintsInfo(aJson);
@@ -857,10 +923,63 @@ function handleJsonHints(editor, hintsJson){
     //add icons, and other decorative styles to dropdown hints
     decorateHintsMenu(lineSplit,hintsJson,aJson);
   }
-  //return
-  return {list: list,
+  //completion hints object
+  var completion={list: list,
     from: CodeMirror.Pos(cur.line, start),
     to: CodeMirror.Pos(cur.line, end)};
+  //event for picking a hint option
+  CodeMirror.on(completion,'pick',function(){
+    //if __complete format exists on this line
+    if(aJson.indexOfComplete>-1){
+      //if not partialEntry
+      if(!aJson['partialEntry']){
+        var newCur = editor.getCursor();
+        var newEnd = newCur.ch, newStart = newEnd;
+        //get the newLine split
+        var newLineSplit=getLineSplit(editor);
+        //get the picked text (added to the left side of the cursor)
+        var pickedText=newLineSplit[0].substring(lineSplit[0].length);
+        newStart-=pickedText.length;
+        //figure out if there is a separator left of the pickedText
+        var left='', needsReplace=false;
+        if(dataAtCursor.hasOwnProperty('left')){
+          left=trimIfNotAllWhitespace(dataAtCursor['left']);
+          //if there is a pre separator
+          if(left.length>0){
+            //if this pre separator is NOT left of the cursor
+            var leftSplit=trimIfNotAllWhitespace(lineSplit[0]);
+            if(leftSplit.lastIndexOf(left)!==leftSplit.length-left.length){
+              newStart-=lastTrigPart.length;
+              needsReplace=true;
+            }
+          }
+        }
+        //figure out if there is a separator right of the pickedText
+        var right='';
+        if(dataAtCursor.hasOwnProperty('right')){
+          right=trimIfNotAllWhitespace(dataAtCursor['right']);
+          //if there is a post separator
+          if(right.length>0){
+            //if this post separator is NOT right of the cursor
+            var rightSplit=trimIfNotAllWhitespace(lineSplit[1]);
+            if(rightSplit.indexOf(right)!==0){
+              newEnd+=firstPostPart.length;
+              needsReplace=true;
+            }
+          }
+        }
+        //if the replace needs to happen
+        if(needsReplace){
+          editor.replaceRange(pickedText,
+            CodeMirror.Pos(newCur.line, newStart),
+            CodeMirror.Pos(newCur.line, newEnd)
+          );
+        }
+      }
+    }
+  });
+  //return
+  return completion;
 }
 function getTabContents(json){
   //get the code string, editorValue, to parse in order to find autocomplete values
