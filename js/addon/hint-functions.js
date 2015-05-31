@@ -30,12 +30,21 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
   var completeFormatTxt=''; //like triggerText, exept this is exclusively for the __complete format, not what's actually entered text
   var completeFormatParts=[]; //like triggerParts, exept this is exclusively for the __complete format, not what's actually entered text
   var dataAtCursor; //json data for the triggerPart, at the cursor
+  var cursorIndex=-1; //the index to which the dataAtCursor is related
 
-  var saveDataAtCursor=function(data, forceAfterCursor){
+  var saveDataAtCursor=function(data, forceAfterCursor, newCursorIndex){
     if(forceAfterCursor==undefined){forceAfterCursor=false;}
     //if not already beyond the cursor, or if forcing this data save
     if(!isAfterCursor || forceAfterCursor){
       if(data!=undefined){
+        //if no specific cursor index is given
+        if(newCursorIndex==undefined){
+          //default cursor index
+          cursorIndex=triggerParts.length-1;
+        }else{
+          //set cursor index
+          cursorIndex=newCursorIndex;
+        }
         //set the latest json level
         dataAtCursor=data;
       }
@@ -210,10 +219,10 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
 
             //if st.length===key.length and st equals key
             if(stEqualsKey(key,st,function(){
-              //save data for the part on which the cursor has focus
-              saveDataAtCursor(json[key]);
               //if trigger text not already updated for this level
               if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
+              //save data for the part on which the cursor has focus
+              saveDataAtCursor(json[key]);
               //recursive call to the second level of possible text options
               getNextKeys('',json[key],levelIndex+1);
             })){continue;}
@@ -484,17 +493,20 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
                 if(cursorPosFlag.length>0){
                   //if swapped to the right side of the cursor when eatSt() was processed
                   if(cursorPosFlag.indexOf('|')!==-1){
-                    var startsWith='';
-                    //show the data for the current section
-                    saveDataAtCursor(result, true);
+                    var startsWith='', newCursorIndex=triggerParts.length-1;
                     //if the cursor is at the end of "ateMe|"
                     if(cursorPosFlag.lastIndexOf('|')===cursorPosFlag.length-'|'.length){
                       //if the cursor is after "between|", not "pre"
                       if(betweenPosFlag.indexOf('|')!==-1){
                         //then filter options based on "between"
                         startsWith=between;
+                      }else{
+                        //cursor is after "pre|", not "between"
+                        newCursorIndex=triggerParts.length;
                       }
                     }
+                    //show the data for the current section
+                    saveDataAtCursor(result, true, newCursorIndex);
                     //show some auto complete options that begin with "ateMe"
                     addCompleteOptions(result, {startsWith:startsWith});
                   }
@@ -514,7 +526,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
                 //if the dataAtCursor is not already set
                 if(dataAtCursor==undefined){
                   //show the data for the current section
-                  saveDataAtCursor(result, true);
+                  saveDataAtCursor(result, true, triggerParts.length);
                 }
                 //add anything after each option?
                 var addAfter='';
@@ -625,167 +637,143 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
     partialEntry:partialEntry,
     indexOfComplete:indexOfComplete, completeIsIn:completeIsIn,
     completeFormatTxt:completeFormatTxt, completeFormatParts:completeFormatParts,
-    dataAtCursor:dataAtCursor
+    dataAtCursor:dataAtCursor, cursorIndex:cursorIndex
   };
   ret['dataAtCursor']=getDataAtCursor(ret);
   return ret;
 }
 //show info like the function signature, plus summary of whatever part has focus
 function showHintsInfo(aJson){
-
-  //*** call mpm back before 6:00.p
-
-  console.log(aJson['dataAtCursor']);
   //title html
   var titleHtml='';
   var getTitleHtml=function(){
-    var html='';
-    /*//is this part a substring in the __complete format?
-    var isInCompleteFormat=false, completeFormatIndex=-1, finishedFormat=false;
-    var isCompletePart=function(leftOrRight,index){
-      //if not already in the __complete format parts
-      if(!isInCompleteFormat){
-        //which side of the cursor?
-        var currentPartsName='';
-        switch (leftOrRight) {
-          case 'left': currentPartsName='triggerParts'; break;
-          case 'right': currentPartsName='postTriggerParts'; break;
+    var html='<span class="trigger-text">'; //start .trigger-text
+    //detect if at the __complete format
+    var atCompleteParts=false;
+    var ifAtComplete=function(type, index){
+      if(aJson['completeIsIn']===type){
+        if(aJson['indexOfComplete']===index){
+          atCompleteParts=true;
         }
-        if(currentPartsName.length>0){
-          if(aJson['completeIsIn']===currentPartsName){
-            if(index===aJson['indexOfComplete']){
-              isInCompleteFormat=true;
-            }
-          }
-        }
-      }
-      //if at the __complete format
-      if(isInCompleteFormat){
-        //next complete format index
-        completeFormatIndex++;
-        //reached the end of the complete format?
-        if(completeFormatIndex+1===aJson['completeFormatParts'].length){
-          finishedFormat=true;
-        }
-      }
-      return isInCompleteFormat;
+      } return atCompleteParts;
     };
-    //for each part left of the cursor
-    for(var l=0;l<aJson['triggerParts'].length;l++){
-      if(!finishedFormat){
-        var part=aJson['triggerParts'][l];
-        //indicate if entered the parts inside the __complete format
-        var completeClass='';
-        if(isCompletePart('left',l)){
-          completeClass=' complete';
-          part=aJson['completeFormatParts'][completeFormatIndex];
-        }
-        //if first part
-        if(l===0){
-          html+='<span class="left-side">'; //start .left-side
-        }
-        //if last part
-        if(finishedFormat || l+1===aJson['triggerParts'].length){
-          html+='<span class="focus part'+completeClass+'">'+part+'</span>'; //focus part
-          html+='</span>'; //end .left-side
+    //detect if at the focused part
+    var getFocusClass=function(index){
+      var focusClass='';
+      if(aJson['cursorIndex']>-1){
+        //if partial entry
+        if(!atCompleteParts && aJson['partialEntry']){
+          //if at the focused string left of the cursor
+          if(aJson['cursorIndex']===index){
+            focusClass=' focus l-focus';
+          //if at the focused string right of the cursor
+          }else if(aJson['cursorIndex']===index-1){
+            focusClass=' focus r-focus';
+          }
         }else{
-          //not last in left side...
-          html+='<span class="part'+completeClass+'">'+part+'</span>'; //part
-        }
-      }else{
-        break;}
-    }
-    //for each part right of the cursor
-    for(var r=0;r<aJson['postTriggerParts'].length;r++){
-      if(!finishedFormat){
-        var part=aJson['postTriggerParts'][r];
-        //indicate if entered the parts inside the __complete format
-        var completeClass='';
-        if(isCompletePart('right',r)){
-          completeClass=' complete';
-          part=aJson['completeFormatParts'][completeFormatIndex];
-        }
-        //if first part
-        var focusClass='';
-        if(r===0){
-          html+='<span class="right-side">'; //start .right-side
-          //if partialEntry
-          if(aJson['partialEntry']){
-            focusClass='focus ';
+          //not partial entry...
+          if(aJson['cursorIndex']===index){
+            focusClass=' focus';
           }
         }
-        html+='<span class="'+focusClass+'part'+completeClass+'">'+part+'</span>'; //part
-        //if last part
-        if(finishedFormat || r+1===aJson['postTriggerParts'].length){
-          html+='</span>'; //end .right-side
-        }
+      } return focusClass;
+    };
+    var partIndex=0;
+    //for each trigger part
+    for(var t=0;t<aJson['triggerParts'].length;t++){ var part=aJson['triggerParts'][t];
+      //if NOT reached the completion format
+      if(!ifAtComplete('triggerParts', t)){
+        //is focus part?
+        var focusClass=getFocusClass(partIndex);
+        //part html
+        html+='<span class="left'+focusClass+' part">'+part+'</span>';
+        //next part index
+        partIndex++;
       }else{
-        break;}
+        break;
+      }
     }
-    //if any text was entered
-    if(html.length>0){
-      html='<span class="trigger-text">'+html+'</span>';
-    }*/
+    //if not reached __complete format
+    if(!atCompleteParts){
+      //for each post trigger part
+      for(var p=0;p<aJson['postTriggerParts'].length;p++){ var part=aJson['postTriggerParts'][p];
+        //if NOT reached the completion format
+        if(!ifAtComplete('postTriggerParts', p)){
+          //is focus part?
+          var focusClass=getFocusClass(partIndex);
+          //part html
+          html+='<span class="right'+focusClass+' part">'+part+'</span>';
+          //next part index
+          partIndex++;
+        }else{
+          break;
+        }
+      }
+    }
+    //for each __complete part
+    for(var c=0;c<aJson['completeFormatParts'].length;c++){ var part=aJson['completeFormatParts'][c];
+      //is focus part?
+      var focusClass=getFocusClass(partIndex);
+      //part html
+      html+='<span class="side complete'+focusClass+' part">'+part+'</span>';
+      //next part index
+      partIndex++;
+    }
+    html+='</span>'; //end .trigger-text
     return html;
   };
-  titleHtml=getTitleHtml();
+  //if there is a __complete-format part of this line
+  if(aJson['indexOfComplete']>-1){
+    //get html for the hint info title
+    titleHtml=getTitleHtml();
+  }
+  //set the new hint info title
   jQuery('#hints-info:first').children('.info-title:first').html(titleHtml);
-  //***
 }
 //add icons, summaries, tooltips, and sub menus to hints menu
-var decorate_hints_menu_timeout;
-function decorateHintsMenu(lineSplit,hintsJson,aJson,tries){
-  if(tries==undefined){tries=0;}
-  //delay so that the hints menu will be open
-  clearTimeout(decorate_hints_menu_timeout);
-  decorate_hints_menu_timeout=setTimeout(function(){
-    var ul=jQuery('.CodeMirror-hints:first');
-    if(ul.length>0){
-      //***
-      /*//get the json values for these option items (same level)
-      var triggerParts=aJson['triggerParts'];
-      var json=hintsJson;
-      for(var p=0;p<triggerParts.length;p++){
-        //if last trigger part
-        if(p+1===triggerParts.length){
-          //if the last part is NOT incomplete
-          if(!aJson['partialEntry']){
-            json=json[triggerParts[p]];
-          }
-        }else{
-          //not last trigger part
+function decorateHintsMenu(lineSplit,hintsJson,aJson){
+  //if the code mirror popup exists
+  var ul=jQuery('.CodeMirror-hints:first');
+  if(ul.length>0){
+    //***
+    /*//get the json values for these option items (same level)
+    var triggerParts=aJson['triggerParts'];
+    var json=hintsJson;
+    for(var p=0;p<triggerParts.length;p++){
+      //if last trigger part
+      if(p+1===triggerParts.length){
+        //if the last part is NOT incomplete
+        if(!aJson['partialEntry']){
           json=json[triggerParts[p]];
         }
-      };
-      //for each option in the dropdown
-      var isFirst=true;
-      ul.children('li.CodeMirror-hint').each(function(){
-        var li=jQuery(this);
-        var liTxt=li.text();
-        if(json.hasOwnProperty(liTxt)){
-          //if this is the first hint item to decorate
-          if(isFirst){
-            isFirst=false;
-            //add help summary for all items, if available
-            if(json.hasOwnProperty('__summary')){
-              var summary=json['__summary'].trim();
-              if(summary.length>0){
-                console.log(summary);
-              }
+      }else{
+        //not last trigger part
+        json=json[triggerParts[p]];
+      }
+    };
+    //for each option in the dropdown
+    var isFirst=true;
+    ul.children('li.CodeMirror-hint').each(function(){
+      var li=jQuery(this);
+      var liTxt=li.text();
+      if(json.hasOwnProperty(liTxt)){
+        //if this is the first hint item to decorate
+        if(isFirst){
+          isFirst=false;
+          //add help summary for all items, if available
+          if(json.hasOwnProperty('__summary')){
+            var summary=json['__summary'].trim();
+            if(summary.length>0){
+              console.log(summary);
             }
           }
-          //decorate one hint item
-          var itemJson=json[liTxt];
-          decorateHintItem(itemJson,li);
         }
-      });*/
-    }else{
-      if(tries<20){
-        //recursive try again
-        decorateHintsMenu(lineSplit,hintsJson,aJson,tries+1);
+        //decorate one hint item
+        var itemJson=json[liTxt];
+        decorateHintItem(itemJson,li);
       }
-    }
-  },10);
+    });*/
+  }
 }
 //decorate one hint item
 function decorateHintItem(itemJson,li){
@@ -918,15 +906,18 @@ function handleJsonHints(editor, hintsJson, eventTrigger){
   }
   //show info like the function signature, plus summary of whatever part has focus
   showHintsInfo(aJson);
-  //if there are any option hints
-  if(list.length>0){
-    //add icons, and other decorative styles to dropdown hints
-    decorateHintsMenu(lineSplit,hintsJson,aJson);
-  }
   //completion hints object
   var completion={list: list,
     from: CodeMirror.Pos(cur.line, start),
     to: CodeMirror.Pos(cur.line, end)};
+  //event for showing autocomplete options
+  CodeMirror.on(completion,'shown',function(){
+    //if there are any option hints
+    if(list.length>0){
+      //add icons, and other decorative styles to dropdown hints
+      decorateHintsMenu(lineSplit,hintsJson,aJson);
+    }
+  });
   //event for picking a hint option
   CodeMirror.on(completion,'pick',function(){
     //if __complete format exists on this line

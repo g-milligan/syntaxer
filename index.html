@@ -448,34 +448,6 @@
       textarea[0].parentNode.replaceChild(el, textarea[0]);
     },config);
     myCodeMirror['myHintType']=hintType;
-    /*//function to keep track of the last cursor position to prevent both change and cursorActivity events from firing consecutively
-    var updateCursorPos=function(){
-      var newCurPos=myCodeMirror.getCursor();
-      var curLine=myCodeMirror.getLine(newCurPos.line);
-      myCodeMirror['myCursorPos']={lineStr:curLine,line:newCurPos.line, ch:newCurPos.ch};
-    };
-    var ifCursorPosNeedsUpdate=function(){
-      var needsUpdate=true;
-      if(myCodeMirror.hasOwnProperty('myCursorPos') && myCodeMirror['myCursorPos']!=undefined){
-        var myCurPos=myCodeMirror['myCursorPos'];
-        var newCurPos=myCodeMirror.getCursor();
-        var newLineStr=myCodeMirror.getLine(newCurPos.line);
-        //if no line change
-        if(myCurPos.line===newCurPos.line){
-          //if no character change
-          if(myCurPos.ch===newCurPos.ch){
-            //if no line text change
-            if(myCurPos.lineStr===newLineStr){
-              needsUpdate=false;
-            }
-          }
-        }
-      }
-      if(needsUpdate){
-        updateCursorPos();
-      }
-      return needsUpdate;
-    };*/
     //codemirror editor events
     myCodeMirror.on('change', function(instance, object){
       //indicate unsaved change

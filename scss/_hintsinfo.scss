@@ -18,19 +18,15 @@
     background-color: #CACACA;
     border-bottom: solid .1rem #7f1171;
 
-    /*.trigger-text{
-      .left-side{
+    .trigger-text{
 
-      }
-      .right-size{
-
-      }
       .part{
         &.focus{
           font-weight:bold;
         }
       }
-    }*/
+      
+    }
   }
   .info-body{
     @include borderbox();
