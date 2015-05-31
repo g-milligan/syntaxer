@@ -325,10 +325,19 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
             if(preTrim.length<1 || completeEntry.indexOf(preTrim)===0){
               //if pre is not empty
               if(preTrim.length>0){
-                //trim off pre
-                completeEntry=completeEntry.substring(pre.length);
-                //save the found pre text
-                foundPre=pre;
+                //if the pre (with optional white spaces) starts completeEntry
+                if(completeEntry.indexOf(pre)===0){
+                  //trim off pre
+                  completeEntry=completeEntry.substring(pre.length);
+                  //save the found pre text
+                  foundPre=pre;
+                //if the preTrim (no optional white spaces) starts completeEntry
+                }else if(completeEntry.indexOf(preTrim)===0){
+                  //trim off pre
+                  completeEntry=completeEntry.substring(preTrim.length);
+                  //save the found pre text
+                  foundPre=preTrim;
+                }
               }
               //if post is in there
               var postTrim=trimIfNotAllWhitespace(post);
@@ -380,6 +389,34 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           var isEdible=(eatMe.length>0);
           //allow blank text for between-placeholder string
           if(isBetweenTxt){ isEdible=true; }
+          //add trim eatMe to trigger text (if the eatMe text is NOT isBetweenTxt; is ignoring white spaces)
+          var addToTrimTriggerText=function(txt, doBiteOff){
+            if(doBiteOff==undefined){doBiteOff=true;}
+            var retTxt=txt;
+            //if eatMe is pre text (not between text)
+            if(!isBetweenTxt){
+              //if txt is different from trimTxt
+              var trimTxt=trimIfNotAllWhitespace(txt);
+              if(trimTxt!==txt){
+                //if the string does NOT start with the normal txt (with optional whitespaces)
+                if(st.indexOf(txt)!==0){
+                  //sanity check to make sure st starts with trimTxt (it should)
+                  if(st.indexOf(trimTxt)===0){
+                    retTxt=trimTxt;
+                  }
+                }
+              }
+            }
+            //add trigger text (has or not has optional whitespace)
+            addToTriggerText(retTxt);
+            //if do bite off from the eatMe text?
+            if(doBiteOff){
+              //trim off the added trigger text from st
+              st=st.substring(retTxt.length);
+            }
+            //return
+            return retTxt;
+          };
           //if not an empty meal, or if this is between text
           if(isEdible){
             cursorPosFlag='ateMe';
@@ -394,21 +431,17 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
                   //set the starting index of the __complete format (if not already set)
                   setIndexOfComplete();
                   //add the eatMe trigger text
-                  addToTriggerText(eatMe);
-                  //bite off the eatMe text
-                  st=st.substring(eatMe.length);
+                  addToTrimTriggerText(eatMe);
                   cursorPosFlag='|ateMe';
                 //if ending whole part immediately before the cursor, like "eatMe|" (NOT partialEntry)
                 }else if(st.length===eatMe.length){
                   //set the starting index of the __complete format (if not already set)
                   setIndexOfComplete();
                   //add the eatMe trigger text
-                  addToTriggerText(eatMe);
+                  addToTrimTriggerText(eatMe);
                   //switch to the right of the cursor
                   isAfterCursor=true;
-                  //bite off the eatMe text so st=""
-                  st=st.substring(eatMe.length);
-                  //st should now be blank so load the text right of the cursor now, so st="nextpart..."
+                  //before next line, st should now be blank so load the text right of the cursor now, so st="nextpart..."
                   st=lineAfterCursor;
                   cursorPosFlag='ateMe|';
                 //the cursor splits the "eat|Me" (IS partialEntry)
@@ -419,15 +452,13 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
                   //set the starting index of the __complete format (if not already set)
                   setIndexOfComplete();
                   //add the eatBefore trigger text
-                  addToTriggerText(eatBefore);
+                  addToTrimTriggerText(eatBefore, false);
                   //indicate that you had to cut the meal into partial sections
                   indicatePartialEntry();
                   //switch to the right of the cursor
                   isAfterCursor=true;
                   //add the eatAfter trigger text
-                  addToTriggerText(eatAfter);
-                  //bite off the eatMe text
-                  st=lineAfterCursor.substring(eatAfter.length);
+                  addToTrimTriggerText(eatAfter);
                   cursorPosFlag='ate|Me';
                 }
                 //the cursor swap did happen (now working with text that is right of the cursor)
@@ -439,7 +470,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
               //set the starting index of the __complete format (if not already set)
               setIndexOfComplete();
               //finish the meal
-              addToTriggerText(eatMe); st=st.substring(eatMe.length);
+              addToTrimTriggerText(eatMe);
             }
           }
         }
@@ -459,11 +490,12 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           //figure out if there is a separator AFTER this dynamicPlaceholder
           var post=''; //if not the last text part
           if(t+1!==txtParts.length){ post=getNonDynamicAtIndex(t+1); }
-          //save the surrounding separators
-          result['left']=pre; result['right']=post;
           //get whatever is between the pre and post
           var next=getNextBetween(pre, post);
           var between=next['between'];
+          pre=next['foundPre']; //if the pre (with optional whitespace) doesn't have whitespace in st
+          //save the surrounding separators
+          result['left']=pre; result['right']=post;
           //if there is no breakdown in the format, (format followed so far)
           if(between==undefined){formatFollowed=false;}
           if(formatFollowed){
@@ -722,7 +754,7 @@ function showHintsInfo(aJson){
     html+='</span>'; //end .trigger-text
     return html;
   };
-  //if there is a __complete-format part of this line
+  //if there is a __complete-format part of this line (without __complete, the hint info format will not be shown)
   if(aJson['indexOfComplete']>-1){
     //get html for the hint info title
     titleHtml=getTitleHtml();
