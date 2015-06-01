@@ -767,13 +767,69 @@ function showHintsInfo(aJson){
     html+='</span>'; //end .trigger-text
     return html;
   };
+  //hints body
+  var bodyHtml='';
+  var getBodyHtml=function(){
+    var html='', hasBody=false;
+    var getCursorVal=function(k){
+      var v='';
+      if(aJson['dataAtCursor'].hasOwnProperty(k)){
+        v=aJson['dataAtCursor'][k];
+        if(v==undefined){v='';}
+        v=v.trim();
+      } return v;
+    };
+    //title
+    var type=getCursorVal('type'); var key=getCursorVal('key'); var title='';
+    if(key.length>0 || type.length>0){
+      title+='<div class="hint-title">';
+      if(key.length>0){ title+='<div class="hint-key">'+key+'</div>'; }
+      if(type.length>0){ title+='<div class="hint-type">'+type+'</div>'; }
+      title+='</div>';
+      hasBody=true;
+    }
+    //summary
+    var summary=getCursorVal('summary'); var summaryHtml='';
+    if (summary.length>0){ summaryHtml+='<div class="hint-summary">'+summary+'</div>'; hasBody=true; }
+    //if there is any part of the body
+    if(hasBody){
+      //put it all together
+      html+='<div class="hint-content">'+title+summaryHtml+'</div>';
+    }
+    //return
+    return html;
+  };
+  //get some key elements
+  var hintsInfoWrap=jQuery('#hints-info:first'); hintsInfoWrap.removeClass('can-open');
+  var hintsTitleElem=hintsInfoWrap.children('.info-title:first');
+  var hintsBodyElem=hintsInfoWrap.children('.info-body:first');
   //if there is a __complete-format part of this line (without __complete, the hint info format will not be shown)
   if(aJson['indexOfComplete']>-1){
     //get html for the hint info title
     titleHtml=getTitleHtml();
+    bodyHtml=getBodyHtml();
   }
-  //set the new hint info title
-  jQuery('#hints-info:first').children('.info-title:first').html(titleHtml);
+  //set the new hint info html
+  hintsTitleElem.html(titleHtml);
+  hintsBodyElem.html(bodyHtml);
+  //hints info events
+  var triggerTextElem=hintsTitleElem.children('.trigger-text:first');
+  if(triggerTextElem.length>0){
+    //if there was any body info...
+    if(bodyHtml.length>0){
+      hintsInfoWrap.addClass('can-open');
+      triggerTextElem.click(function(){
+        //toggle open more information menu
+        if(hintsInfoWrap.hasClass('open')){
+          //close
+          hintsInfoWrap.removeClass('open');
+        }else{
+          //open
+          hintsInfoWrap.addClass('open');
+        }
+      });
+    }
+  }
 
   //*** set class for elements not touching the __complete parts
   //*** set type classes to each part
