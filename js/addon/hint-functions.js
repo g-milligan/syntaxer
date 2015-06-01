@@ -697,10 +697,10 @@ function showHintsInfo(aJson){
         if(!atCompleteParts && aJson['partialEntry']){
           //if at the focused string left of the cursor
           if(aJson['cursorIndex']===index){
-            focusClass=' focus l-focus';
+            focusClass=' l-focus';
           //if at the focused string right of the cursor
           }else if(aJson['cursorIndex']===index-1){
-            focusClass=' focus r-focus';
+            focusClass=' r-focus';
           }
         }else{
           //not partial entry...
@@ -717,8 +717,14 @@ function showHintsInfo(aJson){
       if(!ifAtComplete('triggerParts', t)){
         //is focus part?
         var focusClass=getFocusClass(partIndex);
+        if(focusClass===' l-focus'){
+          html+='<span class="focus parts">'; //start focus parts
+        }
         //part html
         html+='<span class="left'+focusClass+' part">'+part+'</span>';
+        if(focusClass===' r-focus'){
+          html+='</span>'; //end focus parts
+        }
         //next part index
         partIndex++;
       }else{
@@ -733,8 +739,14 @@ function showHintsInfo(aJson){
         if(!ifAtComplete('postTriggerParts', p)){
           //is focus part?
           var focusClass=getFocusClass(partIndex);
+          if(focusClass===' l-focus'){
+            html+='<span class="focus parts">'; //start focus parts
+          }
           //part html
           html+='<span class="right'+focusClass+' part">'+part+'</span>';
+          if(focusClass===' r-focus'){
+            html+='</span>'; //end focus parts
+          }
           //next part index
           partIndex++;
         }else{
@@ -746,8 +758,9 @@ function showHintsInfo(aJson){
     for(var c=0;c<aJson['completeFormatParts'].length;c++){ var part=aJson['completeFormatParts'][c];
       //is focus part?
       var focusClass=getFocusClass(partIndex);
+      var sideClass='left'; if(aJson['cursorIndex']<partIndex){sideClass='right';}
       //part html
-      html+='<span class="side complete'+focusClass+' part">'+part+'</span>';
+      html+='<span class="'+sideClass+' complete'+focusClass+' part">'+part+'</span>';
       //next part index
       partIndex++;
     }

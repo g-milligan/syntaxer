@@ -5,6 +5,7 @@
   width:100%;
   min-height:$h-hints-info-title;
   @include borderbox();
+  font-family:$f-norm;
 
   .info-title{
     position:absolute;
@@ -12,20 +13,49 @@
     left:0;
     height:$h-hints-info-title;
     width:100%;
+    text-align:center;
     @include borderbox();
+    font-family:inherit;
 
     box-shadow: inset 0 0 1rem rgba(0, 0, 0, 0.2);
     background-color: #CACACA;
     border-bottom: solid .1rem #7f1171;
 
     .trigger-text{
+      white-space:nowrap;
+      width: auto;
+      height:$h-hints-info-title;
+      line-height:$h-hints-info-title;
+      margin: 0 auto;
+      padding: 0 1rem;
+      display: inline-block;
+      background-color: rgba(255,255,255,.5);
+      border-radius: .3rem;
+      border: solid 1px #868686;
+      border-top: none;
+      border-bottom: none;
+      @include borderbox();
+      font-family:inherit;
 
-      .part{
+      .part,.parts{
+        font-family:inherit;
+        position:relative;
+
         &.focus{
           font-weight:bold;
+          text-shadow: 0 0 1.5rem rgba(0,255,255,.5);
+          color:#000;
+        }
+        &.focus:before{
+          @include triangle(down, 1rem, .6rem, #000);
+          position:absolute;
+          top:-($h-hints-info-title*.4);
+          left:0;
+          right:0;
+          margin:auto;
         }
       }
-      
+
     }
   }
   .info-body{

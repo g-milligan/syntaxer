@@ -656,7 +656,7 @@
              options:function(){
                return ['gl.FLOAT','gl.FIXED'];
              },
-             post:',, ', type: 'number',
+             post:', ', type: 'number',
              summary: 'Specifies the data type of each component in the array.'
            }},
            {normalize:{
