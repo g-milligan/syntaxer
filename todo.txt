@@ -1,0 +1,22 @@
+- finish styling for hint info panel
+  - more info / less info tabs
+  - create space so that the bottom of the editor contents are visible when scrolled 100% bottom
+  - z-index for options behind hints info panel fixed
+  
+- itemSize options
+- tab complete based on available options
+- data entry for other js methods auto complete info
+
+- auto complete for template.html inline files
+- add tab when a new file is created in template.html
+
+- new project
+- open project
+- pack project
+
+- auto complete for available vars, functions and objects (including "var ").
+  consider actual variable scope when creating the list?
+
+- data entry for glsl language auto complete info
+
+- track changes to variables flowing through the webgl process (so what's next / what's done info can be listed in the summary)

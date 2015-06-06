@@ -710,6 +710,12 @@ function showHintsInfo(aJson){
         }
       } return focusClass;
     };
+    var getMoreLessTag=function(focusClass){
+      var tag='';
+      if(focusClass.trim()==='focus'){
+        tag='<span class="more-less"><span class="more">More Info</span><span class="less">Less Info</span></span>';
+      } return tag;
+    };
     var partIndex=0;
     //for each trigger part
     for(var t=0;t<aJson['triggerParts'].length;t++){ var part=aJson['triggerParts'][t];
@@ -719,9 +725,11 @@ function showHintsInfo(aJson){
         var focusClass=getFocusClass(partIndex);
         if(focusClass===' l-focus'){
           html+='<span class="focus parts">'; //start focus parts
+          html+=getMoreLessTag('focus');
         }
         //part html
         html+='<span class="left'+focusClass+' part">'+part+'</span>';
+        html+=getMoreLessTag(focusClass);
         if(focusClass===' r-focus'){
           html+='</span>'; //end focus parts
         }
@@ -741,9 +749,11 @@ function showHintsInfo(aJson){
           var focusClass=getFocusClass(partIndex);
           if(focusClass===' l-focus'){
             html+='<span class="focus parts">'; //start focus parts
+            html+=getMoreLessTag('focus');
           }
           //part html
           html+='<span class="right'+focusClass+' part">'+part+'</span>';
+          html+=getMoreLessTag(focusClass);
           if(focusClass===' r-focus'){
             html+='</span>'; //end focus parts
           }
@@ -760,7 +770,7 @@ function showHintsInfo(aJson){
       var focusClass=getFocusClass(partIndex);
       var sideClass='left'; if(aJson['cursorIndex']<partIndex){sideClass='right';}
       //part html
-      html+='<span class="'+sideClass+' complete'+focusClass+' part">'+part+'</span>';
+      html+='<span class="'+sideClass+' complete'+focusClass+' part">'+getMoreLessTag(focusClass)+part+'</span>';
       //next part index
       partIndex++;
     }

@@ -44,17 +44,56 @@
 
         &.focus{
           font-weight:bold;
-          text-shadow: 0 0 1.5rem rgba(0,255,255,.5);
-          color:#000;
+          color:#7F1171;
+
+          .more-less{
+            position:absolute;
+            left:0;
+            right:0;
+            top:-125%;
+            margin:auto;
+            display:inline-block;
+            height:($h-hints-info-title/2);
+
+            &:after{
+              @include triangle(down, 1rem, .3rem, #7F1171);
+              position:absolute;
+              bottom:-.3rem;
+              left:0;
+              right:0;
+              margin:auto;
+            }
+
+            .more, .less{
+              vertical-align: top;
+              font-size: .67rem;
+              font-family:$f-code;
+              white-space: nowrap;
+              text-shadow:none;
+              height:($h-hints-info-title/2);
+              line-height:.7rem;
+              background-color: #7f1171;
+              padding:.1rem .3rem;
+              color:#fff;
+              @include borderbox();
+              border-radius:.2rem;
+            }
+            .more{
+              display:inline-block;
+            }
+            .less{
+              display:none;
+            }
+          }
         }
-        &.focus:after{
+        /*&.focus:after{
           @include triangle(down, 1rem, .6rem, #000);
           position:absolute;
           top:-($h-hints-info-title*.4);
           left:0;
           right:0;
           margin:auto;
-        }
+        }*/
       }
 
     }
@@ -121,7 +160,16 @@
       cursor:pointer;
 
       &:hover{
-        background-color:rgba(0, 255, 255, 0.3);
+        background-color:rgba(255, 255, 255, 0.9);
+
+        .more-less{
+          &:after{
+            @include triangle(down, 1rem, .3rem, #C84BB8);
+          }
+          .more, .less{
+            background-color: #C84BB8;
+          }
+        }
       }
     }
   }
@@ -132,7 +180,20 @@
 
   .info-title{
     .trigger-text{
+      .part, .parts{
+        &.focus{
+          .more-less{
+            display:inline-block;
 
+            .more{
+              display:none;
+            }
+            .less{
+              display:inline-block;
+            }
+          }
+        }
+      }
     }
   }
 
