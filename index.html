@@ -18,6 +18,7 @@
 <!-- addons -->
 <script type="text/javascript" src="js/addon/show-hint.js"></script>
 <script type="text/javascript" src="js/addon/hint-functions.js"></script>
+<script type="text/javascript" src="js/addon/active-line.js"></script>
 <script type="text/javascript" src="js/addon/gljs-hint.js"></script>
 <!--<script type="text/javascript" src="js/addon/anyword-hint.js"></script>-->
 <!-- end addons -->
@@ -439,6 +440,7 @@
     config['value']=textarea.val();
     config['lineNumbers']=true;
     config['extraKeys']={'Ctrl-Space':'autocomplete'};
+    config['styleActiveLine']=true;
     if(mode.length>0){
       config['mode']=mode;
     }

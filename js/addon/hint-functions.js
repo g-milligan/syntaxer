@@ -675,7 +675,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
   return ret;
 }
 //show info like the function signature, plus summary of whatever part has focus
-function showHintsInfo(aJson){
+function showHintsInfo(aJson, editor){
   //title html
   var titleHtml='';
   var getTitleHtml=function(){
@@ -810,7 +810,8 @@ function showHintsInfo(aJson){
     return html;
   };
   //get some key elements
-  var hintsInfoWrap=jQuery('#hints-info:first'); hintsInfoWrap.removeClass('can-open');
+  var bodyElem=jQuery('body:first');
+  var hintsInfoWrap=bodyElem.find('#hints-info:first'); hintsInfoWrap.removeClass('can-open');
   var hintsTitleElem=hintsInfoWrap.children('.info-title:first');
   var hintsBodyElem=hintsInfoWrap.children('.info-body:first');
   //if there is a __complete-format part of this line (without __complete, the hint info format will not be shown)
@@ -833,19 +834,99 @@ function showHintsInfo(aJson){
         if(hintsInfoWrap.hasClass('open')){
           //close
           hintsInfoWrap.removeClass('open');
+          removeSplitPanelClasses(bodyElem);
         }else{
           //open
           hintsInfoWrap.addClass('open');
+          bodyElem.addClass('split-2panel-rows');
+          //move the scroll position if the cursor line is behind the open bottom panel
+          scrollCursorToTopIfBehind(editor, hintsInfoWrap);
         }
       });
     }
   }
+  //if the hints panel is open
+  if(hintsInfoWrap.hasClass('open')){
+    if(hintsInfoWrap.hasClass('can-open')){
+      bodyElem.addClass('split-2panel-rows');
+      //move the scroll position if the cursor line is behind the open bottom panel
+      scrollCursorToTopIfBehind(editor, hintsInfoWrap);
+    }else{
+      //hints panel cannot open... remove the split panel classes
+      removeSplitPanelClasses(bodyElem);
+    }
+  }else{
+    //hints panel closed... remove the split panel classes
+    removeSplitPanelClasses(bodyElem);
+  }
+}
+//move the scroll position if the cursor line is behind the open bottom panel
+function scrollCursorToTopIfBehind(editor, overlapElem){
+  //scroll so that the cursor line isn't out of sight
+  var cur = editor.getCursor();
+  var lineNum=cur.line+1;
+  var lineNumElem=getCodeMirrorLineElem(lineNum);
+  if(lineNumElem!=undefined){
+    var lineElem=lineNumElem.parent().parent();
+    //if the info panel overlaps the line number, at all
+    var overlapTop=overlapElem.offset().top;
+    var lineElemTop=lineElem.offset().top;
+    var lineElemBottom=lineElemTop+lineElem.outerHeight();
+    //if the line drops below the overlap panel
+    if(lineElemBottom>=overlapTop){
+      scrollCursorLineToTop(lineElem);
+    }
+  }
+}
+//scroll the cursor line to the top of the scroll area
+function scrollCursorLineToTop(lineElem){
+  //how much more should the editor scroll down?
+  var lineElemTop=lineElem.offset().top;
+  var contentWrap=jQuery('section#file-content .content-wrap.active:first');
+  var contentWrapTop=contentWrap.offset().top;
+  var moreScroll=lineElemTop-contentWrapTop;
+  //get current scroll top
+  var scrollData=codeMirrorScroll();
+  //add more scrollage
+  var newScrollTop=scrollData.top+moreScroll;
+  //set the new scroll top amount
+  codeMirrorScroll({top:newScrollTop}, scrollData.elem);
+}
+//set or get the scroll of the current active editor area
+function codeMirrorScroll(json, scrollElem){
+  var ret;
+  if(scrollElem==undefined){scrollElem=jQuery('section#file-content .content-wrap.active .CodeMirror .CodeMirror-scroll:first');}
+  if(json!=undefined){
+    if(json.hasOwnProperty('top')){
+      scrollElem.scrollTop(json['top']);
+    }
+    if(json.hasOwnProperty('left')){
+      scrollElem.scrollLeft(json['left']);
+    }
+  }
+  ret={elem:scrollElem, top:scrollElem.scrollTop(), left:scrollElem.scrollLeft()};
+  return ret;
+}
+//get the dom element for the codemirror line number
+function getCodeMirrorLineElem(lineNum){
+  var lineNumElems=jQuery('section#file-content .content-wrap.active .CodeMirror .CodeMirror-lines .CodeMirror-code .CodeMirror-linenumber:contains('+lineNum+')')
+  var lineNumElem;
+  if(lineNumElems.length>1){
+    lineNumElems.each(function(){
+      var txt=jQuery(this).text(); txt=txt.trim();
+      if(txt===(lineNum+'').trim()){
+        lineNumElem=jQuery(this);
+        return false;
+      }
+    });
+  }else if(lineNumElems.length===1){
+    lineNumElem=lineNumElems;
+  } return lineNumElem;
+}
 
-  //*** set class for elements not touching the __complete parts
-  //*** set type classes to each part
-  //*** set not-written-yet classes
-  //*** add type:key popup?
-  //*** where to put the full summary... on hover over the title?
+function removeSplitPanelClasses(bodyElem){
+  if(bodyElem==undefined){bodyElem=jQuery('body:first');}
+  bodyElem.removeClass('split-2panel-rows');
 }
 //add icons, summaries, tooltips, and sub menus to hints menu
 function decorateHintsMenu(lineSplit,hintsJson,aJson){
@@ -1022,7 +1103,7 @@ function handleJsonHints(editor, hintsJson, eventTrigger){
     end+=firstPostPart.length;
   }
   //show info like the function signature, plus summary of whatever part has focus
-  showHintsInfo(aJson);
+  showHintsInfo(aJson, editor);
   //completion hints object
   var completion={list: list,
     from: CodeMirror.Pos(cur.line, start),

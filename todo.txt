@@ -1,8 +1,8 @@
 - finish styling for hint info panel
-  - more info / less info tabs
+  - XXX more info / less info tabs
   - create space so that the bottom of the editor contents are visible when scrolled 100% bottom
   - z-index for options behind hints info panel fixed
-  
+
 - itemSize options
 - tab complete based on available options
 - data entry for other js methods auto complete info
