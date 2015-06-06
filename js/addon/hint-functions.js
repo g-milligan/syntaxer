@@ -1201,6 +1201,34 @@ function matchLeftFuncAssign(str, defaultRet, funcName, globalFlag){
   if(ret.length<1){ret=[defaultRet];}
   return ret;
 }
+//match a pattern like "something = 4;" to return "something"
+function matchLeftIntegerAssign(str, defaultRet, min, max, globalFlag){
+  var ret=[];
+  var reg=new RegExp('(\\w+|\\w+\\.\\w+)[ ]?=[ ]?\\d+[ ]?\\;', globalFlag);
+  var matches=str.match(reg);
+  if(matches!=undefined){
+    for(var m=0;m<matches.length;m++){
+      var match=matches[m];
+      if(match.indexOf('=')!==-1){
+        var left=match.substring(0,match.indexOf('='));
+        var right=match.substring(left.length+'='.length);
+        var num=parseInt(right);
+        if(!isNaN(num)){
+          if(isNaN(min) || min<=num){
+            if(isNaN(max) || num<=max){
+              left=left.trim();
+              if(ret.indexOf(left)===-1){
+                ret.push(left);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  if(ret.length<1){ret=[defaultRet];}
+  return ret;
+}
 
 //match a pattern like "vertices = [" to return "vertices"
 function matchLeftArrayAssign(str, defaultRet, globalFlag){
@@ -1247,4 +1275,16 @@ function matchFieldName(str, defaultRet, fieldType, globalFlag){
   }
   if(ret.length<1){ret=[defaultRet];}
   return ret;
+}
+//if some of the array items contain "contains" as a substring, then remove the options that don't
+function reduceOptionsIfSomeContain(ops, contains){
+  var opsContain=[];
+  contains=contains.toLowerCase();
+  for(var o=0;o<ops.length;o++){
+    if(ops[o].toLowerCase().indexOf(contains)!==-1){
+      opsContain.push(ops[o]);
+    }
+  }
+  if(opsContain.length>0){ ops=opsContain; }  
+  return ops;
 }

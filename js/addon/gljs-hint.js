@@ -638,7 +638,6 @@
              options:function(){
                var str=getTabContents({include_ext:['js'],has_some:['gl.getAttribLocation']});
                var ops=matchLeftFuncAssign(str,'pointer','gl\\.getAttribLocation','g');
-               ops.push('shadoopie'); //***
                return ops;
              },
              pre:'(', post:', ', type: 'number',
@@ -646,8 +645,10 @@
            }},
            {itemSize:{
              options:function(){
-               var str=getTabContents({include_ext:['js']});
-               return ['/*itemSize*/']; //***
+               var str=getTabContents({include_ext:['js'],has_some:['gl.createBuffer']});
+               var ops=matchLeftIntegerAssign(str,'4',1,4,'g');
+               ops=reduceOptionsIfSomeContain(ops, 'itemSize');
+               return ops;
              },
              post:', ', type: 'number',
              summary: 'The number of components per attribute. Must be 1,2,3,or 4. Default is 4.'
