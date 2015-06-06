@@ -638,7 +638,7 @@
              options:function(){
                var str=getTabContents({include_ext:['js'],has_some:['gl.getAttribLocation']});
                var ops=matchLeftFuncAssign(str,'pointer','gl\\.getAttribLocation','g');
-               return ops;
+               return ops.sort();
              },
              pre:'(', post:', ', type: 'number',
              summary: 'Index of target attribute in the buffer bound to gl.ARRAY_BUFFER'
@@ -648,7 +648,7 @@
                var str=getTabContents({include_ext:['js'],has_some:['gl.createBuffer']});
                var ops=matchLeftIntegerAssign(str,'4',1,4,'g');
                ops=reduceOptionsIfSomeContain(ops, 'itemSize');
-               return ops;
+               return ops.sort();
              },
              post:', ', type: 'number',
              summary: 'The number of components per attribute. Must be 1,2,3,or 4. Default is 4.'

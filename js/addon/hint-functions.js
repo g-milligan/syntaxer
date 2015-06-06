@@ -1117,52 +1117,133 @@ function handleJsonHints(editor, hintsJson, eventTrigger){
     }
   });
   //event for picking a hint option
-  CodeMirror.on(completion,'pick',function(){
-    //if __complete format exists on this line
-    if(aJson.indexOfComplete>-1){
-      //if not partialEntry
-      if(!aJson['partialEntry']){
-        var newCur = editor.getCursor();
-        var newEnd = newCur.ch, newStart = newEnd;
-        //get the newLine split
-        var newLineSplit=getLineSplit(editor);
-        //get the picked text (added to the left side of the cursor)
-        var pickedText=newLineSplit[0].substring(lineSplit[0].length);
-        newStart-=pickedText.length;
-        //figure out if there is a separator left of the pickedText
-        var left='', needsReplace=false;
-        if(dataAtCursor.hasOwnProperty('left')){
-          left=trimIfNotAllWhitespace(dataAtCursor['left']);
-          //if there is a pre separator
-          if(left.length>0){
-            //if this pre separator is NOT left of the cursor
-            var leftSplit=trimIfNotAllWhitespace(lineSplit[0]);
-            if(leftSplit.lastIndexOf(left)!==leftSplit.length-left.length){
-              newStart-=lastTrigPart.length;
-              needsReplace=true;
+  CodeMirror.on(completion,'pick',function(pickedOption){
+    //if the tab key triggered the pick event for the options
+    var isTabComplete=false;
+    if(this.event.keyCode===9){
+      //if partial entry
+      if(aJson['partialEntry']){
+        //if the right side of the cursor is empty, not complete
+        if(firstPostPart.length<1){
+          //if the autocomplete options is open
+          var ul=jQuery('.CodeMirror-hints:first');
+          if(ul.length>0){
+            //if there's more than one option
+            var lis=ul.children('li.CodeMirror-hint');
+            if(lis.length>1){
+              //figure out if all of the the options continue with a common string that can be tabbed into, but not fully completed
+              var commonStart='', commonContinuation='';
+              ul.children('li.CodeMirror-hint').each(function(){
+                var li=jQuery(this); var txt=li.text();
+                //remove the string that's already been written
+                var continuation=txt.substring(lastTrigPart.length);
+                //if this is the first option's start
+                if(commonStart.length<1){
+                  //set the common starting string (left of the cursor, and common to all of the current options)
+                  commonStart=txt.substring(0, lastTrigPart.length);
+                }
+                //if this is the first option's continuation
+                if(commonContinuation.length<1){
+                  //set the full continuation
+                  commonContinuation=continuation;
+                }else{
+                  //not the first continuation to process...
+
+                  //if the common continuation is longer than this continuation
+                  if(commonContinuation.length>continuation.length){
+                    //the common continuation can only be as long as the shortest option
+                    commonContinuation=commonContinuation.substring(continuation.length);
+                  }
+                  //if the common continuation is not the start of this continuation
+                  if(continuation.indexOf(commonContinuation)!==0){
+                    var newCommon='';
+                    for(var c=0;c<commonContinuation.length;c++){
+                      newCommon+=commonContinuation[c];
+                      //if the common continuation no longer fullfills this continuation at this point
+                      if(continuation.indexOf(newCommon)!==0){
+                        newCommon=newCommon.substring(0, newCommon.length-1);
+                        break;
+                      }
+                    }
+                    //set the trimmed continuation string
+                    commonContinuation=newCommon;
+                  }
+                }
+                //if there is no commonContinuation string that satisfies all of the options so far
+                if(commonContinuation.length<1){
+                  //end the options loop
+                  return false;
+                }
+              });
+              //if there is a commonContinuation string that satisfies, but doesn't complete, options
+              var tabInsertedStr='';
+              if(commonContinuation.length>0){
+                //insert only the part of the options that are common to all of the options (instead of the full selected option)
+                tabInsertedStr=commonStart+commonContinuation;
+              }else{
+                //there is no possible partial completion... do nothing (cancel out input by inserting the string that's already there)
+                tabInsertedStr=lastTrigPart;
+              }
+              //insert something for this tab press (note: this replaces the native autocomplete insert value)
+              editor.replaceRange(tabInsertedStr,
+                CodeMirror.Pos(completion.from.line, completion.from.ch),
+                CodeMirror.Pos(completion.to.line, completion.to.ch + pickedOption.length)
+              );
+              //indicate that this was tab completed
+              isTabComplete=true;
             }
           }
         }
-        //figure out if there is a separator right of the pickedText
-        var right='';
-        if(dataAtCursor.hasOwnProperty('right')){
-          right=trimIfNotAllWhitespace(dataAtCursor['right']);
-          //if there is a post separator
-          if(right.length>0){
-            //if this post separator is NOT right of the cursor
-            var rightSplit=trimIfNotAllWhitespace(lineSplit[1]);
-            if(rightSplit.indexOf(right)!==0){
-              newEnd+=firstPostPart.length;
-              needsReplace=true;
+      }
+    }
+    //if not tab completing the common part of the available options
+    if(!isTabComplete){
+      //if __complete format exists on this line
+      if(aJson.indexOfComplete>-1){
+        //if not partialEntry
+        if(!aJson['partialEntry']){
+          var newCur = editor.getCursor();
+          var newEnd = newCur.ch, newStart = newEnd;
+          //get the newLine split
+          var newLineSplit=getLineSplit(editor);
+          //get the picked text (added to the left side of the cursor)
+          var pickedText=newLineSplit[0].substring(lineSplit[0].length);
+          newStart-=pickedText.length;
+          //figure out if there is a separator left of the pickedText
+          var left='', needsReplace=false;
+          if(dataAtCursor.hasOwnProperty('left')){
+            left=trimIfNotAllWhitespace(dataAtCursor['left']);
+            //if there is a pre separator
+            if(left.length>0){
+              //if this pre separator is NOT left of the cursor
+              var leftSplit=trimIfNotAllWhitespace(lineSplit[0]);
+              if(leftSplit.lastIndexOf(left)!==leftSplit.length-left.length){
+                newStart-=lastTrigPart.length;
+                needsReplace=true;
+              }
             }
           }
-        }
-        //if the replace needs to happen
-        if(needsReplace){
-          editor.replaceRange(pickedText,
-            CodeMirror.Pos(newCur.line, newStart),
-            CodeMirror.Pos(newCur.line, newEnd)
-          );
+          //figure out if there is a separator right of the pickedText
+          var right='';
+          if(dataAtCursor.hasOwnProperty('right')){
+            right=trimIfNotAllWhitespace(dataAtCursor['right']);
+            //if there is a post separator
+            if(right.length>0){
+              //if this post separator is NOT right of the cursor
+              var rightSplit=trimIfNotAllWhitespace(lineSplit[1]);
+              if(rightSplit.indexOf(right)!==0){
+                newEnd+=firstPostPart.length;
+                needsReplace=true;
+              }
+            }
+          }
+          //if the replace needs to happen
+          if(needsReplace){
+            editor.replaceRange(pickedText,
+              CodeMirror.Pos(newCur.line, newStart),
+              CodeMirror.Pos(newCur.line, newEnd)
+            );
+          }
         }
       }
     }
@@ -1285,6 +1366,6 @@ function reduceOptionsIfSomeContain(ops, contains){
       opsContain.push(ops[o]);
     }
   }
-  if(opsContain.length>0){ ops=opsContain; }  
+  if(opsContain.length>0){ ops=opsContain; }
   return ops;
 }

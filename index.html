@@ -439,7 +439,9 @@
     var config={};
     config['value']=textarea.val();
     config['lineNumbers']=true;
-    config['extraKeys']={'Ctrl-Space':'autocomplete'};
+    config['extraKeys']={
+      'Ctrl-Space':'autocomplete'
+    };
     config['styleActiveLine']=true;
     if(mode.length>0){
       config['mode']=mode;
@@ -782,25 +784,27 @@
           is=true;
         }return is;
       };
-      //get character
-      var char=String.fromCharCode(e.keyCode); if(char==undefined){char='';}
-      char=char.toLowerCase();
-      //depending on character
-      switch(char){
-        case 's':
-          //if Command+S
-          if(isCtl(e)){
+      //if the command or control key is held
+      if(isCtl(e)){
+        //get character
+        var char=String.fromCharCode(e.keyCode); if(char==undefined){char='';}
+        char=char.toLowerCase();
+        //depending on character
+        switch(char){
+          case 's':
+            //if Command+S
             e.preventDefault(); ret=false;
             saveProject();
-          }
-          break;
-        case 'i':
-          //if Command+I
-          if(isCtl(e)){
+            break;
+          case 'i':
+            //if Command+I
             e.preventDefault(); ret=false;
             openContentMenu('insert');
-          }
-          break;
+            break;
+        }
+      }else{
+        //command/control key not held...
+
       }
       return ret;
     });
