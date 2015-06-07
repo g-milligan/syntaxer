@@ -23,19 +23,27 @@
       },
       "attachShader": {
          "__type": "function",
-         "__%":{
-           program:function(){
-             var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
-             return matchLeftFuncAssign(str,'program','gl\\.createProgram','g');}
-         },
-         "(__%program,": {
-           "__%":{
-             shader:function(){
+         "__summary":"Attaches a WebGLShader object to a WebGLProgram object.",
+         "__complete":[
+           {program:{
+             options:function(){
+               var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
+               var ops=matchLeftFuncAssign(str,'program','gl\\.createProgram','g');
+               return ops.sort();
+             },
+             pre:'(', post:', ', type: 'object',
+             summary: 'The WebGLProgram object created using the createProgram method.'
+           }},
+           {shader:{
+             options:function(){
                var str=getTabContents({include_ext:['js'],has_some:['getShader']});
-               return matchLeftFuncAssign(str,'shader','getShader','g');}
-           },
-           " __%shader);":{}
-         }
+               var ops=matchLeftFuncAssign(str,'shader','getShader','g');
+               return ops.sort();
+             },
+             post:');', type: 'object',
+             summary: 'The WebGLShader object to attach.'
+           }}
+         ]
       },
       "bindAttribLocation": {
          "__type": "function",
@@ -236,7 +244,7 @@
       },
       "enableVertexAttribArray": {
          "__type": "function",
-         "__summary":"about this function", //***
+         "__summary":"Turns on a vertex attribute at a specific index position in a vertex attribute array.",
          "__complete":[
            {pointer:{
              options:function(){
@@ -245,7 +253,7 @@
                return ops.sort();
              },
              pre:"(",post:");",type:"number",
-             summary:"test test"
+             summary:"Index of the vertex attribute to enable."
            }}
          ]
       },
