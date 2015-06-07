@@ -51,14 +51,25 @@
       },
       "bindBuffer": {
          "__type": "function",
-         "(gl.ARRAY_BUFFER,": {
-           "__%":{
-             buffer:function(){
+         "__summary":"Associates a buffer with a buffer target.",
+         "__complete":[
+           {target:{
+             options:function(){
+               return ['gl.ARRAY_BUFFER','gl.ELEMENT_ARRAY_BUFFER'];
+             },
+             pre:'(', post:', ', type: 'number',
+             summary: 'The target associated with the buffer object.'
+           }},
+           {buffer:{
+             options:function(){
                var str=getTabContents({include_ext:['js'],has_some:['gl.createBuffer']});
-               return matchLeftFuncAssign(str,'buffer','gl\\.createBuffer','g');}
-           },
-           " __%buffer);":{}
-         }
+               var ops=matchLeftFuncAssign(str,'buffer','gl\\.createBuffer','g');
+               return ops.sort();
+             },
+             post:');', type: 'object',
+             summary: 'A WebGLBuffer object to bind to target.'
+           }}
+         ]
       },
       "bindFramebuffer": {
          "__type": "function",
@@ -94,17 +105,33 @@
       },
       "bufferData": {
          "__type": "function",
-         "(gl.ARRAY_BUFFER,": {
-           "__%":{
-             vertices:function(){
+         "__summary":"Creates a buffer in memory and initializes it with array data. If no array is provided, the contents of the buffer is initialized to 0.",
+         "__complete":[
+           {target:{
+             options:function(){
+               return ['gl.ARRAY_BUFFER','gl.ELEMENT_ARRAY_BUFFER'];
+             },
+             pre:'(', post:', ', type: 'number',
+             summary: 'The target associated with the buffer object.'
+           }},
+           {sizeOrData:{
+             options:function(){
                var str=getTabContents({include_ext:['js']});
-               return matchLeftArrayAssign(str, '/*vertices*/', 'g');
-             }
-           },
-           " new Float32Array(__%vertices),":{
-             " gl.STATIC_DRAW);":{}
-           }
-         }
+               var ops=matchLeftArrayAssign(str,'vertices','g');
+               ops=surroundOptions(ops.sort(), 'new Float32Array(', ')');
+               return ops;
+             },
+             post:', ', type: 'number | ArrayBuffer',
+             summary: '<strong>ArrayBuffer</strong>, An array of data points, or, <strong>number</strong>, the size of the buffer to initialize.'
+           }},
+           {usage:{
+             options:function(){
+               return ['gl.STATIC_DRAW','gl.DYNAMIC_DRAW','gl.STREAM_DRAW'];
+             },
+             post:');', type: 'number',
+             summary: '<strong>gl.STATIC_DRAW</strong> The data store contents are modified once, and used many times as the source for WebGL drawing commands. <br /><strong>gl.DYNAMIC_DRAW</strong> The data store contents are repeatedly respecified, and used many times as the source for WebGL drawing commands. <br /><strong>gl.STREAM_DRAW</strong> The data store contents are specified once, and used occasionally as the source of a WebGL drawing command.'
+           }}
+         ]
       },
       "bufferSubData": {
          "__type": "function",
@@ -295,6 +322,10 @@
       },
       "getAttribLocation": {
          "__type": "function",
+         
+
+
+
          "__%":{
            program:function(){
              var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});

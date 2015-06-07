@@ -1388,6 +1388,23 @@ function matchFieldName(str, defaultRet, fieldType, globalFlag){
   if(ret.length<1){ret=[defaultRet];}
   return ret;
 }
+//surround each item in an array with pre and post text, if the item doesn't already have the pre / post
+function surroundOptions(ops, pre, post){
+  var newOps=[];
+  for(var o=0;o<ops.length;o++){
+    var op=ops[o], addPre=false, addPost=false;
+    if(pre.length>0 && op.indexOf(pre)!==0){
+      addPre=true;
+    }
+    if(post.length>0 && op.lastIndexOf(post)!==op.length-post.length){
+      addPost=true;
+    }
+    if(addPre){ op=pre+op; }
+    if(addPost){ op+=post; }
+    newOps.push(op);
+  }
+  return newOps;
+}
 //if some of the array items contain "contains" as a substring, then remove the options that don't
 function reduceOptionsIfSomeContain(ops, contains){
   var opsContain=[];
