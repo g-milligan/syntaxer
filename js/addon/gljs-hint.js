@@ -8,7 +8,6 @@
 })(function(CodeMirror) {
   "use strict";
 
-  //matchLeftFuncAssign(str,'defaultAutoCompleteVarName','functionName','g'?)
 
   //WEBGL JAVASCRIPT HINTS
 
@@ -17,11 +16,11 @@
    "gl.": {
       "__type":"object",
       "__summary":"The WebGLRenderingContext is the primary object used for interacting with webgl graphics. The context provides access to many native WebGL properties and methods.",
-      "activeTexture": {
+      "activeTexture(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "attachShader": {
+      "attachShader(": {
          "__type": "function",
          "__summary":"Attaches a WebGLShader object to a WebGLProgram object.",
          "__complete":[
@@ -31,7 +30,7 @@
                var ops=matchLeftFuncAssign(str,'program','gl\\.createProgram','g');
                return ops.sort();
              },
-             pre:'(', post:', ', type: 'object',
+             post:', ', type: 'object',
              summary: 'The WebGLProgram object created using the createProgram method.'
            }},
            {shader:{
@@ -40,16 +39,16 @@
                var ops=matchLeftFuncAssign(str,'shader','getShader','g');
                return ops.sort();
              },
-             post:');', type: 'object',
+             post:')', type: 'object',
              summary: 'The WebGLShader object to attach.'
            }}
          ]
       },
-      "bindAttribLocation": {
+      "bindAttribLocation(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "bindBuffer": {
+      "bindBuffer(": {
          "__type": "function",
          "__summary":"Associates a buffer with a buffer target.",
          "__complete":[
@@ -57,7 +56,7 @@
              options:function(){
                return ['gl.ARRAY_BUFFER','gl.ELEMENT_ARRAY_BUFFER'];
              },
-             pre:'(', post:', ', type: 'number',
+             post:', ', type: 'number',
              summary: 'The target associated with the buffer object.'
            }},
            {buffer:{
@@ -66,44 +65,44 @@
                var ops=matchLeftFuncAssign(str,'buffer','gl\\.createBuffer','g');
                return ops.sort();
              },
-             post:');', type: 'object',
+             post:')', type: 'object',
              summary: 'A WebGLBuffer object to bind to target.'
            }}
          ]
       },
-      "bindFramebuffer": {
+      "bindFramebuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "bindRenderbuffer": {
+      "bindRenderbuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "bindTexture": {
+      "bindTexture(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "blendColor": {
+      "blendColor(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "blendEquation": {
+      "blendEquation(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "blendEquationSeparate": {
+      "blendEquationSeparate(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "blendFunc": {
+      "blendFunc(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "blendFuncSeparate": {
+      "blendFuncSeparate(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "bufferData": {
+      "bufferData(": {
          "__type": "function",
          "__summary":"Creates a buffer in memory and initializes it with array data. If no array is provided, the contents of the buffer is initialized to 0.",
          "__complete":[
@@ -111,7 +110,7 @@
              options:function(){
                return ['gl.ARRAY_BUFFER','gl.ELEMENT_ARRAY_BUFFER'];
              },
-             pre:'(', post:', ', type: 'number',
+             post:', ', type: 'number',
              summary: 'The target associated with the buffer object.'
            }},
            {sizeOrData:{
@@ -128,148 +127,162 @@
              options:function(){
                return ['gl.STATIC_DRAW','gl.DYNAMIC_DRAW','gl.STREAM_DRAW'];
              },
-             post:');', type: 'number',
+             post:')', type: 'number',
              summary: '<strong>gl.STATIC_DRAW</strong> The data store contents are modified once, and used many times as the source for WebGL drawing commands. <br /><strong>gl.DYNAMIC_DRAW</strong> The data store contents are repeatedly respecified, and used many times as the source for WebGL drawing commands. <br /><strong>gl.STREAM_DRAW</strong> The data store contents are specified once, and used occasionally as the source of a WebGL drawing command.'
            }}
          ]
       },
-      "bufferSubData": {
+      "bufferSubData(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "checkFramebufferStatus": {
+      "checkFramebufferStatus(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "clear": {
+      "clear(": {
          "__type": "function",
-         "(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);": {}
+         "__summary":"Sets all pixels in a specific buffer to the same value.",
+         "__complete":[
+           {mask:{
+             options:function(){
+               return [
+                 'gl.DEPTH_BUFFER_BIT','gl.COLOR_BUFFER_BIT','gl.STENCIL_BUFFER_BIT',
+                 'gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT', 'gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT',
+                 'gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT',
+                 'gl.STENCIL_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT'
+              ];
+             },
+             post:')', type: 'number',
+             summary: 'Pass one or more buffer bits in order to write to the related buffer. You can pass more than one value by separating each value with \'|\'. <br />For example: gl.clear(<strong>gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT</strong>);'
+           }}
+         ]
       },
-      "clearColor": {
+      "clearColor(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "clearDepth": {
+      "clearDepth(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "clearStencil": {
+      "clearStencil(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "colorMask": {
+      "colorMask(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "compileShader": {
+      "compileShader(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "compressedTexImage2D": {
+      "compressedTexImage2D(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "compressedTexSubImage2D": {
+      "compressedTexSubImage2D(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "copyTexImage2D": {
+      "copyTexImage2D(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "copyTexSubImage2D": {
+      "copyTexSubImage2D(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "createBuffer": {
+      "createBuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "createFramebuffer": {
+      "createFramebuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "createProgram": {
+      "createProgram(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "createRenderbuffer": {
+      "createRenderbuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "createShader": {
+      "createShader(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "createTexture": {
+      "createTexture(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "cullFace": {
+      "cullFace(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "deleteBuffer": {
+      "deleteBuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "deleteFramebuffer": {
+      "deleteFramebuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "deleteProgram": {
+      "deleteProgram(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "deleteRenderbuffer": {
+      "deleteRenderbuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "deleteShader": {
+      "deleteShader(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "deleteTexture": {
+      "deleteTexture(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "depthFunc": {
+      "depthFunc(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "depthMask": {
+      "depthMask(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "depthRange": {
+      "depthRange(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "detachShader": {
+      "detachShader(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "disable": {
+      "disable(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "disableVertexAttribArray": {
+      "disableVertexAttribArray(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "drawArrays": {
+      "drawArrays(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "drawElements": {
+      "drawElements(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "enable": {
+      "enable(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "enableVertexAttribArray": {
+      "enableVertexAttribArray(": {
          "__type": "function",
          "__summary":"Turns on a vertex attribute at a specific index position in a vertex attribute array.",
          "__complete":[
@@ -279,358 +292,231 @@
                var ops=matchLeftFuncAssign(str,'attrPointer','gl\\.getAttribLocation','g');
                return ops.sort();
              },
-             pre:"(",post:");",type:"number",
+             post:")",type:"number",
              summary:"Index of the vertex attribute to enable."
            }}
          ]
       },
-      "finish": {
+      "finish(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "flush": {
+      "flush(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "framebufferRenderbuffer": {
+      "framebufferRenderbuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "framebufferTexture2D": {
+      "framebufferTexture2D(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "frontFace": {
+      "frontFace(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "generateMipmap": {
+      "generateMipmap(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getActiveAttrib": {
+      "getActiveAttrib(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getActiveUniform": {
+      "getActiveUniform(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getAttachedShaders": {
+      "getAttachedShaders(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getAttribLocation": {
+      "getAttribLocation(": {
          "__type": "function",
-         
-
-
-
-         "__%":{
-           program:function(){
-             var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
-             return matchLeftFuncAssign(str,'program','gl\\.createProgram','g');}
-         },
-         "(__%program,":{
-           "__%":{
-             vertAttr:function(){
+         "__summary":"Returns an index to the location in a program of a named attribute variable.",
+         "__complete":[
+           {program:{
+             options:function(){
+               var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
+               var ops=matchLeftFuncAssign(str,'program','gl\\.createProgram','g');
+               return ops.sort();
+             },
+             post:", ",type:"object",
+             summary:"The program object."
+           }},
+           {attrName:{
+             options:function(){
                var str=getTabContents({include_ext:['vert','frag'],has_some:['attribute']});
-               return matchFieldName(str, 'vertAttr', 'attribute', 'g');
-             }
-           },
-           " \"__%vertAttr\");":{}
-         }
+               var ops=matchFieldName(str, 'attrName', 'attribute', 'g');
+               ops=surroundOptions(ops,'"','"');
+               return ops.sort();
+             },
+             post:")",type:"string",
+             summary:"The name of the attribute variable, as it appears in the shader program."
+           }}
+         ]
       },
-      "getBufferParameter": {
+      "getBufferParameter(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getContextAttributes": {
+      "getContextAttributes(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getError": {
+      "getError(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getExtension": {
+      "getExtension(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getFramebufferAttachmentParameter": {
+      "getFramebufferAttachmentParameter(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getParameter": {
+      "getParameter(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getProgramParameter": {
+      "getProgramParameter(": {
          "__type": "function",
-         "__%":{
-           program:function(){
-             var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
-             return matchLeftFuncAssign(str,'program','gl\\.createProgram','g');}
-         },
-         "(__%program,": {
-           " gl.LINK_STATUS);":{}
-         }
+         "__summary":"Returns the value of the program parameter that corresponds to a supplied pname for a given program, or null if an error occurs.",
+         "__complete":[
+           {program:{
+             options:function(){
+               var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
+               var ops=matchLeftFuncAssign(str,'program','gl\\.createProgram','g');
+               return ops.sort();
+             },
+             post:", ",type:"object",
+             summary:"The program object to query for pname."
+           }},
+           {pname:{
+             options:function(){
+               return [
+                 'gl.DELETE_STATUS','gl.LINK_STATUS','gl.VALIDATE_STATUS',
+                 'gl.ATTACHED_SHADERS','gl.ACTIVE_ATTRIBUTES','gl.ACTIVE_UNIFORMS'
+              ];
+             },
+             post:")",type:"number",
+             summary:"The parameter constant."
+           }}
+         ]
       },
-      "getProgramInfoLog": {
+      "getProgramInfoLog(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getRenderbufferParameter": {
+      "getRenderbufferParameter(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getShaderParameter": {
+      "getShaderParameter(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getShaderInfoLog": {
+      "getShaderInfoLog(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getShaderPrecisionFormat": {
+      "getShaderPrecisionFormat(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getShaderSource": {
+      "getShaderSource(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getSupportedExtensions": {
+      "getSupportedExtensions(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getTexParameter": {
+      "getTexParameter(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getUniform": {
+      "getUniform(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getUniformLocation": {
+      "getUniformLocation(": {
          "__type": "function",
-         "__%":{
-           program:function(){
-             var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
-             return matchLeftFuncAssign(str,'program','gl\\.createProgram','g');}
-         },
-         "(__%program,":{
-           "__%":{
-             uniformField:function(){
+         "__summary":"Returns a WebGLUniformLocation object for the location of a uniform variable within a WebGLProgram object.",
+         "__complete":[
+           {program:{
+             options:function(){
+               var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
+               var ops=matchLeftFuncAssign(str,'program','gl\\.createProgram','g');
+               return ops.sort();
+             },
+             post:", ",type:"object",
+             summary:"The program object to query."
+           }},
+           {uniformName:{
+             options:function(){
                var str=getTabContents({include_ext:['vert','frag'],has_some:['uniform']});
-               return matchFieldName(str, 'uniformField', 'uniform', 'g');
-             }
-           },
-           " \"__%uniformField\");":{}
-         }
+               var ops=matchFieldName(str, 'uniformName', 'uniform', 'g');
+               ops=surroundOptions(ops,'"','"');
+               return ops.sort();
+             },
+             post:")",type:"string",
+             summary:"A string containing the name of the uniform variable, as it appears in the shader code."
+           }}
+         ]
       },
-      "getVertexAttrib": {
+      "getVertexAttrib(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "getVertexAttribOffset": {
+      "getVertexAttribOffset(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "hint": {
+      "hint(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "isBuffer": {
+      "isBuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "isContextLost": {
+      "isContextLost(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "isEnabled": {
+      "isEnabled(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "isFramebuffer": {
+      "isFramebuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "isProgram": {
+      "isProgram(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "isRenderbuffer": {
+      "isRenderbuffer(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "isShader": {
+      "isShader(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "isTexture": {
+      "isTexture(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "lineWidth": {
+      "lineWidth(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "linkProgram": {
-         "__type": "function",
-         "__%":{
-           program:function(){
-             var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
-             return matchLeftFuncAssign(str,'program','gl\\.createProgram','g');}
-         },
-         "(__%program);": {}
-      },
-      "pixelStorei": {
-         "__type": "function",
-         "();": {}
-      },
-      "polygonOffset": {
-         "__type": "function",
-         "();": {}
-      },
-      "readPixels": {
-         "__type": "function",
-         "();": {}
-      },
-      "renderbufferStorage": {
-         "__type": "function",
-         "();": {}
-      },
-      "sampleCoverage": {
-         "__type": "function",
-         "();": {}
-      },
-      "scissor": {
-         "__type": "function",
-         "();": {}
-      },
-      "shaderSource": {
-         "__type": "function",
-         "();": {}
-      },
-      "stencilFunc": {
-         "__type": "function",
-         "();": {}
-      },
-      "stencilFuncSeparate": {
-         "__type": "function",
-         "();": {}
-      },
-      "stencilMask": {
-         "__type": "function",
-         "();": {}
-      },
-      "stencilMaskSeparate": {
-         "__type": "function",
-         "();": {}
-      },
-      "stencilOp": {
-         "__type": "function",
-         "();": {}
-      },
-      "stencilOpSeparate": {
-         "__type": "function",
-         "();": {}
-      },
-      "texParameterf": {
-         "__type": "function",
-         "();": {}
-      },
-      "texParameteri": {
-         "__type": "function",
-         "();": {}
-      },
-      "texImage2D": {
-         "__type": "function",
-         "();": {}
-      },
-      "texSubImage2D": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform1f": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform1fv": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform1i": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform1iv": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform2f": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform2fv": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform2i": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform2iv": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform3f": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform3fv": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform3i": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform3iv": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform4f": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform4fv": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform4i": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniform4iv": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniformMatrix2fv": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniformMatrix3fv": {
-         "__type": "function",
-         "();": {}
-      },
-      "uniformMatrix4fv": {
-         "__type": "function",
-         "();": {}
-      },
-      "useProgram": {
+      "linkProgram(": {
          "__type": "function",
          "__%":{
            program:function(){
@@ -639,43 +525,196 @@
          },
          "(__%program);": {}
       },
-      "validateProgram": {
+      "pixelStorei(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "vertexAttrib1f": {
+      "polygonOffset(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "vertexAttrib1fv": {
+      "readPixels(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "vertexAttrib2f": {
+      "renderbufferStorage(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "vertexAttrib2fv": {
+      "sampleCoverage(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "vertexAttrib3f": {
+      "scissor(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "vertexAttrib3fv": {
+      "shaderSource(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "vertexAttrib4f": {
+      "stencilFunc(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "vertexAttrib4fv": {
+      "stencilFuncSeparate(": {
          "__type": "function",
-         "();": {}
+         ")": {}
       },
-      "vertexAttribPointer": {
+      "stencilMask(": {
+         "__type": "function",
+         ")": {}
+      },
+      "stencilMaskSeparate(": {
+         "__type": "function",
+         ")": {}
+      },
+      "stencilOp(": {
+         "__type": "function",
+         ")": {}
+      },
+      "stencilOpSeparate(": {
+         "__type": "function",
+         ")": {}
+      },
+      "texParameterf(": {
+         "__type": "function",
+         ")": {}
+      },
+      "texParameteri(": {
+         "__type": "function",
+         ")": {}
+      },
+      "texImage2D(": {
+         "__type": "function",
+         ")": {}
+      },
+      "texSubImage2D(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform1f(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform1fv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform1i(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform1iv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform2f(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform2fv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform2i(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform2iv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform3f(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform3fv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform3i(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform3iv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform4f(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform4fv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform4i(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniform4iv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniformMatrix2fv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniformMatrix3fv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "uniformMatrix4fv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "useProgram(": {
+         "__type": "function",
+         "__%":{
+           program:function(){
+             var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
+             return matchLeftFuncAssign(str,'program','gl\\.createProgram','g');}
+         },
+         "(__%program);": {}
+      },
+      "validateProgram(": {
+         "__type": "function",
+         ")": {}
+      },
+      "vertexAttrib1f(": {
+         "__type": "function",
+         ")": {}
+      },
+      "vertexAttrib1fv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "vertexAttrib2f(": {
+         "__type": "function",
+         ")": {}
+      },
+      "vertexAttrib2fv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "vertexAttrib3f(": {
+         "__type": "function",
+         ")": {}
+      },
+      "vertexAttrib3fv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "vertexAttrib4f(": {
+         "__type": "function",
+         ")": {}
+      },
+      "vertexAttrib4fv(": {
+         "__type": "function",
+         ")": {}
+      },
+      "vertexAttribPointer(": {
          "__type": "function",
          "__summary":"The first argument is a pointer value, linked to a shader program field; used to tell the shader program to update one of its fields values.",
          "__complete":[
@@ -685,7 +724,7 @@
                var ops=matchLeftFuncAssign(str,'pointer','gl\\.getAttribLocation','g');
                return ops.sort();
              },
-             pre:'(', post:', ', type: 'number',
+             post:', ', type: 'number',
              summary: 'Index of target attribute in the buffer bound to gl.ARRAY_BUFFER'
            }},
            {itemSize:{
@@ -723,12 +762,12 @@
              options:function(){
                return ['0'];
              },
-             post:');', type: 'number',
+             post:')', type: 'number',
              summary: 'Specifies an offset in bytes of the first component of the first vertex attribute in the array. Default is 0 which means that vertex attributes are tightly packed. Must be a multiple of type.'
            }}
          ]
       },
-      "viewport": {
+      "viewport(": {
          "__type": "function",
          "(0, 0, canvas.clientWidth, canvas.clientHeight);": {}
       }

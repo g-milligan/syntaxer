@@ -10,10 +10,12 @@ function getLineSplit(editor){
 }
 //trims non-white-space-text, or leaves it alone (if it's all white space)
 function trimIfNotAllWhitespace(str){
-  //if NOT entirely made up of white space
-  if(str.trim().length>0){
-    //trim the string
-    str=str.trim();
+  if(str!=undefined){
+    //if NOT entirely made up of white space
+    if(str.trim().length>0){
+      //trim the string
+      str=str.trim();
+    }
   } return str;
 }
 function getAutocompleteOptions(lineSplit,hintsJson,editor){
@@ -104,42 +106,8 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         if(lineAfterCursor.trim().length<1){
           //if this option isn't already in the array
           if(options.indexOf(newOption)===-1){
-            //if there is a previous trigger part
-            var previousPart='';
-            if(triggerParts.length>0){
-              //if the trigger parts so far are keys in the json data
-              var validKeyChain=true, keyChainJson=hintsJson;
-              for(var t=0;t<triggerParts.length;t++){
-                if(keyChainJson.hasOwnProperty(triggerParts[t])){
-                  keyChainJson=keyChainJson[triggerParts[t]];
-                }else{
-                  validKeyChain=false;
-                  break;
-                }
-              }
-              if(validKeyChain){
-                //is this option the last descendent key?
-                var endOfKeys=true;
-                for(var k in jsonData){
-                  if(jsonData.hasOwnProperty(k)){
-                    endOfKeys=false; break;
-                  }
-                }
-                if(endOfKeys){
-                  //if there is already more than one option (a longer option that begins with this shorter option's text)
-                  if(options.length>0){
-                    //combine the two last key descendents in the autocomplete option
-                    previousPart=triggerParts[triggerParts.length-1];
-                    //if this combo is already in the options list
-                    if(options.indexOf(previousPart+newOption)!==-1){
-                      previousPart=''; //cancel combo
-                    }
-                  }
-                }
-              }
-            }
             //add this option to the array
-            options.push(previousPart+newOption);
+            options.push(newOption);
           }
         }
         //get the continuation of partialStr, that will make up newOption, eg: partialStr + afterPartialStr = newOption
@@ -316,10 +284,40 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
       st=st.trimLeft();
       //if there is text in which to search for keys
       if(st.length>0){
-        if(st.indexOf(';')!==-1){
-          //trim off string left of the last ;
-          st=st.substring(st.lastIndexOf(';')+';'.length);
-          st=st.trimLeft();
+        //function to trim left of (and possibly including) some "leftOf" string
+        var trimLeftOf=function(leftOf,includeLeftOf){
+          if(includeLeftOf==undefined){includeLeftOf=false;}
+          if(st.indexOf(leftOf)!==-1){
+            var includeLength=0;
+            if(includeLeftOf){
+              includeLength=leftOf.length;
+            }
+            //trim off string left of the last ;
+            st=st.substring(st.lastIndexOf(leftOf)+includeLength);
+            st=st.trimLeft();
+          }
+        };
+        //trim left of (and including) some strings if they exist
+        trimLeftOf('=',true);
+        trimLeftOf(';',true);
+        //figure out where to start in the string
+        var firstKeysLowestIndex=-1, earliestKey='';
+        for(var key in hintsJson){
+          if(hintsJson.hasOwnProperty(key)){
+            if(key.indexOf('__')!==0){
+              var indexOfKey=st.indexOf(key);
+              if(indexOfKey>-1){
+                if(firstKeysLowestIndex===-1 || indexOfKey<firstKeysLowestIndex){
+                  firstKeysLowestIndex=indexOfKey;
+                  earliestKey=key;
+                }
+              }
+            }
+          }
+        }
+        if(firstKeysLowestIndex>-1){
+          //trim up to the first top-level key that appears on this line
+          st=st.substring(st.indexOf(earliestKey));
         }
         //if there is STILL text in which to search for keys
         if(st.length>0){
@@ -562,6 +560,12 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           var between=next['between'];
           //save the surrounding separators
           result['left']=next['foundPre']; result['right']=post;
+          if(result['left']==undefined){
+            if(t===0){
+              //the first dynamic placeholder doesn't have a pre, so use the previous left text
+              result['left']=triggerText+postTriggerText;
+            }
+          }
           //if there is no breakdown in the format, (format followed so far)
           if(between==undefined){formatFollowed=false;}
           if(formatFollowed){
@@ -640,6 +644,21 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
                 if(lineAfterCursor.trim().length<1){
                   //show some auto complete options
                   addCompleteOptions([pre]);
+                }
+              //format not started... if this is also the first item in txtParts (first item is NOT pre, but a dynamic between)
+              }else if(t===0){
+                //if writing out the format and haven't quite finished yet
+                if(lineAfterCursor.trim().length<1){
+                  if(post==undefined){post='';}
+                  //if at least one character entered for this first dynamic placeholder
+                  if(st.trim().length>0){
+                    //consume this between string
+                    eatSt(st, true);
+                    //show the data for the current section
+                    saveDataAtCursor(result, true);
+                  }
+                  //show some auto complete options for the first dynamic placeholder (it doesn't have a pre value)
+                  addCompleteOptions(result, {addAfter:post});
                 }
               }
             }
@@ -1096,41 +1115,25 @@ function addJsonHints(addKey, obj, hintsJson){
     };
     //set json item data
     var setData=function(k,o){
-      //if doesn't already have type
-      if(!hasKey('__type',hintsJson[topKey][k])){
-        //set type
-        var type=typeof o[k];
-        hintsJson[topKey][k]['__type']=type;
-        //depending on the type
-        switch (type) {
-          case 'function':
-            //get the funciton signature
-            var funcStr=o[k].toString();
-            var sig=funcStr;
-            if(sig.indexOf('(')!==-1){
-              sig=sig.substring(sig.indexOf('(')+'('.length);
-            }
-            if(sig.indexOf('{')!==-1){
-              sig=sig.substring(0,sig.indexOf('{'));
-            }
-            if(sig.lastIndexOf(')')!==-1){
-              sig=sig.substring(0, sig.lastIndexOf(')'));
-            }
-            sig=sig.trim();
-            //most likely sig will be an empty string because native functions don't list their args
-            hintsJson[topKey][k]['('+sig+');']={};
-            break;
-        }
+      //get type
+      var type=typeof o[k]; var setKey=k;
+      switch (type) {
+        case 'function':
+          //function name keys will end with (
+          setKey+='(';
+        break;
+      }
+      if(!hintsJson[topKey].hasOwnProperty(setKey)){
+        hintsJson[topKey][setKey]={};
+      }
+      //if doesn't already have type, then set type
+      if(!hasKey('__type',hintsJson[topKey][setKey])){
+        hintsJson[topKey][setKey]['__type']=type;
       }
     };
     //for each property in obj
     for(var key in obj){
       if(obj[key]){
-        //if this property isn't already in hintsJson
-        if(!hintsJson[topKey].hasOwnProperty(key)){
-          //init the json for this item
-          hintsJson[topKey][key]={};
-        }
         //make sure the data is set for this item
         setData(key,obj);
       }
