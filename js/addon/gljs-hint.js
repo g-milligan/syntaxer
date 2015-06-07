@@ -8,6 +8,13 @@
 })(function(CodeMirror) {
   "use strict";
 
+  //reused to get shader program object autocomplete options, for different __complete formats
+  var getProgramOptions=function(){
+    var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
+    var ops=matchLeftFuncAssign(str,'program','gl\\.createProgram','g');
+    return ops.sort();
+  };
+
 
   //WEBGL JAVASCRIPT HINTS
 
@@ -25,11 +32,7 @@
          "__summary":"Attaches a WebGLShader object to a WebGLProgram object.",
          "__complete":[
            {program:{
-             options:function(){
-               var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
-               var ops=matchLeftFuncAssign(str,'program','gl\\.createProgram','g');
-               return ops.sort();
-             },
+             options: getProgramOptions,
              post:', ', type: 'object',
              summary: 'The WebGLProgram object created using the createProgram method.'
            }},
@@ -338,11 +341,7 @@
          "__summary":"Returns an index to the location in a program of a named attribute variable.",
          "__complete":[
            {program:{
-             options:function(){
-               var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
-               var ops=matchLeftFuncAssign(str,'program','gl\\.createProgram','g');
-               return ops.sort();
-             },
+             options: getProgramOptions,
              post:", ",type:"object",
              summary:"The program object."
            }},
@@ -387,11 +386,7 @@
          "__summary":"Returns the value of the program parameter that corresponds to a supplied pname for a given program, or null if an error occurs.",
          "__complete":[
            {program:{
-             options:function(){
-               var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
-               var ops=matchLeftFuncAssign(str,'program','gl\\.createProgram','g');
-               return ops.sort();
-             },
+             options: getProgramOptions,
              post:", ",type:"object",
              summary:"The program object to query for pname."
            }},
@@ -448,11 +443,7 @@
          "__summary":"Returns a WebGLUniformLocation object for the location of a uniform variable within a WebGLProgram object.",
          "__complete":[
            {program:{
-             options:function(){
-               var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
-               var ops=matchLeftFuncAssign(str,'program','gl\\.createProgram','g');
-               return ops.sort();
-             },
+             options: getProgramOptions,
              post:", ",type:"object",
              summary:"The program object to query."
            }},
@@ -518,12 +509,14 @@
       },
       "linkProgram(": {
          "__type": "function",
-         "__%":{
-           program:function(){
-             var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
-             return matchLeftFuncAssign(str,'program','gl\\.createProgram','g');}
-         },
-         "(__%program);": {}
+         "__summary":"Links an attached vertex shader and an attached fragment shader to a program so it can be used by the graphics processing unit (GPU).",
+         "__complete":[
+           {program:{
+             options: getProgramOptions,
+             post:")",type:"object",
+             summary:"The program object to link."
+           }}
+         ]
       },
       "pixelStorei(": {
          "__type": "function",
@@ -671,12 +664,14 @@
       },
       "useProgram(": {
          "__type": "function",
-         "__%":{
-           program:function(){
-             var str=getTabContents({include_ext:['js'],has_some:['gl.createProgram']});
-             return matchLeftFuncAssign(str,'program','gl\\.createProgram','g');}
-         },
-         "(__%program);": {}
+         "__summary":"Set the program object to use for rendering.",
+         "__complete":[
+           {program:{
+             options: getProgramOptions,
+             post:")",type:"object",
+             summary:"The program object."
+           }}
+         ]
       },
       "validateProgram(": {
          "__type": "function",
@@ -769,7 +764,37 @@
       },
       "viewport(": {
          "__type": "function",
-         "(0, 0, canvas.clientWidth, canvas.clientHeight);": {}
+         "__summary":"Represents a rectangular viewable area that contains the rendering results of the drawing buffer.",
+         "__complete":[
+           {x:{
+             options:function(){
+               return ['0'];
+             },
+             post:', ', type: 'number',
+             summary: 'The horizontal component of the viewport origin. Default is 0.'
+           }},
+           {y:{
+             options:function(){
+               return ['0'];
+             },
+             post:', ', type: 'number',
+             summary: 'The vertical component of the viewport origin. Default is 0.'
+           }},
+           {width:{
+             options:function(){
+               return ['canvas.clientWidth'];
+             },
+             post:', ', type: 'number',
+             summary: 'The width of the viewport. Default equals the width of the parent canvas (width).'
+           }},
+           {height:{
+             options:function(){
+               return ['canvas.clientHeight'];
+             },
+             post:')', type: 'number',
+             summary: 'The height of the viewport. Default equals the height of the parent canvas (height).'
+           }}
+         ]
       }
     }
   };
