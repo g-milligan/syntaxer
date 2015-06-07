@@ -164,7 +164,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
       if(s.length>k.length){ is=true;
         //if key is the first part of st
         if(isPartialOf(k, s)){
-          callback();
+          if(callback!=undefined){callback();}
         }
       } return is;
     };
@@ -177,7 +177,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
       if(s.length===k.length){ is=true;
         //if key is the first part of st
         if(s.toLowerCase()===k.toLowerCase()){
-          callback();
+          if(callback!=undefined){callback();}
         }
       } return is;
     };
@@ -186,58 +186,91 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
       var is=false;
       //if the text may surpass the length of this key
       if(s.length<1){
-        is=true; callback();
+        is=true; if(callback!=undefined){callback();}
       } return is;
     };
     //cycles through the keys at different levels to determine the viable autocomplete options
     var cycleThroughKeys=function(){
-      //not the first daisy chain level
-      var triggerTxtUpdated=false; var longestContinueStr='';
-      //==DETERMINE NESTED/DAISY-CHAINED AUTOCOMPLETE OPTIONS==
+      var sortedKeys=[];
+      //==SORT THE AUTOCOMPLETE KEYS
       for(var key in json){
         if(json.hasOwnProperty(key)){
           //if this is a key that could be an autocomplete value
           if(key.indexOf('__')!==0){
-
+            var keyAdded=false;
             //if after the first key level
             if(levelIndex>0){
               //if st is blank, ''
-              if(stIsBlank(st,function(){
-                //add autocomplete option
-                longestContinueStr=addOption(key,'',longestContinueStr,json[key]);
-              })){continue;}
+              stIsBlank(st,function(){
+                sortedKeys.push(key); keyAdded=true;
+              });
             }
-
             //if st.length>key.length and st starts with key
-            if(stGtKey(key,st,function(){
-              //if trigger text not already updated for this level
-              if(!triggerTxtUpdated){addToTriggerText(key); triggerTxtUpdated=true;}
-              //recursive call to the second level of possible text options
-              var shorterKey=st.substring(key.length);
-              getNextKeys(shorterKey,json[key],levelIndex+1);
-            })){continue;}
-
+            if(!keyAdded){
+              stGtKey(key,st,function(){
+                sortedKeys.push(key); keyAdded=true;
+              });
+            }
             //if st.length===key.length and st equals key
-            if(stEqualsKey(key,st,function(){
-              //if trigger text not already updated for this level
-              if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
-              //save data for the part on which the cursor has focus
-              saveDataAtCursor(json[key]);
-              //recursive call to the second level of possible text options
-              getNextKeys('',json[key],levelIndex+1);
-            })){continue;}
-
+            if(!keyAdded){
+              stEqualsKey(key,st,function(){
+                sortedKeys.push(key); keyAdded=true;
+              });
+            }
             //if st.length<key.length and key starts with st
-            if(stLtKey(key,st,function(){
-              //indicate that this is a partial entry
-              indicatePartialEntry();
-              //if trigger text not already updated for this level
-              if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
-              //add autocomplete option
-              longestContinueStr=addOption(key,st,longestContinueStr,json[key]);
-            })){continue;}
-
+            if(!keyAdded){
+              stLtKey(key,st,function(){
+                sortedKeys.push(key); keyAdded=true;
+              });
+            }
           }
+        }
+      }
+      //sort the keys
+      sortedKeys=sortedKeys.sort();
+      //init level flags
+      var triggerTxtUpdated=false, longestContinueStr='';
+      if(sortedKeys.length>0){
+        //==DETERMINE NESTED/DAISY-CHAINED AUTOCOMPLETE OPTIONS==
+        for(var k=sortedKeys.length-1;k>-1;k--){
+          var key=sortedKeys[k];
+          //if after the first key level
+          if(levelIndex>0){
+            //if st is blank, ''
+            if(stIsBlank(st,function(){
+              //add autocomplete option
+              longestContinueStr=addOption(key,'',longestContinueStr,json[key]);
+            })){continue;}
+          }
+
+          //if st.length>key.length and st starts with key
+          if(stGtKey(key,st,function(){
+            //if trigger text not already updated for this level
+            if(!triggerTxtUpdated){addToTriggerText(key); triggerTxtUpdated=true;}
+            //recursive call to the second level of possible text options
+            var shorterKey=st.substring(key.length);
+            getNextKeys(shorterKey,json[key],levelIndex+1);
+          })){continue;}
+
+          //if st.length===key.length and st equals key
+          if(stEqualsKey(key,st,function(){
+            //if trigger text not already updated for this level
+            if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
+            //save data for the part on which the cursor has focus
+            saveDataAtCursor(json[key]);
+            //recursive call to the second level of possible text options
+            getNextKeys('',json[key],levelIndex+1);
+          })){continue;}
+
+          //if st.length<key.length and key starts with st
+          if(stLtKey(key,st,function(){
+            //indicate that this is a partial entry
+            indicatePartialEntry();
+            //if trigger text not already updated for this level
+            if(!triggerTxtUpdated){addToTriggerText(st); triggerTxtUpdated=true;}
+            //add autocomplete option
+            longestContinueStr=addOption(key,st,longestContinueStr,json[key]);
+          })){continue;}
         }
       }
       //handle possible daisy chained keys AFTER the cursor position
