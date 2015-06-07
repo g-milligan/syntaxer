@@ -236,12 +236,18 @@
       },
       "enableVertexAttribArray": {
          "__type": "function",
-         "__%":{
-           attrPointer:function(){
-             var str=getTabContents({include_ext:['js'],has_some:['gl.getAttribLocation']});
-             return matchLeftFuncAssign(str,'attrPointer','gl\\.getAttribLocation','g');}
-         },
-         "(__%attrPointer);":{}
+         "__summary":"about this function", //***
+         "__complete":[
+           {pointer:{
+             options:function(){
+               var str=getTabContents({include_ext:['js'],has_some:['gl.getAttribLocation']});
+               var ops=matchLeftFuncAssign(str,'attrPointer','gl\\.getAttribLocation','g');
+               return ops.sort();
+             },
+             pre:"(",post:");",type:"number",
+             summary:"test test"
+           }}
+         ]
       },
       "finish": {
          "__type": "function",

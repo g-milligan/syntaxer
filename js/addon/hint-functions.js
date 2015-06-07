@@ -728,8 +728,7 @@ function showHintsInfo(aJson, editor){
           html+=getMoreLessTag('focus');
         }
         //part html
-        html+='<span class="left'+focusClass+' part">'+part+'</span>';
-        html+=getMoreLessTag(focusClass);
+        html+='<span class="left'+focusClass+' part">'+getMoreLessTag(focusClass)+part+'</span>';
         if(focusClass===' r-focus'){
           html+='</span>'; //end focus parts
         }
@@ -752,8 +751,7 @@ function showHintsInfo(aJson, editor){
             html+=getMoreLessTag('focus');
           }
           //part html
-          html+='<span class="right'+focusClass+' part">'+part+'</span>';
-          html+=getMoreLessTag(focusClass);
+          html+='<span class="right'+focusClass+' part">'+getMoreLessTag(focusClass)+part+'</span>';
           if(focusClass===' r-focus'){
             html+='</span>'; //end focus parts
           }
@@ -815,7 +813,7 @@ function showHintsInfo(aJson, editor){
   var hintsTitleElem=hintsInfoWrap.children('.info-title:first');
   var hintsBodyElem=hintsInfoWrap.children('.info-body:first');
   //if there is a __complete-format part of this line (without __complete, the hint info format will not be shown)
-  if(aJson['indexOfComplete']>-1){
+  if(aJson['indexOfComplete']>-1 || aJson['dataAtCursor']['hasAnnotation']){
     //get html for the hint info title
     titleHtml=getTitleHtml();
     bodyHtml=getBodyHtml();

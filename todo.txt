@@ -4,7 +4,7 @@
   - XXX z-index for options behind hints info panel fixed
 
 - XXX itemSize options
-- tab complete based on available options
+- XXX tab complete based on available options
 - data entry for other js methods auto complete info
 
 - auto complete for template.html inline files
