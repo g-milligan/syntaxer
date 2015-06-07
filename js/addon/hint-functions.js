@@ -104,8 +104,42 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         if(lineAfterCursor.trim().length<1){
           //if this option isn't already in the array
           if(options.indexOf(newOption)===-1){
+            //if there is a previous trigger part
+            var previousPart='';
+            if(triggerParts.length>0){
+              //if the trigger parts so far are keys in the json data
+              var validKeyChain=true, keyChainJson=hintsJson;
+              for(var t=0;t<triggerParts.length;t++){
+                if(keyChainJson.hasOwnProperty(triggerParts[t])){
+                  keyChainJson=keyChainJson[triggerParts[t]];
+                }else{
+                  validKeyChain=false;
+                  break;
+                }
+              }
+              if(validKeyChain){
+                //is this option the last descendent key?
+                var endOfKeys=true;
+                for(var k in jsonData){
+                  if(jsonData.hasOwnProperty(k)){
+                    endOfKeys=false; break;
+                  }
+                }
+                if(endOfKeys){
+                  //if there is already more than one option (a longer option that begins with this shorter option's text)
+                  if(options.length>0){
+                    //combine the two last key descendents in the autocomplete option
+                    previousPart=triggerParts[triggerParts.length-1];
+                    //if this combo is already in the options list
+                    if(options.indexOf(previousPart+newOption)!==-1){
+                      previousPart=''; //cancel combo
+                    }
+                  }
+                }
+              }
+            }
             //add this option to the array
-            options.push(newOption);
+            options.push(previousPart+newOption);
           }
         }
         //get the continuation of partialStr, that will make up newOption, eg: partialStr + afterPartialStr = newOption
@@ -1183,7 +1217,7 @@ function handleJsonHints(editor, hintsJson, eventTrigger){
                   //if the common continuation is longer than this continuation
                   if(commonContinuation.length>continuation.length){
                     //the common continuation can only be as long as the shortest option
-                    commonContinuation=commonContinuation.substring(continuation.length);
+                    commonContinuation=commonContinuation.substring(0, continuation.length);
                   }
                   //if the common continuation is not the start of this continuation
                   if(continuation.indexOf(commonContinuation)!==0){
