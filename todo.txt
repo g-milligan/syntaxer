@@ -5,7 +5,7 @@
 
 - XXX itemSize options
 - XXX tab complete based on available options
-- data entry for other js methods auto complete info
+- XXX data entry for other js methods auto complete info
 
 - auto complete for template.html inline files
 - add tab when a new file is created in template.html
@@ -20,3 +20,5 @@
 - data entry for glsl language auto complete info
 
 - track changes to variables flowing through the webgl process (so what's next / what's done info can be listed in the summary)
+
+- more data entry for JS webgl methods autocomplete info

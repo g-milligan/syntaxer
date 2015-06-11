@@ -202,3 +202,10 @@
     border-bottom:solid 7px #7f1171;
   }
 }
+
+section#file-content{
+  .hint-focus{
+    font-weight:bold;
+    color:blue;
+  }
+}

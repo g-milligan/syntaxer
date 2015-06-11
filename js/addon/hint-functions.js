@@ -305,8 +305,8 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         for(var key in hintsJson){
           if(hintsJson.hasOwnProperty(key)){
             if(key.indexOf('__')!==0){
-              var indexOfKey=st.indexOf(key);
-              if(indexOfKey>-1){
+              var indexOfKey=(st+lineAfterCursor).indexOf(key);
+              if(indexOfKey>-1 && indexOfKey<st.length){
                 if(firstKeysLowestIndex===-1 || indexOfKey<firstKeysLowestIndex){
                   firstKeysLowestIndex=indexOfKey;
                   earliestKey=key;
@@ -317,7 +317,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
         }
         if(firstKeysLowestIndex>-1){
           //trim up to the first top-level key that appears on this line
-          st=st.substring(st.indexOf(earliestKey));
+          st=st.substring(firstKeysLowestIndex);
         }
         //if there is STILL text in which to search for keys
         if(st.length>0){
@@ -693,7 +693,7 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
 
   //get the summary, type, etc of the data
   var getDataAtCursor=function(aJson){
-    var dataJson={hasAnnotation:false,type:'',key:'',summary:'',options:aJson['options']};
+    var dataJson={hasAnnotation:false,type:'',key:'',text:['',''],summary:'',options:aJson['options']};
     if(aJson.hasOwnProperty('dataAtCursor')){
       if(aJson['dataAtCursor']!=undefined){
         var prefix='';
@@ -714,6 +714,32 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           }else{
             //not partial entry
             dataJson['key']=lastBeforeCur;
+          }
+        }
+        //get the actual text part where the cursor is focused
+        if(aJson['triggerParts'].length>0){
+          var lastTriggerPart=aJson['triggerParts'][aJson['triggerParts'].length-1];
+          var firstPostTriggerPart='';
+          //if there are any parts after the cursor
+          if(aJson['postTriggerParts'].length>0){
+            firstPostTriggerPart=aJson['postTriggerParts'][0];
+          }
+          //if partial entry
+          if(aJson['partialEntry']){
+            dataJson['text']=[lastTriggerPart,firstPostTriggerPart];
+          }else{
+            //not partial entry...
+
+            //if the focus text is right of the cursor (in the postTriggerParts)
+            if(aJson['cursorIndex']>=aJson['triggerParts'].length){
+              //the comma in the array represents the cursor position
+              dataJson['text']=['',firstPostTriggerPart];
+            }else{
+              //the focus text is left of the cursor (in the triggerParts)...
+
+              //the comma in the array represents the cursor position
+              dataJson['text']=[lastTriggerPart,''];
+            }
           }
         }
         //for each viable data item (annotation data)
@@ -900,9 +926,22 @@ function showHintsInfo(aJson, editor){
   var hintsBodyElem=hintsInfoWrap.children('.info-body:first');
   //if there is a __complete-format part of this line (without __complete, the hint info format will not be shown)
   if(aJson['indexOfComplete']>-1 || aJson['dataAtCursor']['hasAnnotation']){
-    //get html for the hint info title
+    //get html for the hint info
     titleHtml=getTitleHtml();
     bodyHtml=getBodyHtml();
+    //highlight the word that is focused by the cursor, of which the hint info describes
+    var cur=editor.getCursor();
+    var marker=editor.markText(
+      CodeMirror.Pos(cur.line, cur.ch-aJson['dataAtCursor']['text'][0].length),
+      CodeMirror.Pos(cur.line, cur.ch+aJson['dataAtCursor']['text'][1].length),
+      {
+        className:'hint-focus',
+        clearWhenEmpty:true
+      }
+    );
+    //push this marker into an array so it can be cleared when the cursor moves
+    if(!editor.hasOwnProperty('hintFocusMarkers') || editor['hintFocusMarkers']==undefined){ editor['hintFocusMarkers']=[]; }
+    editor['hintFocusMarkers'].push(marker);
   }
   //set the new hint info html
   hintsTitleElem.html(titleHtml);
@@ -1142,6 +1181,14 @@ function addJsonHints(addKey, obj, hintsJson){
 }
 //generic handle hints depending on hintsJson data
 function handleJsonHints(editor, hintsJson, eventTrigger){
+  //clear all of the highlight markers (if any)
+  if(editor.hasOwnProperty('hintFocusMarkers')){
+    if(editor['hintFocusMarkers']!=undefined){
+      for(var f=0;f<editor['hintFocusMarkers'].length;f++){
+        editor['hintFocusMarkers'][f].clear();
+      }
+    }
+  }
   //get the text before and after the cursor
   var lineSplit=getLineSplit(editor);
   //get the autocomplete data including the possible options and the text daisy-chain that triggered these options
