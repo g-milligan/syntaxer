@@ -163,7 +163,37 @@
       },
       "clearColor(": {
          "__type": "function",
-         ")": {}
+         "__summary":"Specifies color values to be used by the clear method to clear the color buffer.",
+         "__complete":[
+           {red:{
+             options:function(){
+               return ['0.0','0.1','0.2','0.3','0.4','0.5','0.6','0.7','0.8','0.9','1.0'];
+             },
+             post:', ', type: 'number',
+             summary: 'The red component.'
+           }},
+           {blue:{
+             options:function(){
+               return ['0.0','0.1','0.2','0.3','0.4','0.5','0.6','0.7','0.8','0.9','1.0'];
+             },
+             post:', ', type: 'number',
+             summary: 'The blue component.'
+           }},
+           {green:{
+             options:function(){
+               return ['0.0','0.1','0.2','0.3','0.4','0.5','0.6','0.7','0.8','0.9','1.0'];
+             },
+             post:', ', type: 'number',
+             summary: 'The green component.'
+           }},
+           {alpha:{
+             options:function(){
+               return ['0.0','0.1','0.2','0.3','0.4','0.5','0.6','0.7','0.8','0.9','1.0'];
+             },
+             post:')', type: 'number',
+             summary: 'The transparency component.'
+           }}
+         ]
       },
       "clearDepth(": {
          "__type": "function",
@@ -275,7 +305,37 @@
       },
       "drawArrays(": {
          "__type": "function",
-         ")": {}
+         "__summary":"Render geometric primitives from bound and enabled vertex data.",
+         "__complete":[
+           {mode:{
+             options:function(){
+               return [
+                 'gl.POINTS','gl.LINES','gl.LINE_STRIP',
+                 'gl.LINE_LOOP','gl.TRIANGLES','gl.TRIANGLE_STRIP',
+                 'gl.TRIANGLE_FAN'
+              ];
+             },
+             post:", ",type:"number",
+             summary:"Specifies the kind of geometric primitives to render from a given set of vertex attributes."
+           }},
+           {first:{
+             options:function(){
+               return ['0'];
+             },
+             post:", ",type:"number",
+             summary:"The first element to render in the array of vector points."
+           }},
+           {count:{
+             options:function(){
+               var str=getTabContents({include_ext:['js'],has_some:['gl.createBuffer']});
+               var ops=matchLeftIntegerAssign(str,'4',1,4,'g');
+               ops=reduceOptionsIfSomeContain(ops, 'numItems');
+               return ops.sort();
+             },
+             post:")",type:"number",
+             summary:"The number of vector points to render. For example, a triangle would be 3."
+           }}
+         ]
       },
       "drawElements(": {
          "__type": "function",
@@ -283,7 +343,16 @@
       },
       "enable(": {
          "__type": "function",
-         ")": {}
+         "__summary":"Turns on specific WebGL capabilities for this context.",
+         "__complete":[
+           {capability:{
+             options:function(){
+               return ['gl.BLEND','gl.DEPTH_TEST','gl.CULL_FACE','gl.POLYGON_OFFSET_FILL','gl.SCISSOR_TEST'];
+             },
+             post:")",type:"number",
+             summary:"The capability to enable."
+           }}
+         ]
       },
       "enableVertexAttribArray(": {
          "__type": "function",
@@ -660,7 +729,35 @@
       },
       "uniformMatrix4fv(": {
          "__type": "function",
-         ")": {}
+         "__summary":"Sets values for a 4x4 floating point vector matrix into a uniform location as a matrix or a matrix array.",
+         "__complete":[
+           {location:{
+             options:function(){
+               var str=getTabContents({include_ext:['js'],has_some:['gl.getUniformLocation']});
+               var ops=matchLeftFuncAssign(str,'location','gl\\.getUniformLocation','g');
+               return ops.sort();
+             },
+             post:", ",type:"WebGLUniformLocation",
+             summary:"The location of uniform variable to be updated. Locate set by <strong>getUniformLocation</strong>."
+           }},
+           {transpose:{
+             options:function(){
+               return ['false','true'];
+             },
+             post:", ",type:"boolean",
+             summary:"Sets whether to transpose the matrix as the values are loaded into the uniform variable. Must be set to gl.FALSE."
+           }},
+           {value:{
+             options:function(){
+               //var str=getTabContents({include_ext:['js'],has_some:['mat4.create('],});
+               var str=getFileContent('.');
+               var ops=matchLeftFuncAssign(str,'location','mat4\\.create','g');
+               return ops.sort();
+             },
+             post:")",type:"Float32Array",
+             summary:"An array of float values representing one or more 4x4 matrices."
+           }}
+         ]
       },
       "useProgram(": {
          "__type": "function",

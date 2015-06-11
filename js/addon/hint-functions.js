@@ -1489,6 +1489,31 @@ function surroundOptions(ops, pre, post){
   }
   return newOps;
 }
+//get a range of numbers
+function getNumRange(start, stop, step, itemCallback){
+  var ret=[];
+  if(step==undefined){step=1;}
+  var index=0;
+  if(start<=stop){
+    for(var r=start;r<=stop;r+=step){
+      var i=r;
+      if(itemCallback!=undefined){
+        i=itemCallback(i,index);
+      }
+      ret.push(i);
+      index++;
+    }
+  }else{
+    for(var r=stop;r>=start;r-=step){
+      var i=r;
+      if(itemCallback!=undefined){
+        i=itemCallback(i,index);
+      }
+      ret.push(i);
+      index++;
+    }
+  } return ret;
+}
 //if some of the array items contain "contains" as a substring, then remove the options that don't
 function reduceOptionsIfSomeContain(ops, contains){
   var opsContain=[];
