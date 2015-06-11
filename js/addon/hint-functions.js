@@ -18,7 +18,7 @@ function trimIfNotAllWhitespace(str){
     }
   } return str;
 }
-function getAutocompleteOptions(lineSplit,hintsJson,editor){
+function getAutocompleteOptions(lineSplit,hintsJson,editor,lineTrimLeftOf){
   var lineBeforeCursor=lineSplit[0]; var lineAfterCursor=lineSplit[1]; var isAfterCursor=false;
 
   var options=[]; //autocomplete options
@@ -298,8 +298,19 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor){
           }
         };
         //trim left of (and including) some strings if they exist
-        trimLeftOf('=',true);
-        trimLeftOf(';',true);
+        if(lineTrimLeftOf!=undefined){
+          //if the lineTrimLeftOf is a function
+          if(typeof lineTrimLeftOf==='function'){
+            //call the function
+            st=lineTrimLeftOf(st,lineAfterCursor);
+          }else{
+            //otherwise, assume lineTrimLeftOf is an array of characters, to trim left of
+            for(var t=0;t<lineTrimLeftOf.length;t++){
+              //trim left of whatever character lineTrimLeftOf[t] is
+              trimLeftOf(lineTrimLeftOf[t],true);
+            }
+          }
+        }
         //figure out where to start in the string
         var firstKeysLowestIndex=-1, earliestKey='';
         for(var key in hintsJson){
@@ -1056,7 +1067,8 @@ function decorateHintsMenu(lineSplit,hintsJson,aJson){
   //if the code mirror popup exists
   var ul=jQuery('.CodeMirror-hints:first');
   if(ul.length>0){
-    //***
+    // ***
+
     /*//get the json values for these option items (same level)
     var triggerParts=aJson['triggerParts'];
     var json=hintsJson;
@@ -1180,7 +1192,7 @@ function addJsonHints(addKey, obj, hintsJson){
   }
 }
 //generic handle hints depending on hintsJson data
-function handleJsonHints(editor, hintsJson, eventTrigger){
+function handleJsonHints(editor, hintsJson, eventTrigger, lineTrimLeftOf){
   //clear all of the highlight markers (if any)
   if(editor.hasOwnProperty('hintFocusMarkers')){
     if(editor['hintFocusMarkers']!=undefined){
@@ -1192,7 +1204,7 @@ function handleJsonHints(editor, hintsJson, eventTrigger){
   //get the text before and after the cursor
   var lineSplit=getLineSplit(editor);
   //get the autocomplete data including the possible options and the text daisy-chain that triggered these options
-  var aJson=getAutocompleteOptions(lineSplit, hintsJson, editor);
+  var aJson=getAutocompleteOptions(lineSplit, hintsJson, editor, lineTrimLeftOf);
   var list=aJson['options'];
   var triggerParts=aJson['triggerParts']; //before the cursor
   var postTriggerParts=aJson['postTriggerParts']; //after the cursor

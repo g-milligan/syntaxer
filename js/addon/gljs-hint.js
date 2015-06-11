@@ -907,6 +907,7 @@
       //add items that are found on a real gl object
       addJsonHints('gl.', ctx, gljshints);
     }
-    return handleJsonHints(editor, gljshints, options.eventTrigger);
+    //['=',';'] = an array of characters to consume up to in the line left of the cursor, BEFORE trying to match a hint info chain pattern
+    return handleJsonHints(editor, gljshints, options.eventTrigger, ['=',';']);
   });
 });
