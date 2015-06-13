@@ -898,6 +898,23 @@
 
   CodeMirror.registerHelper("hint", "gljs", function(editor, options) {
     //==NATIVE CONTEXT OBJECT HINTS==
+
+    //load (if not already loaded) the actual preview/index.html into an iframe so that its window properties can be added to autocomplete
+    loadPreviewIFrame(function(iframe){
+      if(iframe.contentWindow){
+        var addProps=function(prop){
+          if(!hasJsonHintsKey(prop+'.',gljshints)){
+            if(iframe.contentWindow.hasOwnProperty(prop)){
+              addJsonHints(prop+'.', iframe.contentWindow[prop], gljshints);
+            }
+          }
+        };
+        addProps('vec3');
+        addProps('mat3');
+        addProps('mat4');
+        addProps('quat4');
+      }
+    });
     //if these hints aren't already added
     if(!hasJsonHintsKey('gl.',gljshints)){
       //get a real webgl context object

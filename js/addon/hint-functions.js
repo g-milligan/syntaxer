@@ -914,7 +914,13 @@ function showHintsInfo(aJson, editor){
     var type=getCursorVal('type'); var key=getCursorVal('key'); var title='';
     if(key.length>0 || type.length>0){
       title+='<div class="hint-title">';
-      if(key.length>0){ title+='<div class="hint-key">'+key+'</div>'; }
+      var printTitle=key;
+      if(type==='function'){
+        if(printTitle.lastIndexOf('(')===printTitle.length-'('.length){
+          printTitle=printTitle.substring(0,printTitle.length-'('.length);
+        }
+      }
+      if(key.length>0){ title+='<div class="hint-key">'+printTitle+'</div>'; }
       if(type.length>0){ title+='<div class="hint-type">'+type+'</div>'; }
       title+='</div>';
       hasBody=true;
@@ -1167,9 +1173,53 @@ function addJsonHints(addKey, obj, hintsJson){
     //set json item data
     var setData=function(k,o){
       //get type
-      var type=typeof o[k]; var setKey=k;
+      var type=typeof o[k]; var setKey=k; var completeJson=[]; var summary='';
       switch (type) {
         case 'function':
+          //get the full function signature
+          var sig=o[k].toString(); sig=sig.trim();
+          summary=sig;
+          //if the function signature fits the correct format, eg: "... ( ... ) { ... }"
+          if(sig.lastIndexOf('}')===sig.length-'}'.length){
+            var startParamsIndex=sig.indexOf('(');
+            if(startParamsIndex!==-1){
+              var endParamsIndex=sig.indexOf(')');
+              if(endParamsIndex!==-1){
+                var startBodyIndex=sig.indexOf('{');
+                if(startBodyIndex!==-1){
+                  if(startParamsIndex < endParamsIndex && endParamsIndex < startBodyIndex){
+                    //get the params inside "( ... )"
+                    var params=sig.substring(startParamsIndex+'('.length);
+                    params=params.substring(0,endParamsIndex-startParamsIndex-')'.length);
+                    params=params.trim();
+                    if(params.length>0){
+                      params=params.split(',');
+                      for(var p=0;p<params.length;p++){
+                        //create the param's hint info
+                        var param=params[p].trim();
+                        var paramJson={}; paramJson[param]={};
+                        var opsFunc=function(){
+                          return [this.key];
+                        };
+                        paramJson[param]['options']=opsFunc;
+                        //if this is the last param
+                        if(p+1===params.length){
+                          paramJson[param]['post']=')';
+                        }else{
+                          //not last param
+                          paramJson[param]['post']=', ';
+                        }
+                        paramJson[param]['type']='?';
+                        paramJson[param]['summary']='?';
+                        //add the param to the array of parameters
+                        completeJson.push(paramJson);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
           //function name keys will end with (
           setKey+='(';
         break;
@@ -1180,6 +1230,18 @@ function addJsonHints(addKey, obj, hintsJson){
       //if doesn't already have type, then set type
       if(!hasKey('__type',hintsJson[topKey][setKey])){
         hintsJson[topKey][setKey]['__type']=type;
+      }
+      //if doesn't already have summary, then set summary
+      if(summary.length>0){
+        if(!hasKey('__summary',hintsJson[topKey][setKey])){
+          hintsJson[topKey][setKey]['__summary']=summary;
+        }
+      }
+      //if doesn't already have complete, then set complete
+      if(completeJson.length>0){
+        if(!hasKey('__complete',hintsJson[topKey][setKey])){
+          hintsJson[topKey][setKey]['__complete']=completeJson;
+        }
       }
     };
     //for each property in obj

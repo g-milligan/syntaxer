@@ -270,7 +270,19 @@ if(file!==undefined&&file.trim().length>0){
                 res.send(JSON.stringify(resJson));
               }
             });
-
+            //request detection of the existence of a preview index.html file
+            app.get('/preview-index-exists', function(req, res){
+              var fromUrl=req.headers.referer;
+              //if the request came from this local site
+              if(isSameHost(fromUrl)){
+                var ret={exists:false,href:'http://' + host + ':' + port + '/preview/index.html',status:'ok'};
+                if(fs.existsSync('./preview/index.html')){
+                  ret['exists']=true;
+                }
+                //get the project HTML file path from the url
+                res.send(JSON.stringify(ret));
+              }
+            });
             //request to open a project file
             app.get('/open-project', function(req, res){
               var fromUrl=req.headers.referer;

@@ -6,3 +6,5 @@ body#body{
   padding:($h-hud+$h-tabs) 0 0 0;
   margin:0;
 }
+
+body #preview-index-iframe{width:0;height:0;overflow:hidden;visibility:hidden;}

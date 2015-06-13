@@ -574,6 +574,49 @@
     var tabs=jQuery('#tabs:first');
     tabs.html('');
   }
+  function loadPreviewIFrame(callback){
+    //if the preview index iframe hasn't already been created
+    var bodyElem=jQuery('body:first');
+    var iframe=bodyElem.children('iframe#preview-index-iframe:first');
+    if(iframe.length<1){
+      //if not already in the process of loading the preview iframe
+      if(!bodyElem.hasClass('loading-preview-iframe')){
+        bodyElem.addClass('loading-preview-iframe');
+        //ping the file to see if it's there
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange=function(){
+          if (xmlhttp.readyState==4 && xmlhttp.status==200){
+            var str=xmlhttp.responseText;
+            var json=JSON.parse(str);
+            //if no errors
+            if(json.status==='ok'){
+              if(json.hasOwnProperty('exists')){
+                //if the /preview/index.html file exists
+                if(json['exists']){
+                  //prepend the iframe to the stage
+                  bodyElem.prepend('<iframe id="preview-index-iframe" src="'+json['href']+'"></iframe>');
+                  var iframe=bodyElem.children('iframe#preview-index-iframe:first');
+                  iframe.error(function(){
+
+                  });
+                  iframe.load(function(){
+                    //callback function (if any provided)
+                    if(callback!=undefined){ callback(iframe[0]); }
+                  });
+                }
+              }
+              bodyElem.removeClass('loading-preview-iframe');
+            }else{
+              //returned errors...
+              //*** display json.status
+            }
+          }
+        }
+        xmlhttp.open("GET","/preview-index-exists",true);
+        xmlhttp.send();
+      }
+    }
+  }
   function openProjectFile(){
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange=function(){
@@ -622,11 +665,15 @@
     var previewWindow=getPreviewWindow();
     if(previewWindow!=undefined){
       var href=previewWindow.window.location.href;
-      if(href.indexOf('?')!==-1){
-        href=href.substring(0,href.indexOf('?'));
+      if(href!=undefined && href.trim().length>0){
+        if(href.indexOf('?')!==-1){
+          href=href.substring(0,href.indexOf('?'));
+        }
+        if(href!=='about:blank'){
+          href+='?reload='+(new Date()).getTime();
+          previewWindow.window.location.href=href;
+        }
       }
-      href+='?reload='+(new Date()).getTime();
-      previewWindow.window.location.href=href;
     }
     return previewWindow;
   }
