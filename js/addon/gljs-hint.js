@@ -19,7 +19,6 @@
   //WEBGL JAVASCRIPT HINTS
 
   var gljshints={
-    "gtest.":{"test":{}},
    "gl.": {
       "__type":"object",
       "__summary":"The WebGLRenderingContext is the primary object used for interacting with webgl graphics. The context provides access to many native WebGL properties and methods.",
@@ -902,17 +901,18 @@
     //load (if not already loaded) the actual preview/index.html into an iframe so that its window properties can be added to autocomplete
     loadPreviewIFrame(function(iframe){
       if(iframe.contentWindow){
-        var addProps=function(prop){
-          if(!hasJsonHintsKey(prop+'.',gljshints)){
+        var addProps=function(prop,postFix){
+          if(postFix==undefined){ postFix=''; }
+          if(!hasJsonHintsKey(prop+postFix,gljshints)){
             if(iframe.contentWindow.hasOwnProperty(prop)){
-              addJsonHints(prop+'.', iframe.contentWindow[prop], gljshints);
+              addJsonHints(prop+postFix, iframe.contentWindow[prop], gljshints);
             }
           }
         };
-        addProps('vec3');
-        addProps('mat3');
-        addProps('mat4');
-        addProps('quat4');
+        addProps('vec3','.');
+        addProps('mat3','.');
+        addProps('mat4','.');
+        addProps('quat4','.');
       }
     });
     //if these hints aren't already added

@@ -27,6 +27,15 @@ nav#hud{
       font-size:$fs-hud;
       position:relative;
 
+      input{
+        width:0;
+        height:0;
+        overflow:hidden;
+        padding:0;
+        margin:0;
+        visibility:hidden;
+      }
+
       span{
         color:#fff;
         cursor:pointer;

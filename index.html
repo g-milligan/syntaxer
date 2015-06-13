@@ -536,6 +536,10 @@
         wrap.append('<textarea class="raw"></textarea>');
         var textarea=wrap.children('textarea:last');
         textarea.val(fcontent);
+        if(isTemplateFile){
+          wrap.addClass('template');
+          //*** create the add tab method
+        }
       }
       var showTabContent=function(cWrap,cDiv,tabLi){
         cWrap.children('div[path]').removeClass('active');
@@ -701,9 +705,9 @@
             console.log('new file');
           }
         },
-        openrecent:{
+        open:{
           _action:function(){
-            console.log('open recent');
+            console.log('open project');
           }
         },
         save:{
@@ -875,7 +879,7 @@
       <li name="project"><span>Project</span>
         <ul>
           <li name="new"><span>New</span></li>
-          <li name="openrecent"><span>Open Recent</span></li>
+          <li name="open"><span>Open</span></li>
           <li name="save"><span>Save</span></li>
           <li name="saveas"><span>Save As</span></li>
         </ul>
