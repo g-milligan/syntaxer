@@ -6,6 +6,7 @@ $h-lightbox-title: 2.7rem;
 $h-lightbox-col-title: 2.3rem;
 
 section#lightbox{
+  display:none;
   position:fixed;
   left:0;
   top:0;
@@ -169,4 +170,8 @@ section#lightbox{
       }
     }
   }
+}
+
+body.lightbox-open section#lightbox{
+  display:block;
 }

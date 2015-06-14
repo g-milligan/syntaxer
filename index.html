@@ -707,7 +707,7 @@
         },
         open:{
           _action:function(){
-            console.log('open project');
+            openLightBox('open-project');
           }
         },
         save:{
@@ -824,6 +824,42 @@
       xhr.send(JSON.stringify(saveData));
     }
   }
+  function openLightBox(id,callback){
+    var bodyElem=jQuery('body:first');
+    if(!bodyElem.hasClass('lightbox-open')){
+      var lbWrap=bodyElem.children('section#lightbox:last');
+      var box=lbWrap.children('.box#'+id+':first');
+      if(box.length>0){
+        bodyElem.addClass('lightbox-open');
+        box.addClass('open');
+        if(callback!=undefined){
+          callback(box);
+        }
+      }
+    }
+  }
+  function closeLightBox(callback){
+    var bodyElem=jQuery('body:first');
+    if(bodyElem.hasClass('lightbox-open')){
+      var lbWrap=bodyElem.children('section#lightbox:last');
+      var openBoxes=lbWrap.children('.box.open');
+      openBoxes.removeClass('open');
+      bodyElem.removeClass('lightbox-open');
+      if(callback!=undefined){
+        callback(openBoxes);
+      }
+    }
+  }
+  function initLightbox(){
+    var lbWrap=jQuery('body section#lightbox:last');
+    lbWrap.children('.box').each(function(){
+      var box=jQuery(this);
+      var cancelBtns=box.find('.box-btn.cancel');
+      cancelBtns.click(function(){
+        closeLightBox();
+      });
+    });
+  }
   //handle detect key events
   function initKeyEvents(){
     jQuery(window).keydown(function(e) {
@@ -863,6 +899,7 @@
   function initSyntaxer(){
     initHud();
     openProjectFile();
+    initLightbox();
     initKeyEvents();
   }
 </script>
