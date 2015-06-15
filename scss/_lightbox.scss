@@ -161,6 +161,11 @@ section#lightbox{
             &.edit-path{
               background-color:#FFF4BD;
             }
+
+            &.err-path{
+              background-color:#FFA3A3;
+              color:#fff;
+            }
           }
         }
 

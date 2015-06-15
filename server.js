@@ -251,7 +251,7 @@ if(file!==undefined&&file.trim().length>0){
                         }
                       }
                     }else{
-                      resJson['status']='error, "'+path+'" doesn\'t exist';
+                      resJson['status']='error, '+path+' does not exist';
                     }
                   }
                 }

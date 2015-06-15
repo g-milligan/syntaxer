@@ -728,7 +728,7 @@
         },
         open:{
           _action:function(){
-            openProjectBrowse();
+            openProjectBrowse('open-project');
           }
         },
         save:{
@@ -855,9 +855,7 @@
       xhr.onloadend=function(res){
         //if the server responded with ok status
         var res=JSON.parse(this.responseText);
-        if(res.status==='ok'){
-          callback(res);
-        }
+        callback(res);
       };
       if(requestedPath==undefined){
         requestedPath='';
@@ -871,7 +869,7 @@
   function updateProjectBrowse(path){
     if(path==undefined){path='';}
     requestProjectFiles(function(data){
-      var box=jQuery('body section#lightbox #open-project:first');
+      var box=jQuery('body section#lightbox .box.open:first');
       var browseWrap=box.find('.box-col.browse:first');
       var navBarInput=browseWrap.find('.nav-bar input.path:first');
       var scrollWrap=browseWrap.find('.scroll:first');
@@ -949,15 +947,17 @@
         }
       }else{
         //something wrong with the data.status
-        navBarInput.val(path);
-        scrollWrap.html('<p class="msg"><strong>Error</strong>: <br />'+data.status+'</p>');
+        navBarInput.addClass('err-path');
+        setTimeout(function(){
+          navBarInput.removeClass('err-path');
+        },180);
       }
     }, path);
   }
   //open project browse dialog box
-  function openProjectBrowse(){
+  function openProjectBrowse(boxId){
     //if browse events not already init
-    var box=jQuery('body section#lightbox #open-project:first');
+    var box=jQuery('body section#lightbox #'+boxId+':first');
     if(!box.hasClass('evs')){
       //init browse events
       box.addClass('evs');
@@ -970,7 +970,9 @@
         switch(e.keyCode){
           case 13: //enter key
             e.preventDefault(); e.stopPropagation();
-            //***
+            var newBrowsePath=navBarInput.val(); newBrowsePath=newBrowsePath.trim();
+            navBarInput.val(newBrowsePath);
+            updateProjectBrowse(newBrowsePath);
           break;
           case 9: //tab key
             e.preventDefault(); e.stopPropagation();
