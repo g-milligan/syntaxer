@@ -240,6 +240,21 @@ section#lightbox{
             opacity:.2;
             cursor:text;
           }
+          li.current{
+            cursor:text;
+            background-color:#E8E8E8;
+
+            .icon{
+              svg{
+                path{
+
+                }
+              }
+            }
+            .txt{
+              text-decoration:underline;
+            }
+          }
           li.selected{
             background-color:#7f1171;
 

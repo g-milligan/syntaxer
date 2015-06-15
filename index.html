@@ -27,6 +27,24 @@
   var svgDir='<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512"><path d="M357.84 398.577l61.104-162.945h-264.784l-61.104 162.945zM133.792 215.264l-40.736 183.312v-264.784h91.655l40.736 40.736h132.393v40.736z"></path></svg>';
   var svgFile='<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 384 512"><path d="M161.448 215.264l-50.92 50.92 50.92 50.92 20.368-20.368-30.552-30.552 30.552-30.552-20.368-20.368zM202.184 235.632l30.552 30.552-30.552 30.552 20.368 20.368 50.92-50.92-50.92-50.92-20.368 20.368zM253.104 113.424h-183.312v285.152h244.417v-224.048l-61.104-61.104zM293.84 378.209h-203.68v-244.417h142.577l61.104 61.104v183.312z"></path></svg>';
 
+  //gets a query string json from the url
+  function getQs(){
+    var qs={};
+    var fromUrl=document.location.href;
+    if(fromUrl.indexOf('?')!==-1){
+      fromUrl=fromUrl.substring(fromUrl.indexOf('?')+'?'.length);
+      var qsArray=fromUrl.split('&');
+      for(var q=0;q<qsArray.length;q++){
+        var qsStr=qsArray[q];
+        var keyVal=qsStr.split('=');
+        if(keyVal.length>1){
+          var key=keyVal[0].trim();
+          var val=keyVal[1].trim();
+          qs[key]=val;
+        }
+      }
+    } return qs;
+  }
   function getActiveTabLi(){
     return jQuery('#tabs:first').children('ul:first').children('li.active[path]:first');
   }
@@ -876,12 +894,21 @@
             html+='<span class="txt">'+dir+'</span>';
             html+='</li>';
           }
+          //get the current project file from the url
+          var currentFile='';
+          var qs=getQs();
+          if(qs.hasOwnProperty('file')){
+            currentFile=decodeURIComponent(qs.file);
+          }
           //for each file
           var files=data.files.sort();
           for(var f=0;f<files.length;f++){
             var file=files[f]; var fileData=data.filesData[file];
             var statusClass='ok '; if(fileData.status!=='ok'){ statusClass='invalid '; }
-            html+='<li class="'+statusClass+'file" path="'+data.path+'/'+file+'">';
+            var fpath=data.path+'/'+file;
+            var currentClass='';
+            if(currentFile===fpath){currentClass='current ';}
+            html+='<li class="'+statusClass+currentClass+'file" path="'+fpath+'">';
             html+='<span class="icon">'+svgFile+'</span>';
             html+='<span class="txt">'+file+'</span>';
             html+='</li>';
@@ -890,7 +917,7 @@
           //set the html
           scrollWrap.html(html);
           //file events
-          scrollWrap.find('ul.files > li').not('.invalid').each(function(){
+          scrollWrap.find('ul.files > li').not('.invalid').not('.current').each(function(){
             jQuery(this).click(function(e){
               e.preventDefault();
               //get the ok button
