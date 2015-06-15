@@ -157,6 +157,10 @@ section#lightbox{
             border-left: solid $h-lightbox-nav-bar #ccc;
             outline:none;
             color: #8C8C8C;
+
+            &.edit-path{
+              background-color:#FFF4BD;
+            }
           }
         }
 
