@@ -181,7 +181,83 @@ if(file!==undefined&&file.trim().length>0){
               //write the preview html
               fs.writeFileSync('./preview/index.html', html);
             };
-
+            //request to save project changes
+            app.post('/browse-project-files', function(req, res){
+              var fromUrl=req.headers.referer;
+              //if the request came from this local site
+              if(isSameHost(fromUrl)){
+                var resJson={status:'error, no initial path provided'};
+                if(req.body.hasOwnProperty('path')){
+                  var path=req.body.path;
+                  if(path.length<1){
+                    var args=getQs(fromUrl);
+                    if(args.hasOwnProperty('file')){
+                      path=decodeURIComponent(args.file);
+                      if(path.indexOf('/')!==-1){
+                        path=path.substring(0, path.lastIndexOf('/'));
+                      }
+                    }
+                  }
+                  if(path.length>0){
+                    //if the directory path exists
+                    if(fs.existsSync(path)){
+                      resJson['status']='ok';
+                      resJson['path']=path;
+                      resJson['files']=[];
+                      resJson['dirs']=[];
+                      resJson['filesData']={};
+                      //read the children of the directory
+                      var files = fs.readdirSync(path);
+                      for(var f=0;f<files.length;f++){
+                        //if this is either an html file OR a directory
+                        var type='file'; var isAllowed=false; var filesData={status:'',project:{}};
+                        if(fs.lstatSync(path+'/'+files[f]).isDirectory()){ type='directory'; isAllowed=true; }
+                        else{
+                          var name=files[f];
+                          if(name.indexOf('.')!==-1){
+                            name=name.toLowerCase(); name=name.trim();
+                            //if the file name ends with .html
+                            if(name.lastIndexOf('.html')===name.length-'.html'.length){
+                              isAllowed=true;
+                              //read file contents to see if it contains project annotation data
+                              var htmlStr=fs.readFileSync(path+'/'+files[f], 'utf8');
+                              //if contains opening project tag
+                              if(htmlStr.indexOf(startProjFiles)!==-1){
+                                if(htmlStr.indexOf(endProjFiles)!==-1){
+                                  filesData['status']='ok';
+                                  filesData['project']=getProjectFilesJson(htmlStr);
+                                }else{
+                                  filesData['status']='error, malformed; missing "'+endProjFiles+'"';
+                                }
+                              }else{
+                                filesData['status']='error, malformed; missing "'+startProjFiles+'"';
+                              }
+                            }
+                          }
+                        }
+                        //if either a directory OR an allowed project .html file type
+                        if(isAllowed){
+                          switch(type){
+                            case 'file':
+                              //set the return data
+                              resJson['files'].push(files[f]);
+                              resJson['filesData'][files[f]]=filesData;
+                            break;
+                            case 'directory':
+                              //set the return data
+                              resJson['dirs'].push(files[f]);
+                            break;
+                          }
+                        }
+                      }
+                    }else{
+                      resJson['status']='error, "'+path+'" doesn\'t exist';
+                    }
+                  }
+                }
+                res.send(JSON.stringify(resJson));
+              }
+            });
             //request to save project changes
             app.post('/save-project', function(req, res){
               var fromUrl=req.headers.referer;

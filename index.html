@@ -24,6 +24,9 @@
 <!-- end addons -->
 <script type="text/javascript" src="js/jquery.min.js"></script>
 <script type="text/javascript">
+  var svgDir='<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512"><path d="M357.84 398.577l61.104-162.945h-264.784l-61.104 162.945zM133.792 215.264l-40.736 183.312v-264.784h91.655l40.736 40.736h132.393v40.736z"></path></svg>';
+  var svgFile='<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 384 512"><path d="M161.448 215.264l-50.92 50.92 50.92 50.92 20.368-20.368-30.552-30.552 30.552-30.552-20.368-20.368zM202.184 235.632l30.552 30.552-30.552 30.552 20.368 20.368 50.92-50.92-50.92-50.92-20.368 20.368zM253.104 113.424h-183.312v285.152h244.417v-224.048l-61.104-61.104zM293.84 378.209h-203.68v-244.417h142.577l61.104 61.104v183.312z"></path></svg>';
+
   function getActiveTabLi(){
     return jQuery('#tabs:first').children('ul:first').children('li.active[path]:first');
   }
@@ -707,7 +710,7 @@
         },
         open:{
           _action:function(){
-            openLightBox('open-project');
+            openProjectBrowse();
           }
         },
         save:{
@@ -823,6 +826,191 @@
       // send the collected data as JSON
       xhr.send(JSON.stringify(saveData));
     }
+  }
+  //request the file system folders and files for the current directory
+  function requestProjectFiles(callback,requestedPath){
+    if(callback!=undefined){
+      // construct an HTTP request
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', '/browse-project-files', true);
+      xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+      xhr.onloadend=function(res){
+        //if the server responded with ok status
+        var res=JSON.parse(this.responseText);
+        if(res.status==='ok'){
+          callback(res);
+        }
+      };
+      if(requestedPath==undefined){
+        requestedPath='';
+      }
+      var send={path:requestedPath};
+      // send the collected data as JSON
+      xhr.send(JSON.stringify(send));
+    }
+  }
+  //update the browse path for the project browse dialag box
+  function updateProjectBrowse(path){
+    if(path==undefined){path='';}
+    requestProjectFiles(function(data){
+      var box=jQuery('body section#lightbox #open-project:first');
+      var browseWrap=box.find('.box-col.browse:first');
+      var navBarInput=browseWrap.find('.nav-bar input.path:first');
+      var scrollWrap=browseWrap.find('.scroll:first');
+      if(data.status==='ok'){
+        //set the path
+        navBarInput.val(data.path);
+        navBarInput[0]['currentBrowsePath']=data.path;
+        navBarInput.removeClass('edit-path');
+        //clear browser contents
+        scrollWrap.html('');
+        //if there are any directories or folders
+        if(data.dirs.length>0 || data.files.length>0){
+          var html='<ul class="files">';
+          //for each directory
+          var dirs=data.dirs.sort();
+          for(var d=0;d<dirs.length;d++){
+            var dir=dirs[d];
+            html+='<li class="dir" path="'+data.path+'/'+dir+'">';
+            html+='<span class="icon">'+svgDir+'</span>';
+            html+='<span class="txt">'+dir+'</span>';
+            html+='</li>';
+          }
+          //for each file
+          var files=data.files.sort();
+          for(var f=0;f<files.length;f++){
+            var file=files[f]; var fileData=data.filesData[file];
+            var statusClass='ok '; if(fileData.status!=='ok'){ statusClass='invalid '; }
+            html+='<li class="'+statusClass+'file" path="'+data.path+'/'+file+'">';
+            html+='<span class="icon">'+svgFile+'</span>';
+            html+='<span class="txt">'+file+'</span>';
+            html+='</li>';
+          }
+          html+='</ul>';
+          //set the html
+          scrollWrap.html(html);
+          //file events
+          scrollWrap.find('ul.files > li').not('.invalid').each(function(){
+            jQuery(this).click(function(e){
+              e.preventDefault();
+              //get the ok button
+              var boxBtns=box.children('.box-btns');
+              var openBtn=boxBtns.children('.box-btn.open:last');
+              //set the selected class
+              jQuery(this).parent().children('.selected').removeClass('selected');
+              jQuery(this).addClass('selected');
+              if(jQuery(this).hasClass('file')){
+                var selFile=jQuery(this).attr('path');
+                var url=document.location.href;
+                if(url.indexOf('?')!==-1){
+                  url=url.substring(0,url.lastIndexOf('?'));
+                }
+                url+='?file='+encodeURIComponent(selFile);
+                openBtn.attr('href',url);
+                openBtn.removeClass('disabled');
+              }else{
+                //directory clicked...
+                openBtn.addClass('disabled');
+                //follow the directory path
+                var followPath=jQuery(this).attr('path');
+                updateProjectBrowse(followPath);
+              }
+            });
+          });
+        }else{
+          scrollWrap.html('<p class="msg">folder empty...</p>');
+        }
+      }else{
+        //something wrong with the data.status
+        navBarInput.val(path);
+        scrollWrap.html('<p class="msg"><strong>Error</strong>: <br />'+data.status+'</p>');
+      }
+    }, path);
+  }
+  //open project browse dialog box
+  function openProjectBrowse(){
+    //if browse events not already init
+    var box=jQuery('body section#lightbox #open-project:first');
+    if(!box.hasClass('evs')){
+      //init browse events
+      box.addClass('evs');
+      var browseWrap=box.find('.box-col.browse:first');
+      var navBarInput=browseWrap.find('.nav-bar input.path:first');
+      var upDirBtn=browseWrap.find('.up-dir-btn:last');
+      var openBtn=box.children('.box-btns:last').children('.box-btn.open:last');
+      navBarInput.keydown(function(e){
+        //if enter key pressed
+        switch(e.keyCode){
+          case 13: //enter key
+            e.preventDefault(); e.stopPropagation();
+            //***
+          break;
+          case 9: //tab key
+            e.preventDefault(); e.stopPropagation();
+            //***
+          break;
+          case 27: //esc key
+            e.preventDefault(); e.stopPropagation();
+            if(jQuery(this)[0].hasOwnProperty('currentBrowsePath')){
+              //reset to the current directory
+              var currentDirPath=jQuery(this)[0]['currentBrowsePath'];
+              jQuery(this).val(currentDirPath);
+              jQuery(this).removeClass('edit-path');
+            }
+          break;
+        }
+      });
+      navBarInput.keyup(function(e){
+        //if the path in the input box isn't the current path
+        if(jQuery(this)[0]['currentBrowsePath']!==jQuery(this).val()){
+          jQuery(this).addClass('edit-path');
+        }else{
+          //the path in the input box is the current path
+          jQuery(this).removeClass('edit-path');
+        }
+      });
+      navBarInput.blur(function(){
+        var current=jQuery(this).val();
+        if(current.trim().length<1){
+          if(jQuery(this)[0].hasOwnProperty('currentBrowsePath')){
+            //reset to the current directory
+            var currentDirPath=jQuery(this)[0]['currentBrowsePath'];
+            jQuery(this).val(currentDirPath);
+            jQuery(this).removeClass('edit-path');
+          }
+        }
+      });
+      upDirBtn.click(function(e){
+        var input=jQuery(this).parent().children('input.path:first');
+        if(input[0].hasOwnProperty('currentBrowsePath')){
+          //reset to the current directory
+          var currentDirPath=input[0]['currentBrowsePath'];
+          input.val(currentDirPath);
+          input.removeClass('edit-path');
+          if(currentDirPath.lastIndexOf('/')===currentDirPath.length-'/'.length){
+            currentDirPath=currentDirPath.substring(0, currentDirPath.length-'/'.length);
+          }
+          if(currentDirPath.indexOf('/')!==-1){
+            if(currentDirPath.length>'/'.length){
+              var upDirPath=currentDirPath.substring(0, currentDirPath.lastIndexOf('/'));
+              updateProjectBrowse(upDirPath);
+            }
+          }
+        }
+      });
+      openBtn.click(function(e){
+        var ret=true;
+        if(jQuery(this).hasClass('disabled')){
+          e.preventDefault();
+          ret =false;
+        } return ret;
+      });
+    }
+    //open the project browse lightbox
+    openLightBox('open-project',function(box){
+      //update the project browse items
+      updateProjectBrowse();
+    });
   }
   function openLightBox(id,callback){
     var bodyElem=jQuery('body:first');
@@ -947,13 +1135,19 @@
         </div>
         <div class="box-col browse">
           <h2>Browse</h2>
+          <div class="nav-bar">
+            <input class="path" type="text" />
+            <div class="up-dir-btn">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 640 640"><path d="M241.808 476.333v-211.145h-78.192l114.682-125.108 114.657 125.108h-78.192v190.268h161.624v73.006h-182.449c-28.775 0-52.128-23.327-52.128-52.128z"></path></svg>
+            </div>
+          </div>
           <div class="scroll"></div>
         </div>
       </div>
       <div class="box-btns">
         <div class="box-btn left-btn remove-recent disabled">Remove from Recent</div>
         <div class="box-btn cancel">Cancel</div>
-        <div class="box-btn open disabled">Open</div>
+        <a href="#" class="box-btn open disabled">Open</a>
       </div>
     </div>
   </section>
