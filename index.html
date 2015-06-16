@@ -917,15 +917,23 @@
           //file events
           scrollWrap.find('ul.files > li').not('.invalid').not('.current').each(function(){
             jQuery(this).click(function(e){
+              var liClick=jQuery(this);
               e.preventDefault();
               //get the ok button
               var boxBtns=box.children('.box-btns');
               var openBtn=boxBtns.children('.box-btn.open:last');
               //set the selected class
-              jQuery(this).parent().children('.selected').removeClass('selected');
-              jQuery(this).addClass('selected');
-              if(jQuery(this).hasClass('file')){
-                var selFile=jQuery(this).attr('path');
+              liClick.parent().children('.selected').removeClass('selected');
+              liClick.addClass('selected');
+              var isDoubleClick=liClick.hasClass('click');
+              if(!isDoubleClick){
+                liClick.addClass('click');
+                setTimeout(function(){
+                  liClick.removeClass('click');
+                },180);
+              }
+              if(liClick.hasClass('file')){
+                var selFile=liClick.attr('path');
                 var url=document.location.href;
                 if(url.indexOf('?')!==-1){
                   url=url.substring(0,url.lastIndexOf('?'));
@@ -933,12 +941,17 @@
                 url+='?file='+encodeURIComponent(selFile);
                 openBtn.attr('href',url);
                 openBtn.removeClass('disabled');
+                if(isDoubleClick){
+                  document.location.href=url;
+                }
               }else{
                 //directory clicked...
                 openBtn.addClass('disabled');
-                //follow the directory path
-                var followPath=jQuery(this).attr('path');
-                updateProjectBrowse(followPath);
+                if(isDoubleClick){
+                  //follow the directory path
+                  var followPath=liClick.attr('path');
+                  updateProjectBrowse(followPath);
+                }
               }
             });
           });

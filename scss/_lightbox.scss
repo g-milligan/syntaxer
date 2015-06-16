@@ -220,7 +220,7 @@ section#lightbox{
                 max-height:$h-lightbox-file-item;
 
                 path{
-                  @include transition(fill .2s linear);
+                  fill:#000;
                 }
               }
             }
@@ -229,7 +229,7 @@ section#lightbox{
               white-space:nowrap;
               line-height:inherit;
               vertical-align: middle;
-              @include transition(color .2s linear);
+              color:#000;
             }
           }
           li:not(.selected, .invalid):hover{
