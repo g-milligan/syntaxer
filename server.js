@@ -182,6 +182,123 @@ if(file!==undefined&&file.trim().length>0){
               fs.writeFileSync('./preview/index.html', html);
             };
             //request to save project changes
+            app.post('/autocomplete-project-path', function(req, res){
+              var fromUrl=req.headers.referer;
+              //if the request came from this local site
+              if(isSameHost(fromUrl)){
+                var resJson={status:'error, no initial path provided'};
+                if(req.body.hasOwnProperty('path')){
+                  var path=req.body.path; path=path.trim();
+                  var dir=path; var endsWithSlash=false;
+                  //if ends with / like a directory
+                  if(dir.lastIndexOf('/')===dir.length-'/'.length){
+                    endsWithSlash=true;
+                    //get the directory and trim off the ending /
+                    dir=dir.substring(0,dir.lastIndexOf('/'));
+                  }else{
+                    //doesn't end with /...
+
+                    //if still contains /
+                    if(dir.indexOf('/')!==-1){
+                      //get just the directory before the last /
+                      dir=dir.substring(0,dir.lastIndexOf('/'));
+                    }
+                  }
+                  //if the directory exists
+                  resJson['status']='error, path, '+dir+' does not exist';
+                  if(fs.existsSync(dir)){
+                    resJson['status']='ok'; resJson['dir_complete']=[]; resJson['file_complete']=[];
+                    //if this is a directory, not a file
+                    if(fs.lstatSync(dir).isDirectory()){
+                      //get the text after the directory, that's incomplete
+                      var incomplete=path.substring(dir.length); incomplete=incomplete.trim();
+                      if(incomplete.indexOf('/')===0){ incomplete=incomplete.substring(1); }
+                      //set some return data
+                      resJson['directory']=dir+'/'; resJson['incomplete']=incomplete;
+                      //read the children of the directory
+                      var files = fs.readdirSync(dir); var commonOption;
+                      //function used to figure out what part of the incomplete text is matched by multiple options
+                      var setCommonOption=function(newOption){
+                        if(commonOption!==''){
+                          if(commonOption==undefined){
+                            commonOption=newOption;
+                          }else{
+                            //the common option has to be the start of all options (therefore, common option can't be longer than the shortest newOption)
+                            if(newOption.length<commonOption.length){
+                              commonOption=commonOption.substring(0,newOption.length);
+                            }
+                            //if newOption doesn't start with common option
+                            if(newOption.indexOf(commonOption)!==0){
+                              var buildCommon='';
+                              //for each letter until one letter that isn't common in newOption
+                              for(var n=0;n<newOption.length;n++){
+                                if(newOption[n]===commonOption[n]){
+                                  //this letter placement in commonOption matches up with the same letter in newOption (so far so good)
+                                  buildCommon+=newOption[n];
+                                }else{
+                                  //this letter, in commonOption, is the first letter to diverge from the sequence in newOption
+                                  break;
+                                }
+                              }
+                              //now commonOption is shorter, but now it is the start of newOption or it is empty
+                              commonOption=buildCommon;
+                            }
+                          }
+                        }
+                      };
+                      for(var f=0;f<files.length;f++){
+                        var file=files[f];
+                        //if this file name starts with the incomplete text
+                        if(file.indexOf(incomplete)===0){
+                          //if this file is a directory
+                          if(fs.lstatSync(dir+'/'+file).isDirectory()){
+                            //if the directory matches exactly
+                            if(file.length===incomplete.length){
+                              //if doesn't already end with slash
+                              if(!endsWithSlash){
+                                //add the suggestion to complete the directory with a slash
+                                var option='/';
+                                setCommonOption(option);
+                                resJson['dir_complete'].push(option);
+                              }
+                            }else{
+                              //directory not fully typed out...
+                              var option=file.substring(incomplete.length)+'/';
+                              setCommonOption(option);
+                              resJson['dir_complete'].push(option);
+                            }
+                          }else{
+                            //this file is not a directory, is a file...
+
+                            //if this is an html file
+                            if(file.lastIndexOf('.html')===file.length-'.html'.length){
+                              //if contains opening and closing project tags
+                              var htmlStr=fs.readFileSync(dir+'/'+file, 'utf8');
+                              if(htmlStr.indexOf(startProjFiles)!==-1){
+                                if(htmlStr.indexOf(endProjFiles)!==-1){
+                                  var option=file.substring(incomplete.length);
+                                  setCommonOption(option);
+                                  resJson['file_complete'].push(option);
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                      //if there is a substring that will satisfy the start of all possible autocomplete options
+                      resJson['commonContinue']='';
+                      if(commonOption!=undefined){
+                        if(commonOption.length>0){
+                          resJson['commonContinue']=commonOption;
+                        }
+                      }
+                    }
+                  }
+                }
+                res.send(JSON.stringify(resJson));
+              }
+            });
+            //request to save project changes
             app.post('/browse-project-files', function(req, res){
               var fromUrl=req.headers.referer;
               //if the request came from this local site

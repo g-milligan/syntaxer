@@ -967,6 +967,25 @@
       }
     }, path);
   }
+  //try to autocomplete a project path based on file system
+  function autocompleteProjectPath(path, callback){
+    if(path!=undefined){
+      if(callback!=undefined){
+        // construct an HTTP request
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/autocomplete-project-path', true);
+        xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+        xhr.onloadend=function(res){
+          //if the server responded with ok status
+          var res=JSON.parse(this.responseText);
+          callback(res);
+        };
+        var send={path:path};
+        // send the collected data as JSON
+        xhr.send(JSON.stringify(send));
+      }
+    }
+  }
   //open project browse dialog box
   function openProjectBrowse(boxId){
     //if browse events not already init
@@ -989,7 +1008,46 @@
           break;
           case 9: //tab key
             e.preventDefault(); e.stopPropagation();
-            //***
+            var cursorIsAtEnd=function(){
+              var isAtEnd=false;
+              //if text NOT selected
+              if(navBarInput[0].selectionStart===navBarInput[0].selectionEnd){
+                var currentVal=navBarInput.val();
+                //if the text length equals the caret position index
+                if(currentVal.length===navBarInput[0].selectionStart){
+                  isAtEnd=true;
+                }
+              } return isAtEnd;
+            };
+            //if the cursor is at the end of the input text
+            if(cursorIsAtEnd()){
+              var completeThis=navBarInput.val();
+              autocompleteProjectPath(completeThis, function(data){
+                if(data.status==='ok'){
+                  if(data.commonContinue.length>0){
+                    navBarInput.val(completeThis + data.commonContinue);
+                  }else{
+                    //there are either no autocomplete options... or more than one...
+
+                    //if there are no autocomplete options
+                    if((data.file_complete.length + data.dir_complete.length)<1){
+                      navBarInput.addClass('err-path');
+                      setTimeout(function(){
+                        navBarInput.removeClass('err-path');
+                      },180);
+                    }else{
+                      //there is more than one autocomplete option...
+                    }
+                  }
+                }
+              });
+            }else{
+              //cursor NOT at the end of the input text... deny autocomplete
+              navBarInput.addClass('err-path');
+              setTimeout(function(){
+                navBarInput.removeClass('err-path');
+              },180);
+            }
           break;
           case 27: //esc key
             e.preventDefault(); e.stopPropagation();
