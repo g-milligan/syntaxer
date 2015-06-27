@@ -937,11 +937,12 @@
           return openBtn;
         };
         //function to open a project
-        var openProjectLi=function(e,liClick){
+        var clickBrowseLi=function(e,liClick){
           e.preventDefault();
           //set the selected class
           liClick.parent().children('.selected').removeClass('selected');
           liClick.addClass('selected');
+          navBarInput.val(liClick.attr('path'));
           //toggle enable disable open project button
           var openBtn=toggleOpenButton(liClick);
           //make sure the selected item is in scroll view
@@ -1014,7 +1015,7 @@
           //file events
           scrollWrap.find('ul.files > li').not('.invalid').not('.current').each(function(){
             jQuery(this).click(function(e){
-              openProjectLi(e,jQuery(this));
+              clickBrowseLi(e,jQuery(this));
             });
           });
         }else{

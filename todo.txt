@@ -11,7 +11,7 @@
 - XXX add double click to file in order to open it in the project browse dialog
 
 - XXX tab into autocomplete in the project browse textbox
-- enter key to open current selected folder in project browse list (or open project file if project file is selected)
+- XXX enter key to open current selected folder in project browse list (or open project file if project file is selected)
 - arrow keys up and down for project browse items
 - key find next letter item in the project browse list
 
