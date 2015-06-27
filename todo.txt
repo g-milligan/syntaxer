@@ -12,7 +12,7 @@
 
 - XXX tab into autocomplete in the project browse textbox
 - XXX enter key to open current selected folder in project browse list (or open project file if project file is selected)
-- arrow keys up and down for project browse items
+- XXX arrow keys up and down for project browse items
 - key find next letter item in the project browse list
 
 - new project dialog box (multistep screens)

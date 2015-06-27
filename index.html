@@ -865,6 +865,90 @@
       xhr.send(JSON.stringify(send));
     }
   }
+  //function to scroll a selected browse file li item into view if it's not already in view
+  function scrollToBrowseFileLi(li){
+    var liTop=li.offset().top;
+    var liBottom=liTop+li.outerHeight();
+    var scrollWrap=li.parents('.scroll:first');
+    var boundTop=scrollWrap.offset().top;
+    var boundBottom=boundTop+scrollWrap.outerHeight();
+    var diff=0;
+    if(liTop<boundTop){
+      diff=liTop-boundTop;
+    }else if(liBottom>boundBottom){
+      diff=liBottom-boundBottom;
+    }
+    //if need to adjust scroll
+    if(diff!==0){
+      //get the new scroll top position
+      var newTop=scrollWrap.scrollTop()+diff;
+      //animate the scroll to the adjusted scroll amount
+      scrollWrap.animate({
+        scrollTop: newTop
+      }, 100,
+      function(){
+        //finished animate
+      });
+    }
+  }
+  //select an li element for a file in the browse window
+  function selectBrowseFileLi(fileLi){
+    if(fileLi!=undefined){
+      if(fileLi.length>0){
+        //set the selected class
+        fileLi.parent().children('.selected').removeClass('selected');
+        fileLi.addClass('selected');
+        var navBarInput=fileLi.parents('.box-col.browse:first').find('.nav-bar input.path:first');
+        navBarInput.val(fileLi.attr('path'));
+        navBarInput.focus();
+        //make sure the selected item is in scroll view
+        scrollToBrowseFileLi(fileLi);
+      }
+    }
+  }
+  //enable/disable the open button based on if a project file is selected
+  function toggleBrowseOpenButton(liClick){
+    var openBtn;
+    //get the ok button
+    var box=jQuery('body section#lightbox .box.open:first');
+    if(box.length>0){
+      var browseWrap=box.find('.box-col.browse:first');
+      var scrollWrap=browseWrap.find('.scroll:first');
+      var boxBtns=box.children('.box-btns');
+      openBtn=boxBtns.children('.box-btn.open:last');
+      //if no li is provided
+      if(liClick==undefined){
+        liClick=scrollWrap.find('ul.files > .ok.file.selected:first');
+      }
+      //if there is any selected file
+      var enableOpenBtn=false;
+      if(liClick.length>0){
+        if(liClick.hasClass('file')){
+          if(liClick.hasClass('ok')){
+            enableOpenBtn=true;
+          }
+        }
+      }
+      //if project file is selected
+      if(enableOpenBtn){
+        //enable the open project button with correct project path
+        var selFile=liClick.attr('path');
+        var url=document.location.href;
+        if(url.indexOf('?')!==-1){
+          url=url.substring(0,url.lastIndexOf('?'));
+        }
+        url+='?file='+encodeURIComponent(selFile);
+        openBtn.attr('href',url);
+        openBtn.removeClass('disabled');
+        //make sure the selected liClick file is scrolled in view
+        scrollToBrowseFileLi(liClick);
+      }else{
+        //no project file selected
+        openBtn.addClass('disabled');
+      }
+    }
+    return openBtn;
+  }
   //update the browse path for the project browse dialag box
   function updateProjectBrowse(path){
     if(path==undefined){path='';}
@@ -874,79 +958,13 @@
       var navBarInput=browseWrap.find('.nav-bar input.path:first');
       var scrollWrap=browseWrap.find('.scroll:first');
       if(data.status==='ok'){
-        //function to scroll a selected li item into view if it's not already in view
-        var scrollToSelectedItem=function(li){
-          var liTop=li.offset().top;
-          var liBottom=liTop+li.outerHeight();
-          var boundTop=scrollWrap.offset().top;
-          var boundBottom=boundTop+scrollWrap.outerHeight();
-          var diff=0;
-          if(liTop<boundTop){
-            diff=liTop-boundTop;
-          }else if(liBottom>boundBottom){
-            diff=liBottom-boundBottom;
-          }
-          //if need to adjust scroll
-          if(diff!==0){
-            //get the new scroll top position
-            var newTop=scrollWrap.scrollTop()+diff;
-            //animate the scroll to the adjusted scroll amount
-            scrollWrap.animate({
-              scrollTop: newTop
-            }, 100,
-            function(){
-              //finished animate
-            });
-          }
-        };
-        //enable/disable the open button based on if a project file is selected
-        var toggleOpenButton=function(liClick){
-          //get the ok button
-          var boxBtns=box.children('.box-btns');
-          var openBtn=boxBtns.children('.box-btn.open:last');
-          //if no li is provided
-          if(liClick==undefined){
-            liClick=scrollWrap.find('ul.files > .ok.file.selected:first');
-          }
-          //if there is any selected file
-          var enableOpenBtn=false;
-          if(liClick.length>0){
-            if(liClick.hasClass('file')){
-              if(liClick.hasClass('ok')){
-                enableOpenBtn=true;
-              }
-            }
-          }
-          //if project file is selected
-          if(enableOpenBtn){
-            //enable the open project button with correct project path
-            var selFile=liClick.attr('path');
-            var url=document.location.href;
-            if(url.indexOf('?')!==-1){
-              url=url.substring(0,url.lastIndexOf('?'));
-            }
-            url+='?file='+encodeURIComponent(selFile);
-            openBtn.attr('href',url);
-            openBtn.removeClass('disabled');
-            //make sure the selected liClick file is scrolled in view
-            scrollToSelectedItem(liClick);
-          }else{
-            //no project file selected
-            openBtn.addClass('disabled');
-          }
-          return openBtn;
-        };
         //function to open a project
         var clickBrowseLi=function(e,liClick){
           e.preventDefault();
-          //set the selected class
-          liClick.parent().children('.selected').removeClass('selected');
-          liClick.addClass('selected');
-          navBarInput.val(liClick.attr('path'));
+          //select the file li
+          selectBrowseFileLi(liClick);
           //toggle enable disable open project button
-          var openBtn=toggleOpenButton(liClick);
-          //make sure the selected item is in scroll view
-          scrollToSelectedItem(liClick);
+          var openBtn=toggleBrowseOpenButton(liClick);
           //is double click?
           var isDoubleClick=liClick.hasClass('click');
           if(!isDoubleClick){
@@ -1029,7 +1047,7 @@
         },180);
       }
       //decide if the open project button should be enabled
-      toggleOpenButton();
+      toggleBrowseOpenButton();
 
     }, path);
   }
@@ -1064,9 +1082,71 @@
       var upDirBtn=browseWrap.find('.up-dir-btn:last');
       var scrollWrap=browseWrap.find('.scroll:first');
       var openBtn=box.children('.box-btns:last').children('.box-btn.open:last');
+      //function to get the next file li element to select when using the up/down arrow keys
+      var getArrowNextItem=function(upDown){
+        var nextLi;
+        //if there is more than one item to toggle
+        if(scrollWrap.find('ul.files li').not('.invalid').not('.current').length>1){
+          //depending on moving up or down...
+          var getNext=function(){}; var getEnd=function(){}; var getOtherEnd=function(){};
+          switch(upDown){
+            case 'up':
+              getNext=function(el){return el.prev('li:first');};
+              getEnd=function(){return scrollWrap.find('ul.files li').not('.invalid').not('.current').eq(0);};
+              getOtherEnd=function(){return scrollWrap.find('ul.files li').not('.invalid').not('.current').filter(':last');};
+              break;
+            case 'down':
+              getNext=function(el){return el.next('li:first');};
+              getEnd=function(){return scrollWrap.find('ul.files li').not('.invalid').not('.current').filter(':last');};
+              getOtherEnd=function(){return scrollWrap.find('ul.files li').not('.invalid').not('.current').eq(0);};
+              break;
+          }
+          //get the selected item
+          var selLi=scrollWrap.find('ul.files li.selected:first');
+          //if no item is selected
+          if(selLi.length<1){
+            //get the end item by default
+            selLi=getEnd();
+          }
+          //if there are any items at all
+          if(selLi.length>0){
+            //while not found a next non invalid li
+            var continueSearch=true; nextLi=selLi;
+            while(continueSearch){
+              nextLi=getNext(nextLi);
+              if(nextLi.length>0){
+                //if item is not invalid
+                if(!nextLi.hasClass('invalid') && !nextLi.hasClass('current')){
+                  //end search
+                  continueSearch=false;
+                }
+              }else{
+                //no more items, reached end... loop back around to the other end
+                nextLi=getOtherEnd();
+                //if item at the other end is not invalid
+                if(!nextLi.hasClass('invalid') && !nextLi.hasClass('current')){
+                  //end search
+                  continueSearch=false;
+                }
+              }
+            }
+          }
+        }
+        return nextLi;
+      };
       navBarInput.keydown(function(e){
         //if enter key pressed
         switch(e.keyCode){
+          case 38: //up arrow
+            e.preventDefault(); e.stopPropagation();
+            var nextLi=getArrowNextItem('up');
+            selectBrowseFileLi(nextLi);
+            break;
+          case 40: //down arrow
+            e.preventDefault(); e.stopPropagation();
+            var nextLi=getArrowNextItem('down');
+            selectBrowseFileLi(nextLi);
+            break;
           case 13: //enter key
             e.preventDefault(); e.stopPropagation();
             //function to ignore trailing slash, trim, etc...
@@ -1171,6 +1251,9 @@
               var currentDirPath=jQuery(this)[0]['currentBrowsePath'];
               jQuery(this).val(currentDirPath);
               jQuery(this).removeClass('edit-path');
+              //deselect selected files and update the open button enable state
+              scrollWrap.find('ul.files li.selected').removeClass('selected');
+              toggleBrowseOpenButton();
             }
           break;
         }
