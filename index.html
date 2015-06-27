@@ -723,7 +723,7 @@
       project:{
         new:{
           _action:function(){
-            console.log('new file');
+            newProjectBrowse();
           }
         },
         open:{
@@ -907,12 +907,31 @@
         fileLi.addClass('selected');
         var navBarInput=fileLi.parents('.box-col.browse:first').find('.nav-bar input.path:first');
         navBarInput.val(fileLi.attr('path'));
+        toggleNavBarEditClass(navBarInput);
         navBarInput.focus();
         //make sure the selected item is in scroll view
         scrollToBrowseFileLi(fileLi);
         //update the open button
         toggleBrowseOpenButton(fileLi);
       }
+    }
+  }
+  function toggleNavBarEditClass(navBar){
+    //function to ignore trailing slash, trim, etc...
+    var sanitizePath=function(pstr){
+      if(pstr==undefined){pstr='';} pstr=pstr.trim();
+      if(pstr.lastIndexOf('/')===pstr.length-'/'.length){
+        pstr=pstr.substring(0, pstr.length-'/'.length);
+      } return pstr;
+    };
+    //if the path in the input box isn't the current path
+    var currentBrowsePath=sanitizePath(navBar[0]['currentBrowsePath']);
+    var pathVal=sanitizePath(navBar.val());
+    if(currentBrowsePath!==pathVal){
+      navBar.addClass('edit-path');
+    }else{
+      //the path in the input box is the current path
+      navBar.removeClass('edit-path');
     }
   }
   //enable/disable the open button based on if a project file is selected
@@ -925,35 +944,37 @@
       var scrollWrap=browseWrap.find('.scroll:first');
       var boxBtns=box.children('.box-btns');
       openBtn=boxBtns.children('.box-btn.open:last');
+      //no project file selected until proven otherwise
+      openBtn.addClass('disabled');
       //if no li is provided
       if(liClick==undefined){
         liClick=scrollWrap.find('ul.files > .ok.file.selected:first');
       }
       //if there is any selected file
-      var enableOpenBtn=false;
       if(liClick.length>0){
-        if(liClick.hasClass('file')){
-          if(liClick.hasClass('ok')){
-            enableOpenBtn=true;
-          }
+        var browseMode=browseWrap.attr('mode');
+        switch(browseMode){
+          case 'open': //open file mode
+            if(liClick.hasClass('file')){
+              if(liClick.hasClass('ok')){
+                //enable the open project button with correct project path
+                var selFile=liClick.attr('path');
+                var url=document.location.href;
+                if(url.indexOf('?')!==-1){
+                  url=url.substring(0,url.lastIndexOf('?'));
+                }
+                url+='?file='+encodeURIComponent(selFile);
+                openBtn.attr('href',url);
+                openBtn.removeClass('disabled');
+                //make sure the selected liClick file is scrolled in view
+                scrollToBrowseFileLi(liClick);
+              }
+            }
+          break;
+          case 'new': //new file mode
+            //*** is unique project file name?
+          break;
         }
-      }
-      //if project file is selected
-      if(enableOpenBtn){
-        //enable the open project button with correct project path
-        var selFile=liClick.attr('path');
-        var url=document.location.href;
-        if(url.indexOf('?')!==-1){
-          url=url.substring(0,url.lastIndexOf('?'));
-        }
-        url+='?file='+encodeURIComponent(selFile);
-        openBtn.attr('href',url);
-        openBtn.removeClass('disabled');
-        //make sure the selected liClick file is scrolled in view
-        scrollToBrowseFileLi(liClick);
-      }else{
-        //no project file selected
-        openBtn.addClass('disabled');
       }
     }
     return openBtn;
@@ -988,7 +1009,9 @@
           if(liClick.hasClass('file')){
             if(isDoubleClick){
               if(okButtonAction!=undefined){
-                okButtonAction(openBtn);
+                if(!openBtn.hasClass('disabled')){
+                  okButtonAction(openBtn);
+                }
               }
             }
           }else{
@@ -1187,8 +1210,10 @@
             }
             //if open the project file
             if(doOpenFile){
-              //open the project by hitting the enter key after the project file is already selected
-              okButtonAction(openBtn);
+              if(!openBtn.hasClass('disabled')){
+                //open the project by hitting the enter key after the project file is already selected
+                okButtonAction(openBtn);
+              }
             }else{
               //don't open a project file, just navigate to a file/folder in the browse window
               navBarInput.val(newBrowsePath);
@@ -1270,22 +1295,7 @@
         }
       });
       navBarInput.keyup(function(e){
-        //function to ignore trailing slash, trim, etc...
-        var sanitizePath=function(pstr){
-          if(pstr==undefined){pstr='';} pstr=pstr.trim();
-          if(pstr.lastIndexOf('/')===pstr.length-'/'.length){
-            pstr=pstr.substring(0, pstr.length-'/'.length);
-          } return pstr;
-        };
-        //if the path in the input box isn't the current path
-        var currentBrowsePath=sanitizePath(jQuery(this)[0]['currentBrowsePath']);
-        var pathVal=sanitizePath(jQuery(this).val());
-        if(currentBrowsePath!==pathVal){
-          jQuery(this).addClass('edit-path');
-        }else{
-          //the path in the input box is the current path
-          jQuery(this).removeClass('edit-path');
-        }
+        toggleNavBarEditClass(jQuery(this));
       });
       navBarInput.blur(function(){
         var current=jQuery(this).val();
@@ -1321,6 +1331,12 @@
         if(jQuery(this).hasClass('disabled')){
           e.preventDefault();
           ret=false;
+        }else{
+          //if the ok button is not an a link (the a link will follow a url and doesn't need to fire the action)
+          if(jQuery(this)[0].tagName.toLowerCase()!=='a'){
+            //fire the action event
+            okButtonAction(jQuery(this));
+          }
         } return ret;
       });
     }
@@ -1338,6 +1354,22 @@
     initProjectBrowseEvents(box,okButtonAction);
     //open the project browse lightbox
     openLightBox('open-project',function(box){
+      //update the project browse items
+      updateProjectBrowse('',okButtonAction);
+    });
+  }
+  //open NEW project dialog box
+  function newProjectBrowse(){
+    //get the open project browse box
+    var box=jQuery('body section#lightbox #new-project:first');
+    //define the ok button action, what should happen when you click ok
+    var okButtonAction=function(openBtn){
+      console.log('CREATE!');
+    };
+    //init the project explorer controls, if not already init
+    initProjectBrowseEvents(box,okButtonAction);
+    //open the project browse lightbox
+    openLightBox('new-project',function(box){
       //update the project browse items
       updateProjectBrowse('',okButtonAction);
     });
@@ -1465,7 +1497,7 @@
             <p class="msg no-recent">No recent projects...</p>
           </div>
         </div>
-        <div class="box-col browse">
+        <div mode="open" class="box-col browse">
           <h2>Browse</h2>
           <div class="nav-bar">
             <input class="path" type="text" />
@@ -1486,8 +1518,8 @@
     <div class="box" id="new-project">
       <h1>New Project<span class="box-btn cancel">X</span></h1>
       <div class="box-content explorer">
-        <div class="box-col browse">
-          <h2>Browse</h2>
+        <div mode="new" class="box-col browse">
+          <h2>Name</h2>
           <div class="nav-bar">
             <input class="path" type="text" />
             <div class="up-dir-btn">
