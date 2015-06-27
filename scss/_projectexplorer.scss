@@ -1,25 +1,15 @@
 section#lightbox{
-  .explorer{
+  #open-project{
+    .explorer{
 
-    .recent-projects, .browse{
-
-      .msg{
-        padding:0;
-        margin:0;
-        color:#ABABAB;
-        font-family:$f-norm;
-        font-size:1rem;
-        font-style:italic;
+      .recent-projects{
+        width:30%;
       }
-    }
 
-    .recent-projects{
-      width:30%;
-    }
+      .browse{
+        width:70%;
+      }
 
-    .browse{
-      width:70%;
     }
-
   }
 }

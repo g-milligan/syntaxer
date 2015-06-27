@@ -728,7 +728,7 @@
         },
         open:{
           _action:function(){
-            openProjectBrowse('open-project');
+            openProjectBrowse();
           }
         },
         save:{
@@ -959,7 +959,7 @@
     return openBtn;
   }
   //update the browse path for the project browse dialag box
-  function updateProjectBrowse(path){
+  function updateProjectBrowse(path,okButtonAction){
     if(path==undefined){path='';}
     requestProjectFiles(function(data){
       var box=jQuery('body section#lightbox .box.open:first');
@@ -987,15 +987,16 @@
           //if file clicked (not directory)
           if(liClick.hasClass('file')){
             if(isDoubleClick){
-              var url=openBtn.attr('href');
-              document.location.href=url;
+              if(okButtonAction!=undefined){
+                okButtonAction(openBtn);
+              }
             }
           }else{
             //directory clicked...
             if(isDoubleClick){
               //follow the directory path
               var followPath=liClick.attr('path');
-              updateProjectBrowse(followPath);
+              updateProjectBrowse(followPath,okButtonAction);
             }
           }
         };
@@ -1083,10 +1084,8 @@
       }
     }
   }
-  //open project browse dialog box
-  function openProjectBrowse(boxId){
-    //if browse events not already init
-    var box=jQuery('body section#lightbox #'+boxId+':first');
+  //add the events to nav-bar, project file explorer, open button controls
+  function initProjectBrowseEvents(box,okButtonAction){
     if(!box.hasClass('evs')){
       //init browse events
       box.addClass('evs');
@@ -1189,12 +1188,11 @@
             //if open the project file
             if(doOpenFile){
               //open the project by hitting the enter key after the project file is already selected
-              var url=openBtn.attr('href');
-              document.location.href=url;
+              okButtonAction(openBtn);
             }else{
               //don't open a project file, just navigate to a file/folder in the browse window
               navBarInput.val(newBrowsePath);
-              updateProjectBrowse(newBrowsePath);
+              updateProjectBrowse(newBrowsePath,okButtonAction);
             }
           break;
           case 9: //tab key
@@ -1313,7 +1311,7 @@
           if(currentDirPath.indexOf('/')!==-1){
             if(currentDirPath.length>'/'.length){
               var upDirPath=currentDirPath.substring(0, currentDirPath.lastIndexOf('/'));
-              updateProjectBrowse(upDirPath);
+              updateProjectBrowse(upDirPath,okButtonAction);
             }
           }
         }
@@ -1322,14 +1320,26 @@
         var ret=true;
         if(jQuery(this).hasClass('disabled')){
           e.preventDefault();
-          ret =false;
+          ret=false;
         } return ret;
       });
     }
+  }
+  //open project browse dialog box
+  function openProjectBrowse(){
+    //get the open project browse box
+    var box=jQuery('body section#lightbox #open-project:first');
+    //define the ok button action, what should happen when you click ok
+    var okButtonAction=function(openBtn){
+      var url=openBtn.attr('href');
+      document.location.href=url;
+    };
+    //init the project explorer controls, if not already init
+    initProjectBrowseEvents(box,okButtonAction);
     //open the project browse lightbox
     openLightBox('open-project',function(box){
       //update the project browse items
-      updateProjectBrowse();
+      updateProjectBrowse('',okButtonAction);
     });
   }
   function openLightBox(id,callback){
@@ -1339,6 +1349,7 @@
       var box=lbWrap.children('.box#'+id+':first');
       if(box.length>0){
         bodyElem.addClass('lightbox-open');
+        box.parent().children('.box.open').removeClass('open');
         box.addClass('open');
         if(callback!=undefined){
           callback(box);
@@ -1444,6 +1455,7 @@
     </ul>
   </nav>
   <section id="lightbox">
+
     <div class="box" id="open-project">
       <h1>Open Project<span class="box-btn cancel">X</span></h1>
       <div class="box-content explorer">
@@ -1470,6 +1482,27 @@
         <a href="#" class="box-btn open disabled">Open</a>
       </div>
     </div>
+
+    <div class="box" id="new-project">
+      <h1>New Project<span class="box-btn cancel">X</span></h1>
+      <div class="box-content explorer">
+        <div class="box-col browse">
+          <h2>Browse</h2>
+          <div class="nav-bar">
+            <input class="path" type="text" />
+            <div class="up-dir-btn">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 640 640"><path d="M241.808 476.333v-211.145h-78.192l114.682-125.108 114.657 125.108h-78.192v190.268h161.624v73.006h-182.449c-28.775 0-52.128-23.327-52.128-52.128z"></path></svg>
+            </div>
+          </div>
+          <div class="scroll"></div>
+        </div>
+      </div>
+      <div class="box-btns">
+        <div class="box-btn cancel">Cancel</div>
+        <div href="#" class="box-btn open disabled">Create Project</div>
+      </div>
+    </div>
+
   </section>
 </body>
 </html>
