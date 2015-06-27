@@ -318,8 +318,22 @@ if(file!==undefined&&file.trim().length>0){
                   if(path.length>0){
                     //if the directory path exists
                     if(fs.existsSync(path)){
+                      //if the path does not describe a directory
+                      var pathFile='';
+                      if(!fs.lstatSync(path).isDirectory()){
+                        //trim the pathFile off of the directory path
+                        if(path.indexOf('/')!==-1){
+                          pathFile=path.substring(path.lastIndexOf('/')+'/'.length);
+                          path=path.substring(0, path.lastIndexOf(pathFile));
+                        }
+                        if(pathFile==='/'){pathFile='';}
+                      }
                       resJson['status']='ok';
+                      if(path.lastIndexOf('/')===path.length-'/'.length){
+                        path=path.substring(0, path.length-'/'.length);
+                      }
                       resJson['path']=path;
+                      resJson['pathFile']=pathFile;
                       resJson['files']=[];
                       resJson['dirs']=[];
                       resJson['filesData']={};

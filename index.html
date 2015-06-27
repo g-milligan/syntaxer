@@ -874,9 +874,105 @@
       var navBarInput=browseWrap.find('.nav-bar input.path:first');
       var scrollWrap=browseWrap.find('.scroll:first');
       if(data.status==='ok'){
+        //function to scroll a selected li item into view if it's not already in view
+        var scrollToSelectedItem=function(li){
+          var liTop=li.offset().top;
+          var liBottom=liTop+li.outerHeight();
+          var boundTop=scrollWrap.offset().top;
+          var boundBottom=boundTop+scrollWrap.outerHeight();
+          var diff=0;
+          if(liTop<boundTop){
+            diff=liTop-boundTop;
+          }else if(liBottom>boundBottom){
+            diff=liBottom-boundBottom;
+          }
+          //if need to adjust scroll
+          if(diff!==0){
+            //get the new scroll top position
+            var newTop=scrollWrap.scrollTop()+diff;
+            //animate the scroll to the adjusted scroll amount
+            scrollWrap.animate({
+              scrollTop: newTop
+            }, 100,
+            function(){
+              //finished animate
+            });
+          }
+        };
+        //enable/disable the open button based on if a project file is selected
+        var toggleOpenButton=function(liClick){
+          //get the ok button
+          var boxBtns=box.children('.box-btns');
+          var openBtn=boxBtns.children('.box-btn.open:last');
+          //if no li is provided
+          if(liClick==undefined){
+            liClick=scrollWrap.find('ul.files > .ok.file.selected:first');
+          }
+          //if there is any selected file
+          var enableOpenBtn=false;
+          if(liClick.length>0){
+            if(liClick.hasClass('file')){
+              if(liClick.hasClass('ok')){
+                enableOpenBtn=true;
+              }
+            }
+          }
+          //if project file is selected
+          if(enableOpenBtn){
+            //enable the open project button with correct project path
+            var selFile=liClick.attr('path');
+            var url=document.location.href;
+            if(url.indexOf('?')!==-1){
+              url=url.substring(0,url.lastIndexOf('?'));
+            }
+            url+='?file='+encodeURIComponent(selFile);
+            openBtn.attr('href',url);
+            openBtn.removeClass('disabled');
+            //make sure the selected liClick file is scrolled in view
+            scrollToSelectedItem(liClick);
+          }else{
+            //no project file selected
+            openBtn.addClass('disabled');
+          }
+          return openBtn;
+        };
+        //function to open a project
+        var openProjectLi=function(e,liClick){
+          e.preventDefault();
+          //set the selected class
+          liClick.parent().children('.selected').removeClass('selected');
+          liClick.addClass('selected');
+          //toggle enable disable open project button
+          var openBtn=toggleOpenButton(liClick);
+          //make sure the selected item is in scroll view
+          scrollToSelectedItem(liClick);
+          //is double click?
+          var isDoubleClick=liClick.hasClass('click');
+          if(!isDoubleClick){
+            liClick.addClass('click');
+            setTimeout(function(){
+              liClick.removeClass('click');
+            },180);
+          }
+          //if file clicked (not directory)
+          if(liClick.hasClass('file')){
+            if(isDoubleClick){
+              var url=openBtn.attr('href');
+              document.location.href=url;
+            }
+          }else{
+            //directory clicked...
+            if(isDoubleClick){
+              //follow the directory path
+              var followPath=liClick.attr('path');
+              updateProjectBrowse(followPath);
+            }
+          }
+        };
         //set the path
-        navBarInput.val(data.path);
-        navBarInput[0]['currentBrowsePath']=data.path;
+        var setPath=data.path+'/'+data.pathFile;
+        navBarInput.val(setPath);
+        navBarInput[0]['currentBrowsePath']=setPath;
         navBarInput.removeClass('edit-path');
         //clear browser contents
         scrollWrap.html('');
@@ -904,9 +1000,10 @@
             var file=files[f]; var fileData=data.filesData[file];
             var statusClass='ok '; if(fileData.status!=='ok'){ statusClass='invalid '; }
             var fpath=data.path+'/'+file;
-            var currentClass='';
+            var currentClass='', selectClass='';
             if(currentFile===fpath){currentClass='current ';}
-            html+='<li class="'+statusClass+currentClass+'file" path="'+fpath+'">';
+            else if(file===data.pathFile){selectClass='selected ';}
+            html+='<li class="'+statusClass+currentClass+selectClass+'file" path="'+fpath+'">';
             html+='<span class="icon">'+svgFile+'</span>';
             html+='<span class="txt">'+file+'</span>';
             html+='</li>';
@@ -917,42 +1014,7 @@
           //file events
           scrollWrap.find('ul.files > li').not('.invalid').not('.current').each(function(){
             jQuery(this).click(function(e){
-              var liClick=jQuery(this);
-              e.preventDefault();
-              //get the ok button
-              var boxBtns=box.children('.box-btns');
-              var openBtn=boxBtns.children('.box-btn.open:last');
-              //set the selected class
-              liClick.parent().children('.selected').removeClass('selected');
-              liClick.addClass('selected');
-              var isDoubleClick=liClick.hasClass('click');
-              if(!isDoubleClick){
-                liClick.addClass('click');
-                setTimeout(function(){
-                  liClick.removeClass('click');
-                },180);
-              }
-              if(liClick.hasClass('file')){
-                var selFile=liClick.attr('path');
-                var url=document.location.href;
-                if(url.indexOf('?')!==-1){
-                  url=url.substring(0,url.lastIndexOf('?'));
-                }
-                url+='?file='+encodeURIComponent(selFile);
-                openBtn.attr('href',url);
-                openBtn.removeClass('disabled');
-                if(isDoubleClick){
-                  document.location.href=url;
-                }
-              }else{
-                //directory clicked...
-                openBtn.addClass('disabled');
-                if(isDoubleClick){
-                  //follow the directory path
-                  var followPath=liClick.attr('path');
-                  updateProjectBrowse(followPath);
-                }
-              }
+              openProjectLi(e,jQuery(this));
             });
           });
         }else{
@@ -965,6 +1027,9 @@
           navBarInput.removeClass('err-path');
         },180);
       }
+      //decide if the open project button should be enabled
+      toggleOpenButton();
+
     }, path);
   }
   //try to autocomplete a project path based on file system
@@ -996,15 +1061,47 @@
       var browseWrap=box.find('.box-col.browse:first');
       var navBarInput=browseWrap.find('.nav-bar input.path:first');
       var upDirBtn=browseWrap.find('.up-dir-btn:last');
+      var scrollWrap=browseWrap.find('.scroll:first');
       var openBtn=box.children('.box-btns:last').children('.box-btn.open:last');
       navBarInput.keydown(function(e){
         //if enter key pressed
         switch(e.keyCode){
           case 13: //enter key
             e.preventDefault(); e.stopPropagation();
-            var newBrowsePath=navBarInput.val(); newBrowsePath=newBrowsePath.trim();
-            navBarInput.val(newBrowsePath);
-            updateProjectBrowse(newBrowsePath);
+            //function to ignore trailing slash, trim, etc...
+            var sanitizePath=function(pstr){
+              if(pstr==undefined){pstr='';} pstr=pstr.trim();
+              if(pstr.lastIndexOf('/')===pstr.length-'/'.length){
+                pstr=pstr.substring(0, pstr.length-'/'.length);
+              } return pstr;
+            };
+            var newBrowsePath=sanitizePath(navBarInput.val());
+            var doOpenFile=false;
+            if(navBarInput[0].hasOwnProperty('currentBrowsePath')){
+              var currentBrowsePath=sanitizePath(navBarInput[0]['currentBrowsePath']);
+              if(currentBrowsePath===newBrowsePath){
+                //if there is a selected file
+                var selLi=scrollWrap.find('ul.files li.ok.file.selected:first');
+                if(selLi.length>0){
+                  //if the selected file has this path that is in the nav bodyParser
+                  if(selLi.attr('path')===currentBrowsePath){
+                    if(!openBtn.hasClass('disabled')){
+                      doOpenFile=true;
+                    }
+                  }
+                }
+              }
+            }
+            //if open the project file
+            if(doOpenFile){
+              //open the project by hitting the enter key after the project file is already selected
+              var url=openBtn.attr('href');
+              document.location.href=url;
+            }else{
+              //don't open a project file, just navigate to a file/folder in the browse window
+              navBarInput.val(newBrowsePath);
+              updateProjectBrowse(newBrowsePath);
+            }
           break;
           case 9: //tab key
             e.preventDefault(); e.stopPropagation();
@@ -1022,25 +1119,42 @@
             //if the cursor is at the end of the input text
             if(cursorIsAtEnd()){
               var completeThis=navBarInput.val();
-              autocompleteProjectPath(completeThis, function(data){
-                if(data.status==='ok'){
-                  if(data.commonContinue.length>0){
-                    navBarInput.val(completeThis + data.commonContinue);
-                  }else{
-                    //there are either no autocomplete options... or more than one...
-
-                    //if there are no autocomplete options
-                    if((data.file_complete.length + data.dir_complete.length)<1){
-                      navBarInput.addClass('err-path');
-                      setTimeout(function(){
-                        navBarInput.removeClass('err-path');
-                      },180);
+              //if the shift key is held
+              if(e.shiftKey){
+                var upOneDir=completeThis;
+                if(upOneDir.lastIndexOf('/')===upOneDir.length-'/'.length){
+                  upOneDir=upOneDir.substring(0,upOneDir.length-'/'.length);
+                }
+                if(upOneDir.indexOf('/')!==-1){
+                  upOneDir=upOneDir.substring(0, upOneDir.lastIndexOf('/') + '/'.length);
+                }
+                //if there is any change
+                if(upOneDir!==completeThis){
+                  //set the new path (up one directory)
+                  navBarInput.val(upOneDir);
+                }
+              }else{
+                //shift key NOT held along with the tab key...
+                autocompleteProjectPath(completeThis, function(data){
+                  if(data.status==='ok'){
+                    if(data.commonContinue.length>0){
+                      navBarInput.val(completeThis + data.commonContinue);
                     }else{
-                      //there is more than one autocomplete option...
+                      //there are either no autocomplete options... or more than one...
+
+                      //if there are no autocomplete options
+                      if((data.file_complete.length + data.dir_complete.length)<1){
+                        navBarInput.addClass('err-path');
+                        setTimeout(function(){
+                          navBarInput.removeClass('err-path');
+                        },180);
+                      }else{
+                        //there is more than one autocomplete option...
+                      }
                     }
                   }
-                }
-              });
+                });
+              }
             }else{
               //cursor NOT at the end of the input text... deny autocomplete
               navBarInput.addClass('err-path');
@@ -1061,8 +1175,17 @@
         }
       });
       navBarInput.keyup(function(e){
+        //function to ignore trailing slash, trim, etc...
+        var sanitizePath=function(pstr){
+          if(pstr==undefined){pstr='';} pstr=pstr.trim();
+          if(pstr.lastIndexOf('/')===pstr.length-'/'.length){
+            pstr=pstr.substring(0, pstr.length-'/'.length);
+          } return pstr;
+        };
         //if the path in the input box isn't the current path
-        if(jQuery(this)[0]['currentBrowsePath']!==jQuery(this).val()){
+        var currentBrowsePath=sanitizePath(jQuery(this)[0]['currentBrowsePath']);
+        var pathVal=sanitizePath(jQuery(this).val());
+        if(currentBrowsePath!==pathVal){
           jQuery(this).addClass('edit-path');
         }else{
           //the path in the input box is the current path
