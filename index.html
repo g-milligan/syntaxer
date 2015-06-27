@@ -866,29 +866,36 @@
     }
   }
   //function to scroll a selected browse file li item into view if it's not already in view
-  function scrollToBrowseFileLi(li){
-    var liTop=li.offset().top;
-    var liBottom=liTop+li.outerHeight();
-    var scrollWrap=li.parents('.scroll:first');
-    var boundTop=scrollWrap.offset().top;
-    var boundBottom=boundTop+scrollWrap.outerHeight();
-    var diff=0;
-    if(liTop<boundTop){
-      diff=liTop-boundTop;
-    }else if(liBottom>boundBottom){
-      diff=liBottom-boundBottom;
-    }
-    //if need to adjust scroll
-    if(diff!==0){
-      //get the new scroll top position
-      var newTop=scrollWrap.scrollTop()+diff;
-      //animate the scroll to the adjusted scroll amount
-      scrollWrap.animate({
-        scrollTop: newTop
-      }, 100,
-      function(){
-        //finished animate
-      });
+  function scrollToBrowseFileLi(li,callback){
+    if(li!=undefined){
+      if(li.length>0){
+        var liTop=li.offset().top;
+        var liBottom=liTop+li.outerHeight();
+        var scrollWrap=li.parents('.scroll:first');
+        var boundTop=scrollWrap.offset().top;
+        var boundBottom=boundTop+scrollWrap.outerHeight();
+        var diff=0;
+        if(liTop<boundTop){
+          diff=liTop-boundTop;
+        }else if(liBottom>boundBottom){
+          diff=liBottom-boundBottom;
+        }
+        //if need to adjust scroll
+        if(diff!==0){
+          //get the new scroll top position
+          var newTop=scrollWrap.scrollTop()+diff;
+          //animate the scroll to the adjusted scroll amount
+          scrollWrap.animate({
+            scrollTop: newTop
+          }, 100,
+          function(){
+            //finished animate
+            if(callback!=undefined){
+              callback();
+            }
+          });
+        }
+      }
     }
   }
   //select an li element for a file in the browse window
@@ -903,6 +910,8 @@
         navBarInput.focus();
         //make sure the selected item is in scroll view
         scrollToBrowseFileLi(fileLi);
+        //update the open button
+        toggleBrowseOpenButton(fileLi);
       }
     }
   }
@@ -1050,7 +1059,9 @@
       }
       //decide if the open project button should be enabled
       toggleBrowseOpenButton();
-
+      //make sure the file that has the same path as the nav bar is scrolled into view
+      var navInputLi=scrollWrap.find('li[path="'+navBarInput.val()+'"]:first');
+      scrollToBrowseFileLi(navInputLi);
     }, path);
   }
   //try to autocomplete a project path based on file system
