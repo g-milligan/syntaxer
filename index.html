@@ -946,15 +946,17 @@
       openBtn=boxBtns.children('.box-btn.open:last');
       //no project file selected until proven otherwise
       openBtn.addClass('disabled');
-      //if no li is provided
-      if(liClick==undefined){
-        liClick=scrollWrap.find('ul.files > .ok.file.selected:first');
-      }
-      //if there is any selected file
-      if(liClick.length>0){
-        var browseMode=browseWrap.attr('mode');
-        switch(browseMode){
-          case 'open': //open file mode
+      //depending on the browse explorer mode...
+      var browseMode=browseWrap.attr('mode');
+      switch(browseMode){
+        case 'open': //open file mode
+          //if no li is provided
+          if(liClick==undefined){
+            //find a selected file (if any)
+            liClick=scrollWrap.find('ul.files > .ok.file.selected:first');
+          }
+          //if there is any selected file
+          if(liClick.length>0){
             if(liClick.hasClass('file')){
               if(liClick.hasClass('ok')){
                 //enable the open project button with correct project path
@@ -970,11 +972,11 @@
                 scrollToBrowseFileLi(liClick);
               }
             }
-          break;
-          case 'new': //new file mode
-            //*** is unique project file name?
-          break;
-        }
+          }
+        break;
+        case 'new': //new file mode
+          //*** is unique project file name?
+        break;
       }
     }
     return openBtn;
@@ -1295,7 +1297,10 @@
         }
       });
       navBarInput.keyup(function(e){
+        //decide if the nav bar should show modification highlight
         toggleNavBarEditClass(jQuery(this));
+        //decide if the open button should be enabled or not
+        toggleBrowseOpenButton();
       });
       navBarInput.blur(function(){
         var current=jQuery(this).val();
@@ -1531,7 +1536,7 @@
       </div>
       <div class="box-btns">
         <div class="box-btn cancel">Cancel</div>
-        <div href="#" class="box-btn open disabled">Create Project</div>
+        <div class="box-btn open disabled">Create Project</div>
       </div>
     </div>
 
