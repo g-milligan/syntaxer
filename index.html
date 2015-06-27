@@ -958,6 +958,8 @@
       var navBarInput=browseWrap.find('.nav-bar input.path:first');
       var scrollWrap=browseWrap.find('.scroll:first');
       if(data.status==='ok'){
+        //set the focus on the nav bar when the dialog box first opens or navigates to a new directory
+        navBarInput.focus();
         //function to open a project
         var clickBrowseLi=function(e,liClick){
           e.preventDefault();
