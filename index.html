@@ -916,17 +916,18 @@
       }
     }
   }
+  //function to ignore trailing slash, trim, etc... so two paths can be compared as same location
+  function sanitizeProjectBrowsePath(pstr){
+    if(pstr==undefined){pstr='';} pstr=pstr.trim();
+    if(pstr.lastIndexOf('/')===pstr.length-'/'.length){
+      pstr=pstr.substring(0, pstr.length-'/'.length);
+    } return pstr;
+  }
+  //toggle showing that there have been edits to the nav bar path
   function toggleNavBarEditClass(navBar){
-    //function to ignore trailing slash, trim, etc...
-    var sanitizePath=function(pstr){
-      if(pstr==undefined){pstr='';} pstr=pstr.trim();
-      if(pstr.lastIndexOf('/')===pstr.length-'/'.length){
-        pstr=pstr.substring(0, pstr.length-'/'.length);
-      } return pstr;
-    };
     //if the path in the input box isn't the current path
-    var currentBrowsePath=sanitizePath(navBar[0]['currentBrowsePath']);
-    var pathVal=sanitizePath(navBar.val());
+    var currentBrowsePath=sanitizeProjectBrowsePath(navBar[0]['currentBrowsePath']);
+    var pathVal=sanitizeProjectBrowsePath(navBar.val());
     if(currentBrowsePath!==pathVal){
       navBar.addClass('edit-path');
     }else{
@@ -975,7 +976,15 @@
           }
         break;
         case 'new': //new file mode
-          //*** is unique project file name?
+          var navBarInput=browseWrap.find('.nav-bar input.path:first');
+          var path=navBarInput.val(); path=path.trim();
+          //if the path ends in .html
+          if(path.lastIndexOf('.html')===path.length-'.html'.length){
+            var dir=path;
+            if(dir.indexOf('/')!==-1){ dir=dir.substring(0, dir.lastIndexOf('/')); }
+            dir=sanitizeProjectBrowsePath(dir);
+            //***
+          }
         break;
       }
     }
@@ -1026,7 +1035,10 @@
           }
         };
         //set the path
-        var setPath=data.path+'/'+data.pathFile;
+        var setPath=data.path+'/';
+        if(browseWrap.attr('mode')!=='new'){
+          setPath+=data.pathFile;
+        }
         navBarInput.val(setPath);
         navBarInput[0]['currentBrowsePath']=setPath;
         navBarInput.removeClass('edit-path');
@@ -1086,7 +1098,7 @@
       //decide if the open project button should be enabled
       toggleBrowseOpenButton();
       //make sure the file that has the same path as the nav bar is scrolled into view
-      var navInputLi=scrollWrap.find('li[path="'+navBarInput.val()+'"]:first');
+      var navInputLi=scrollWrap.find('li[path="'+data.path+'/'+data.pathFile+'"]:first');
       scrollToBrowseFileLi(navInputLi);
     }, path);
   }
@@ -1186,22 +1198,15 @@
             break;
           case 13: //enter key
             e.preventDefault(); e.stopPropagation();
-            //function to ignore trailing slash, trim, etc...
-            var sanitizePath=function(pstr){
-              if(pstr==undefined){pstr='';} pstr=pstr.trim();
-              if(pstr.lastIndexOf('/')===pstr.length-'/'.length){
-                pstr=pstr.substring(0, pstr.length-'/'.length);
-              } return pstr;
-            };
-            var newBrowsePath=sanitizePath(navBarInput.val());
+            var newBrowsePath=sanitizeProjectBrowsePath(navBarInput.val());
             var doOpenFile=false;
             if(navBarInput[0].hasOwnProperty('currentBrowsePath')){
-              var currentBrowsePath=sanitizePath(navBarInput[0]['currentBrowsePath']);
+              var currentBrowsePath=sanitizeProjectBrowsePath(navBarInput[0]['currentBrowsePath']);
               if(currentBrowsePath===newBrowsePath){
                 //if there is a selected file
                 var selLi=scrollWrap.find('ul.files li.ok.file.selected:first');
                 if(selLi.length>0){
-                  //if the selected file has this path that is in the nav bodyParser
+                  //if the selected file has this path that is in the nav bar
                   if(selLi.attr('path')===currentBrowsePath){
                     if(!openBtn.hasClass('disabled')){
                       doOpenFile=true;
@@ -1524,11 +1529,19 @@
       <h1>New Project<span class="box-btn cancel">X</span></h1>
       <div class="box-content explorer">
         <div mode="new" class="box-col browse">
-          <h2>Name</h2>
+          <h2>Browse</h2>
           <div class="nav-bar">
             <input class="path" type="text" />
             <div class="up-dir-btn">
               <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 640 640"><path d="M241.808 476.333v-211.145h-78.192l114.682-125.108 114.657 125.108h-78.192v190.268h161.624v73.006h-182.449c-28.775 0-52.128-23.327-52.128-52.128z"></path></svg>
+            </div>
+          </div>
+          <div class="edit-btns">
+            <div class="edit-btn new-folder">New Folder</div>
+            <div class="edit-input">
+              <label for="project-file-name">Project Name</label>
+              <div class="input"><input type="text" name="project-file-name" class="project-file-name" /></div>
+              <div class="ext">.html</div>
             </div>
           </div>
           <div class="scroll"></div>

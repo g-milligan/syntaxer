@@ -2,6 +2,7 @@ $b-rad-lightbox: .5rem;
 $border-size-lightbox:.2rem;
 $border-lightbox: solid $border-size-lightbox #CFCFCF;
 $h-lightbox-btns: 2.7rem;
+$h-browse-edit-btns: 3rem;
 $h-lightbox-title: 2.7rem;
 $h-lightbox-col-title: 2.3rem;
 $h-lightbox-nav-bar: 2rem;
@@ -195,6 +196,10 @@ section#lightbox{
           }
         }
 
+        .edit-btns ~ .scroll{
+          bottom:$h-browse-edit-btns;
+        }
+
         .nav-bar ~ .scroll{
           top:($h-lightbox-col-title + $h-lightbox-nav-bar);
         }
@@ -296,7 +301,7 @@ section#lightbox{
       }
     }
 
-    .box-btns{
+    .box-btns, .edit-btns{
       @include borderbox();
       position: absolute;
       bottom: 0;
@@ -314,7 +319,7 @@ section#lightbox{
       white-space: nowrap;
       overflow:hidden;
 
-      .box-btn{
+      .box-btn, .edit-btn{
         display:inline-block;
         vertical-align: top;
         text-decoration: none;
@@ -349,6 +354,104 @@ section#lightbox{
         &.disabled{
           opacity:.5;
           cursor:text;
+        }
+      }
+    }
+
+    .edit-btns{
+      width:100%;
+      height:$h-browse-edit-btns;
+      line-height:($h-browse-edit-btns - 1);
+      @include borderbox();
+      position:absolute;
+      bottom:0;
+      left:0;
+      background-color:#E8E8E8;
+      border-top:solid 1px #CFCFCF;
+      white-space:nowrap;
+      padding:.5rem .8rem;
+      overflow:hidden;
+      text-align:left;
+
+      .edit-btn{
+        margin-top:0;
+        padding:0 1rem;
+        font-size:($h-browse-edit-btns*.333333);
+      }
+
+      .edit-input{
+        position:absolute;
+        right:0;
+        top:0;
+        bottom:0;
+        left:27%;
+        height:100%;
+        line-height:inherit;
+        @include borderbox();
+        font-size: .8rem;
+        line-height:$h-browse-edit-btns;
+        color: #8C8C8C;
+
+        label{
+          font-size:inherit;
+          line-height:inherit;
+          position:absolute;
+          left:0;
+          top:0;
+          bottom:0;
+          margin:auto;
+          width:8rem;
+          padding: 0 .8rem;
+          @include borderbox();
+          color:#ccc;
+          background-color:#fff;
+          border-left:solid 1px #CFCFCF;
+          font-family:$f-code;
+
+          &:after{
+            content:": ";
+          }
+        }
+
+        .ext{
+          font-size:inherit;
+          line-height:inherit;
+          position:absolute;
+          right:.8rem;
+          top:0;
+          bottom:0;
+          margin:auto;
+          width:4rem;
+          @include borderbox();
+          padding-left:.5rem;
+          color:#ccc;
+          background-color:#fff;
+          border-right:solid 1px #CFCFCF;
+          font-family:$f-code;
+        }
+
+        .input{
+          position:absolute;
+          left:8rem;
+          top:0;
+          bottom:0;
+          right:4.8rem;
+          margin:auto;
+          font-size:inherit;
+          line-height:inherit;
+          color:inherit;
+
+          input{
+            display:block;
+            width:100%;
+            height:100%;
+            border:none;
+            outline:none;
+            font-size:1.1rem;
+            line-height:inherit;
+            color:inherit;
+            background-color:#fff;
+          }
         }
       }
     }
