@@ -923,6 +923,55 @@
       pstr=pstr.substring(0, pstr.length-'/'.length);
     } return pstr;
   }
+  //checks if there is anything wrong with the new file name (in the new project dialog box)
+  function validateNewProjectNameDialog(){
+    var ret={status:'error, new-project dialog box is not open'};
+    var box=jQuery('body section#lightbox .box.open:first');
+    if(box.length>0){
+      var browseWrap=box.find('.box-col.browse[mode="new"]:first');
+      if(browseWrap.length>0){
+        //get nav bar stuff
+        var navBarInput=browseWrap.find('.nav-bar input.path:first');
+        var shownPath=sanitizeProjectBrowsePath(navBarInput.val());
+        //if an .html file isn't in the shown path (shouldn't be in this 'new' mode, but make sure anyway)
+        if(shownPath.lastIndexOf('.html')!==shownPath.length-'.html'.length){
+          //if shown path is the current path (not being edited)
+          if(!navBarInput.hasClass('edit-path')){
+            //double check (should pass if the edit-path class isn't on the input
+            var currentPath=sanitizeProjectBrowsePath(navBarInput[0]['currentBrowsePath']);
+            if(shownPath===currentPath){
+              //confirmed, the current directory path is loaded in the explorer list...
+              var newFileInput=browseWrap.find('.edit-btns .edit-input .input input:first');
+              var newFileName=newFileInput.val();
+              if(newFileName==undefined){newFileName='';} newFileName=newFileName.trim();
+              //if not blank
+              if(newFileName.length>0){
+                //if the user didn't write .html at the end of the file name (.html extension is assumed)
+                if(newFileName.indexOf('.html')===-1 || newFileName.toLowerCase().lastIndexOf('.html')!==newFileName.length-'.html'.length){
+                  var scrollWrap=browseWrap.find('.scroll:first');
+                  var path=currentPath+'/'+newFileName+'.html';
+                  var existingLi=scrollWrap.find('ul.files li[path="'+path+'"]:first');
+                  //if a file with this name doesn't already exist
+                  if(existingLi.length<1){
+                    ret['status']='ok';
+                  }else{
+                    ret['status']='error, already exists: '+path;
+                  }
+                }else{
+                  //redundant .html.html extension for the file name...
+                  ret['status']='error, redundant .html.html extension for the file name';
+                }
+              }else{
+                //blank new file name...
+                ret['status']='error, blank file name';
+              }
+            }
+          }
+        }
+      }
+    }
+    return ret;
+  }
   //toggle showing that there have been edits to the nav bar path
   function toggleNavBarEditClass(navBar){
     //if the path in the input box isn't the current path
@@ -935,7 +984,7 @@
       navBar.removeClass('edit-path');
     }
   }
-  //enable/disable the open button based on if a project file is selected
+  //enable/disable the open button based on if all conditions are met for the open button to be enabled
   function toggleBrowseOpenButton(liClick){
     var openBtn;
     //get the ok button
@@ -976,14 +1025,9 @@
           }
         break;
         case 'new': //new file mode
-          var navBarInput=browseWrap.find('.nav-bar input.path:first');
-          var path=navBarInput.val(); path=path.trim();
-          //if the path ends in .html
-          if(path.lastIndexOf('.html')===path.length-'.html'.length){
-            var dir=path;
-            if(dir.indexOf('/')!==-1){ dir=dir.substring(0, dir.lastIndexOf('/')); }
-            dir=sanitizeProjectBrowsePath(dir);
-            //***
+          var stat=validateNewProjectNameDialog();
+          if(stat['status']==='ok'){
+            openBtn.removeClass('disabled');
           }
         break;
       }
@@ -1184,17 +1228,15 @@
         return nextLi;
       };
       navBarInput.keydown(function(e){
-        //if enter key pressed
+        //depending on which key pressed
         switch(e.keyCode){
           case 38: //up arrow
             e.preventDefault(); e.stopPropagation();
-            var nextLi=getArrowNextItem('up');
-            selectBrowseFileLi(nextLi);
+            var nextLi=getArrowNextItem('up'); selectBrowseFileLi(nextLi);
             break;
           case 40: //down arrow
             e.preventDefault(); e.stopPropagation();
-            var nextLi=getArrowNextItem('down');
-            selectBrowseFileLi(nextLi);
+            var nextLi=getArrowNextItem('down'); selectBrowseFileLi(nextLi);
             break;
           case 13: //enter key
             e.preventDefault(); e.stopPropagation();
@@ -1317,6 +1359,8 @@
             jQuery(this).removeClass('edit-path');
           }
         }
+        //decide if the open button should be enabled or not
+        toggleBrowseOpenButton();
       });
       upDirBtn.click(function(e){
         var input=jQuery(this).parent().children('input.path:first');
@@ -1335,6 +1379,8 @@
             }
           }
         }
+        //decide if the open button should be enabled or not
+        toggleBrowseOpenButton();
       });
       openBtn.click(function(e){
         var ret=true;
@@ -1349,6 +1395,52 @@
           }
         } return ret;
       });
+      //if this file explorer is in new-file mode
+      if(browseWrap.attr('mode')==='new'){
+        var editBtnsWrap=browseWrap.children('.edit-btns:first');
+        var newDirBtn=editBtnsWrap.children('.edit-btn.new-folder:first');
+        var newFileInput=editBtnsWrap.find('.edit-input .input input:first');
+        //edit folder structure - button events
+        newDirBtn.click(function(e){
+          //*** create new folder
+        });
+        //new file input events
+        newFileInput.blur(function(e){
+          //decide if the open button should be enabled or not
+          toggleBrowseOpenButton();
+        });
+        newFileInput.keyup(function(e){
+          //decide if the open button should be enabled or not
+          toggleBrowseOpenButton();
+        });
+        newFileInput.keydown(function(e){
+          //depending on which key pressed
+          switch(e.keyCode){
+            case 38: //up arrow
+              e.preventDefault(); e.stopPropagation();
+              var nextLi=getArrowNextItem('up'); selectBrowseFileLi(nextLi);
+              break;
+            case 40: //down arrow
+              e.preventDefault(); e.stopPropagation();
+              var nextLi=getArrowNextItem('down'); selectBrowseFileLi(nextLi);
+              break;
+            case 13: //enter key
+              e.preventDefault(); e.stopPropagation();
+              var stat=validateNewProjectNameDialog();
+              if(stat['status']==='ok'){
+                //fire the action event
+                okButtonAction(openBtn);
+              }else{
+                //*** show the problem status
+              }
+              break;
+            case 27: //esc key
+              e.preventDefault(); e.stopPropagation();
+              jQuery(this).val('');
+              break;
+          }
+        });
+      }
     }
   }
   //open project browse dialog box
