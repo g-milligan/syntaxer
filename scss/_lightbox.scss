@@ -186,6 +186,10 @@ section#lightbox{
           overflow:auto;
           @include borderbox();
 
+          &.alert{
+            overflow:hidden;
+          }
+
           .msg{
             padding:0;
             margin:0;
@@ -193,6 +197,70 @@ section#lightbox{
             font-family:$f-norm;
             font-size:1rem;
             font-style:italic;
+          }
+
+          .browse-alert{
+            position:absolute;
+            left:0;
+            top:0;
+            width:100%;
+            height:100%;
+            display:none;
+            background-color:rgba(0,0,0,.3);
+
+            .alert-content{
+              position:absolute;
+              left:0;
+              top:0;
+              bottom:0;
+              right:0;
+              margin:auto;
+              width:60%;
+              height:90%;
+              background-color: #E8E8E8;
+              border-radius: 0.5rem;
+              border: solid 0.2rem #CFCFCF;
+              box-shadow: 0 0 1rem rgba(0, 0, 0, 0.6);
+              @include borderbox();
+
+              .alert-body{
+                position:absolute;
+                left:0;
+                right:0;
+                bottom:$h-lightbox-btns;
+                top:$h-lightbox-title;
+                margin:auto;
+                overflow: auto;
+
+                label{
+
+                }
+                input{
+                  height:2rem;
+                  width:100%;
+                  display: block;
+                  width: 100%;
+                  height: 3rem;
+                  border: none;
+                  outline: none;
+                  font-size: 1.1rem;
+                  line-height: 2rem;
+                  color: #8C8C8C;
+                  background-color: #fff;
+                  border: solid 1px #ccc;
+                  @include borderbox();
+                  padding: 0 .5rem;
+                }
+              }
+              .alert-btns{
+                .alert-btn{
+
+                }
+              }
+            }
+          }
+          .browse-alert.show{
+            display: block;
           }
         }
 
@@ -301,7 +369,7 @@ section#lightbox{
       }
     }
 
-    .box-btns, .edit-btns{
+    .box-btns, .edit-btns, .alert-btns{
       @include borderbox();
       position: absolute;
       bottom: 0;
@@ -319,7 +387,7 @@ section#lightbox{
       white-space: nowrap;
       overflow:hidden;
 
-      .box-btn, .edit-btn{
+      .box-btn, .edit-btn, .alert-btn{
         display:inline-block;
         vertical-align: top;
         text-decoration: none;

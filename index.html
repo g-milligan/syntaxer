@@ -1093,6 +1093,8 @@
       var navBarInput=browseWrap.find('.nav-bar input.path:first');
       var scrollWrap=browseWrap.find('.scroll:first');
       if(data.status==='ok'){
+        //make sure the alert class isn't preventing scrolling
+        scrollWrap.removeClass('alert');
         //set the focus on the nav bar when the dialog box first opens or navigates to a new directory
         navBarInput.focus();
         //function to open a project
@@ -1214,6 +1216,93 @@
         xhr.send(JSON.stringify(send));
       }
     }
+  }
+  //open/create an alert-type sub menu for the file browser
+  function openBrowseAlert(box, alertName, className, bodyHtml, initAction, openAction, cancelAction, okAction){
+    var browseWrap=box.find('.box-col.browse:first');
+    var scrollWrap=browseWrap.find('.scroll:first');
+    //function to close the new folder alert
+    var defaultCancelAction=function(alertWrap){
+      alertWrap.removeClass('show');
+      alertWrap.parents('.scroll:first').removeClass('alert');
+      cancelAction(alertWrap);
+    };
+    var defaultOkAction=function(alertWrap){
+      //if the ok button isn't disabled
+      if(!alertWrap.find('.alert-content .alert-btns .alert-btn.ok:first').hasClass('disabled')){
+        if(okAction(alertWrap)){
+          defaultCancelAction(alertWrap);
+        }
+      }
+    };
+    //if the new folder dialog isn't already initialized
+    var newAlertWrap=scrollWrap.children('.'+className+':last');
+    if(newAlertWrap.length<1){
+      //initialize the new folder dialog
+      scrollWrap.append('<div class="browse-alert '+className+'"></div>');
+      newAlertWrap=scrollWrap.children('.'+className+':last');
+      newAlertWrap.append('<div class="alert-content"></div>');
+      var alertContent=newAlertWrap.children('.alert-content:first');
+      alertContent.append('<h1>'+alertName+'</h1>');
+      alertContent.append('<div class="alert-body"></div>');
+      var alertBody=alertContent.children('.alert-body:first');
+      alertBody.append(bodyHtml);
+      alertContent.append('<div class="alert-btns"><div class="alert-btn cancel">Cancel</div><div class="alert-btn ok">OK</div></div>');
+      var alertBtns=alertContent.children('.alert-btns:first');
+      var cancelBtn=alertBtns.children('.alert-btn.cancel:first');
+      var okBtn=alertBtns.children('.alert-btn.ok:first');
+      //new folder events
+      okBtn.click(function(){
+        defaultOkAction(jQuery(this).parents('.browse-alert:first'));
+      });
+      cancelBtn.click(function(){
+        defaultCancelAction(jQuery(this).parents('.browse-alert:first'));
+      });
+      //init action
+      initAction(newAlertWrap, cancelBtn, okBtn);
+    }
+    //toggle show/hide the browse alert box
+    var browseAlertWrap=scrollWrap.children('.browse-alert.'+className+':first');
+    if(browseAlertWrap.hasClass('show')){
+      defaultCancelAction(browseAlertWrap);
+    }else{
+      browseAlertWrap.addClass('show');
+      scrollWrap.addClass('alert');
+      openAction(newAlertWrap);
+    }
+  }
+  //create new folder in the file system, from the browse box
+  function openNewFolderInput(box){
+    openBrowseAlert(box, 'New Folder', 'new-folder',
+      '<input name="new-folder" class="new-folder" type="text" />', //alert body html
+      function(alertWrap, cancelBtn, okBtn){ //when the alert loads for the first time
+        var input=alertWrap.find('.alert-content .alert-body input.new-folder:first');
+        input.keydown(function(e){
+          switch(e.keyCode){
+            case 13: //enter key
+              e.preventDefault(); e.stopPropagation();
+              okBtn.click();
+              break;
+            case 27: //esc key
+              e.preventDefault(); e.stopPropagation();
+              cancelBtn.click();
+              break;
+          }
+        });
+      },
+      function(alertWrap){ //when this alert is opened
+        var newDirInput=alertWrap.find('.alert-content .alert-body input.new-folder:first');
+        newDirInput.val(''); newDirInput.focus();
+      },function(alertWrap){ //when this alert cancels
+
+      },function(alertWrap){ //ok button action
+        var input=alertWrap.find('.alert-content .alert-body input.new-folder:first');
+        input.focus();
+        var isValid=false;
+        //*** validate folder name input
+        return isValid;
+      }
+    );
   }
   //add the events to nav-bar, project file explorer, open button controls
   function initProjectBrowseEvents(box,okButtonAction){
@@ -1452,7 +1541,8 @@
         var newFileInput=editBtnsWrap.find('.edit-input .input input:first');
         //edit folder structure - button events
         newDirBtn.click(function(e){
-          //*** create new folder
+          //create new folder
+          openNewFolderInput(box);
         });
         //new file input events
         newFileInput.blur(function(e){
@@ -1556,6 +1646,14 @@
       var lbWrap=bodyElem.children('section#lightbox:last');
       var openBoxes=lbWrap.children('.box.open');
       openBoxes.removeClass('open');
+      var alertBox=openBoxes.find('.box-content .box-col.browse .scroll.alert');
+      if(alertBox.length>0){
+        var shownAlert=alertBox.children('.browse-alert.show:first');
+        if(shownAlert.length>0){
+          //close the open alert box
+          shownAlert.find('.alert-content .alert-btns .alert-btn.cancel:first').click();
+        }
+      }
       bodyElem.removeClass('lightbox-open');
       if(callback!=undefined){
         callback(openBoxes);
