@@ -931,7 +931,8 @@
       var browseWrap=box.find('.box-col.browse[mode="new"]:first');
       if(browseWrap.length>0){
         //get status icon
-        var statIconsWrap=browseWrap.find('.edit-btns .edit-input .status-icon');
+        var editInputWrap=browseWrap.find('.edit-btns .edit-input:first');
+        var statIconsWrap=editInputWrap.find('.status-icon:first');
         statIconsWrap.children('.active').removeClass('active');
         statIconsWrap.children('.default-icon').addClass('active');
         //function to set the invalid entry icon
@@ -1001,6 +1002,21 @@
               }
             }
           }
+        }
+        //set the status message
+        var statMsgWrap=editInputWrap.children('.status-msg:first');
+        if(statMsgWrap.length<1){
+          editInputWrap.append('<div class="status-msg"></div>');
+          statMsgWrap=editInputWrap.children('.status-msg:first');
+        }
+        statMsgWrap.html(ret['status']);
+        if(ret['status']!=='ok'){
+          statMsgWrap.addClass('error');
+          statMsgWrap.removeClass('ok');
+        }else{
+          statMsgWrap.removeClass('show');
+          statMsgWrap.addClass('ok');
+          statMsgWrap.removeClass('error');
         }
       }
     }
@@ -1465,7 +1481,9 @@
                 //fire the action event
                 okButtonAction(openBtn);
               }else{
-                //*** show the problem status
+                //show the problem status
+                var statMsgWrap=editBtnsWrap.find('.edit-input .status-msg:first');
+                statMsgWrap.addClass('show');
               }
               break;
             case 27: //esc key

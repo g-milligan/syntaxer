@@ -370,8 +370,8 @@ section#lightbox{
       border-top:solid 1px #CFCFCF;
       white-space:nowrap;
       padding:.5rem .8rem;
-      overflow:hidden;
       text-align:left;
+      overflow: visible;
 
       .edit-btn{
         margin-top:0;
@@ -391,6 +391,7 @@ section#lightbox{
         font-size: .8rem;
         line-height:$h-browse-edit-btns;
         color: #8C8C8C;
+        overflow:visible;
 
         label{
           font-size:inherit;
@@ -466,6 +467,32 @@ section#lightbox{
           background-color:#fff;
           border-right:solid 1px #CFCFCF;
           font-family:$f-code;
+        }
+
+        .status-msg{
+          display:none;
+          position: absolute;
+          top: -2rem;
+          left: 0;
+          width: auto;
+          white-space: nowrap;
+          height: 2rem;
+          line-height: 1rem;
+          padding: .5rem 1rem;
+          font-size: .9rem;
+          box-sizing: border-box;
+          -moz-box-sizing: border-box;
+          background-color: #fff;
+          color: #C2C2C2;
+          font-style: italic;
+          z-index: 999;
+          border-radius: .5rem .5rem 0 0;
+          border: solid 1px #ccc;
+          border-bottom: none;
+
+          &.show{
+            display:block;
+          }
         }
 
         .input{
