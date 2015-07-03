@@ -930,6 +930,15 @@
     if(box.length>0){
       var browseWrap=box.find('.box-col.browse[mode="new"]:first');
       if(browseWrap.length>0){
+        //get status icon
+        var statIconsWrap=browseWrap.find('.edit-btns .edit-input .status-icon');
+        statIconsWrap.children('.active').removeClass('active');
+        statIconsWrap.children('.default-icon').addClass('active');
+        //function to set the invalid entry icon
+        var setInvalidIcon=function(){
+          statIconsWrap.children('.active').removeClass('active');
+          statIconsWrap.children('.invalid-icon').addClass('active');
+        };
         //get nav bar stuff
         var navBarInput=browseWrap.find('.nav-bar input.path:first');
         var shownPath=sanitizeProjectBrowsePath(navBarInput.val());
@@ -946,20 +955,45 @@
               if(newFileName==undefined){newFileName='';} newFileName=newFileName.trim();
               //if not blank
               if(newFileName.length>0){
-                //if the user didn't write .html at the end of the file name (.html extension is assumed)
-                if(newFileName.indexOf('.html')===-1 || newFileName.toLowerCase().lastIndexOf('.html')!==newFileName.length-'.html'.length){
-                  var scrollWrap=browseWrap.find('.scroll:first');
-                  var path=currentPath+'/'+newFileName+'.html';
-                  var existingLi=scrollWrap.find('ul.files li[path="'+path+'"]:first');
-                  //if a file with this name doesn't already exist
-                  if(existingLi.length<1){
-                    ret['status']='ok';
+                //if the file name doesn't contain weird characters
+                if(encodeURIComponent(newFileName)===newFileName){
+                  //if the file name doesn't contain spaces
+                  if(newFileName.replace(/^\s+|\s+$/g, '')===newFileName){
+                    //if the file name doesn't contain '
+                    if(newFileName.indexOf("'")===-1){
+                      //if the user didn't write .html at the end of the file name (.html extension is assumed)
+                      if(newFileName.indexOf('.html')===-1 || newFileName.toLowerCase().lastIndexOf('.html')!==newFileName.length-'.html'.length){
+                        var scrollWrap=browseWrap.find('.scroll:first');
+                        var path=currentPath+'/'+newFileName+'.html';
+                        var existingLi=scrollWrap.find('ul.files li[path="'+path+'"]:first');
+                        //if a file with this name doesn't already exist
+                        if(existingLi.length<1){
+                          ret['status']='ok';
+                          statIconsWrap.children('.active').removeClass('active');
+                          statIconsWrap.children('.valid-icon').addClass('active');
+                        }else{
+                          ret['status']='error, already exists: '+path;
+                          setInvalidIcon();
+                        }
+                      }else{
+                        //redundant .html.html extension for the file name...
+                        ret['status']='error, redundant .html.html extension for the file name';
+                        setInvalidIcon();
+                      }
+                    }else{
+                      //file name contains spaces
+                      ret['status']='error, file name cannot contain single quotes';
+                      setInvalidIcon();
+                    }
                   }else{
-                    ret['status']='error, already exists: '+path;
+                    //file name contains spaces
+                    ret['status']='error, file name cannot contain spaces';
+                    setInvalidIcon();
                   }
                 }else{
-                  //redundant .html.html extension for the file name...
-                  ret['status']='error, redundant .html.html extension for the file name';
+                  //file name contains weird characters...
+                  ret['status']='error, file name must not contain illegal characters';
+                  setInvalidIcon();
                 }
               }else{
                 //blank new file name...
@@ -1167,10 +1201,10 @@
   }
   //add the events to nav-bar, project file explorer, open button controls
   function initProjectBrowseEvents(box,okButtonAction){
+    var browseWrap=box.find('.box-col.browse:first');
     if(!box.hasClass('evs')){
       //init browse events
       box.addClass('evs');
-      var browseWrap=box.find('.box-col.browse:first');
       var navBarInput=browseWrap.find('.nav-bar input.path:first');
       var upDirBtn=browseWrap.find('.up-dir-btn:last');
       var scrollWrap=browseWrap.find('.scroll:first');
@@ -1442,6 +1476,13 @@
         });
       }
     }
+    //if this file explorer is in new-file mode
+    if(browseWrap.attr('mode')==='new'){
+      var editBtnsWrap=browseWrap.children('.edit-btns:first');
+      var newFileInput=editBtnsWrap.find('.edit-input .input input:first');
+      //clear any existing file name
+      newFileInput.val('');
+    }
   }
   //open project browse dialog box
   function openProjectBrowse(){
@@ -1631,7 +1672,14 @@
           <div class="edit-btns">
             <div class="edit-btn new-folder">New Folder</div>
             <div class="edit-input">
-              <label for="project-file-name">Project Name</label>
+              <label for="project-file-name">
+                <span>Project Name</span>
+                <span class="status-icon">
+                  <span class="valid-icon"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512"><path d="M256 70.606c-102.384 0-185.394 83.010-185.394 185.394s83.010 185.394 185.394 185.394 185.394-83.010 185.394-185.394-83.010-185.394-185.394-185.394zM227.264 341.548l-85.305-85.316 32.769-32.769 52.525 52.548 111.434-111.433 32.769 32.769-144.191 144.202z"></path></svg></span>
+                  <span class="invalid-icon"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512"><path d="M256 70.606c-102.391 0-185.394 83.004-185.394 185.394s83.004 185.394 185.394 185.394 185.394-83.004 185.394-185.394-83.004-185.394-185.394-185.394zM348.697 196.077l-59.923 59.923 59.923 59.923v32.774h-32.774l-59.923-59.923-59.923 59.923h-32.774v-32.774l59.923-59.923-59.923-59.923v-32.774h32.774l59.923 59.923 59.923-59.923h32.774v32.774z"></path></svg></span>
+                  <span class="default-icon active"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512"><path d="M256 70.606c-102.391 0-185.394 83.004-185.394 185.394s83.004 185.394 185.394 185.394 185.394-83.004 185.394-185.394-83.004-185.394-185.394-185.394zM256 406.633c-83.192 0-150.633-67.44-150.633-150.633s67.441-150.633 150.633-150.633 150.633 67.44 150.633 150.633-67.44 150.633-150.633 150.633z"></path><path d="M199.057 326.516l32.775 32.774 103.29-103.291-103.291-103.291-32.773 32.773 70.516 70.517z"></path></svg></span>
+                </span>
+              </label>
               <div class="input"><input type="text" name="project-file-name" class="project-file-name" /></div>
               <div class="ext">.html</div>
             </div>
