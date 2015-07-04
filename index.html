@@ -1227,6 +1227,7 @@
       alertWrap.parents('.scroll:first').removeClass('alert');
       cancelAction(alertWrap);
     };
+    //function for the ok button code
     var defaultOkAction=function(alertWrap){
       //if the ok button isn't disabled
       if(!alertWrap.find('.alert-content .alert-btns .alert-btn.ok:first').hasClass('disabled')){
@@ -1273,8 +1274,54 @@
   }
   //create new folder in the file system, from the browse box
   function openNewFolderInput(box){
+    //function to validate the new folder name
+    var validateFolder=function(input, okBtn){
+      var validDir=false;
+      var dir=input.val(); dir=dir.trim();
+      var errMsgWrap=input.parent().children('.msg:last');
+      errMsgWrap.html('');
+      if(dir.length>0){
+        //if the file name doesn't contain weird characters
+        if(encodeURIComponent(dir)===dir){
+          //if the file name doesn't contain spaces
+          if(dir.replace(/^\s+|\s+$/g, '')===dir){
+            //if the file name doesn't contain '
+            if(dir.indexOf("'")===-1){
+              //if the user didn't write .html at the end of the file name (.html extension is assumed)
+              if(dir.indexOf('.html')===-1 || dir.toLowerCase().lastIndexOf('.html')!==dir.length-'.html'.length){
+                var scrollWrap=input.parents('.scroll:first');
+                var filesUl=scrollWrap.children('ul.files:first');
+                var duplicateDirs=filesUl.children('li.dir[path$="/'+dir+'"], li.dir[path$="/'+dir+'/"]');
+                if(duplicateDirs.length<1){
+                  validDir=true;
+                }else{
+                  errMsgWrap.html('Already exists, '+duplicateDirs.eq(0).attr('path'));
+                }
+              }else{
+                errMsgWrap.html('Please exclude .html from the end of the directory name');
+              }
+            }else{
+              errMsgWrap.html('Please exclude single quotes from the directory name');
+            }
+          }else{
+            errMsgWrap.html('Please exclude spaces from the directory name');
+          }
+        }else{
+          errMsgWrap.html('Please exclude illegal characters from the directory name');
+        }
+      }else{
+        errMsgWrap.html('Please type a directory name');
+      }
+      if(validDir){
+        okBtn.removeClass('disabled');
+      }else{
+        okBtn.addClass('disabled');
+      }
+      return validDir;
+    };
+    //create the alert functionality and controls
     openBrowseAlert(box, 'New Folder', 'new-folder',
-      '<input name="new-folder" class="new-folder" type="text" />', //alert body html
+      '<input name="new-folder" class="new-folder" type="text" /><p class="msg"></p>', //alert body html
       function(alertWrap, cancelBtn, okBtn){ //when the alert loads for the first time
         var input=alertWrap.find('.alert-content .alert-body input.new-folder:first');
         input.keydown(function(e){
@@ -1289,17 +1336,28 @@
               break;
           }
         });
+        input.keyup(function(e){
+          validateFolder(jQuery(this), okBtn);
+        });
       },
       function(alertWrap){ //when this alert is opened
         var newDirInput=alertWrap.find('.alert-content .alert-body input.new-folder:first');
+        var msgWrap=alertWrap.find('.alert-content .alert-body .msg:first');
+        msgWrap.html('');
         newDirInput.val(''); newDirInput.focus();
+        var okBtn=alertWrap.find('.alert-content .alert-btns .alert-btn.ok:first');
+        okBtn.addClass('disabled');
       },function(alertWrap){ //when this alert cancels
 
       },function(alertWrap){ //ok button action
         var input=alertWrap.find('.alert-content .alert-body input.new-folder:first');
         input.focus();
         var isValid=false;
-        //*** validate folder name input
+        var okBtn=alertWrap.find('.alert-content .alert-btns .alert-btn.ok:first');
+        if(validateFolder(input, okBtn)){
+          isValid=true;
+          //*** create the folder post request to mkdir
+        }
         return isValid;
       }
     );
