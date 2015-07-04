@@ -232,10 +232,14 @@ section#lightbox{
                 margin:auto;
                 overflow: auto;
 
+                p{
+                  padding:.5rem;
+                }
+
                 label{
 
                 }
-                input{
+                > input{
                   height:2rem;
                   width:100%;
                   display: block;

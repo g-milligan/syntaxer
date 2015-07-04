@@ -1291,10 +1291,32 @@
     if(browseAlertWrap.hasClass('show')){
       defaultCancelAction(browseAlertWrap);
     }else{
+      scrollWrap.scrollTop(0);
+      scrollWrap.children('.browse-alert.show').removeClass('show');
       browseAlertWrap.addClass('show');
       scrollWrap.addClass('alert');
       openAction(newAlertWrap);
     }
+  }
+  //delete file or folder dialog box alert
+  function deleteFileOrFolderAlert(box){
+    //create the alert functionality and controls
+    openBrowseAlert(box, 'Delete?', 'delete-file-or-folder',
+      '<p>Are you sure you want to delete? This cannot be undone.</p> <p><input name="yessure" class="yessure" type="checkbox" /> Yes! I\'m sure!</p>', //alert body html
+      function(alertWrap, cancelBtn, okBtn){ //when the alert loads for the first time
+        //***
+      },
+      function(alertWrap){ //when this alert is opened
+        var okBtn=alertWrap.find('.alert-content .alert-btns .alert-btn.ok:first');
+        okBtn.addClass('disabled');
+      },function(alertWrap){ //when this alert cancels
+
+      },function(alertWrap){ //ok button action
+        var isValid=false;
+        //***
+        return isValid;
+      }
+    );
   }
   //create new folder in the file system, from the browse box
   function openNewFolderInput(box){
@@ -1633,9 +1655,14 @@
       //if this file explorer is in new-file mode
       if(browseWrap.attr('mode')==='new'){
         var editBtnsWrap=browseWrap.children('.edit-btns:first');
+        var deleteBtn=editBtnsWrap.children('.edit-btn.delete:first');
         var newDirBtn=editBtnsWrap.children('.edit-btn.new-folder:first');
         var newFileInput=editBtnsWrap.find('.edit-input .input input:first');
         //edit folder structure - button events
+        deleteBtn.click(function(e){
+          //alert "are you sure delete"
+          deleteFileOrFolderAlert(box);
+        });
         newDirBtn.click(function(e){
           //create new folder
           openNewFolderInput(box);
@@ -1882,6 +1909,7 @@
             </div>
           </div>
           <div class="edit-btns">
+            <div class="edit-btn delete">-</div>
             <div class="edit-btn new-folder">New Folder</div>
             <div class="edit-input">
               <label for="project-file-name">
