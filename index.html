@@ -1217,6 +1217,30 @@
       }
     }
   }
+  //try to autocomplete a project path based on file system
+  function browserMakeDirectory(path, mkdir, callback){
+    if(callback!=undefined){
+      if(mkdir!=undefined){
+        if(path!=undefined){
+          path=path.trim(); mkdir=mkdir.trim();
+          if(path.length>0 && mkdir.length>0){
+            // construct an HTTP request
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/make-directory', true);
+            xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+            xhr.onloadend=function(res){
+              //if the server responded with ok status
+              var res=JSON.parse(this.responseText);
+              callback(res);
+            };
+            var send={path:path,mkdir:mkdir};
+            // send the collected data as JSON
+            xhr.send(JSON.stringify(send));
+          }
+        }
+      }
+    }
+  }
   //open/create an alert-type sub menu for the file browser
   function openBrowseAlert(box, alertName, className, bodyHtml, initAction, openAction, cancelAction, okAction){
     var browseWrap=box.find('.box-col.browse:first');
@@ -1355,8 +1379,21 @@
         var isValid=false;
         var okBtn=alertWrap.find('.alert-content .alert-btns .alert-btn.ok:first');
         if(validateFolder(input, okBtn)){
-          isValid=true;
-          //*** create the folder post request to mkdir
+          var browseWrap=input.parents('.box-col.browse:first');
+          var navBarInput=browseWrap.find('.nav-bar input.path:first');
+          if(navBarInput[0].hasOwnProperty('currentBrowsePath')){
+            //post to the server to create the new directory
+            var currentBrowsePath=sanitizeProjectBrowsePath(navBarInput[0]['currentBrowsePath']);
+            browserMakeDirectory(currentBrowsePath,input.val(),function(data){
+              if(data['status']==='ok'){
+                var box=browseWrap.parents('.box:first');
+                var openBtn=box.find('.box-btns .box-btn.open:first');
+                //browse to the directory once it's created
+                updateProjectBrowse(data['directory'],openBtn['okButtonAction']);
+              }
+            });
+            isValid=true;
+          }
         }
         return isValid;
       }
@@ -1579,6 +1616,7 @@
         //decide if the open button should be enabled or not
         toggleBrowseOpenButton();
       });
+      openBtn['okButtonAction']=okButtonAction;
       openBtn.click(function(e){
         var ret=true;
         if(jQuery(this).hasClass('disabled')){

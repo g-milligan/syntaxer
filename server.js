@@ -298,6 +298,55 @@ if(file!==undefined&&file.trim().length>0){
                 res.send(JSON.stringify(resJson));
               }
             });
+            //request to make a new directory
+            app.post('/make-directory', function(req, res){
+              var fromUrl=req.headers.referer;
+              //if the request came from this local site
+              if(isSameHost(fromUrl)){
+                var resJson={status:'error, no initial path provided',directory:''};
+                if(req.body.hasOwnProperty('path')){
+                  var path=req.body.path;
+                  if(path.length>0){
+                    if(req.body.hasOwnProperty('mkdir')){
+                      var mkdir=req.body.mkdir;
+                      if(mkdir.length>0){
+                        if(path.lastIndexOf('/')===path.length-'/'.length){
+                          path=path.substring(0, path.length-'/'.length);
+                        }
+                        //if the directory path exists
+                        if(fs.existsSync(path)){
+                          //if the path is a directory
+                          if(fs.lstatSync(path).isDirectory()){
+                            //if the new directory doesn't exist
+                            if(!fs.existsSync(path+'/'+mkdir)){
+                              //create the new directory
+                              fs.mkdirSync(path+'/'+mkdir);
+                              resJson['directory']=path+'/'+mkdir;
+                              resJson['status']='ok';
+                            }else{
+                              resJson['status']='error, already exists, '+path+'/'+mkdir;
+                            }
+                          }else{
+                            resJson['status']='error, '+path+' is not a directory';
+                          }
+                        }else{
+                          resJson['status']='error, '+path+' does not exist';
+                        }
+                      }else{
+                        resJson['status']='error, blank new directory name';
+                      }
+                    }else{
+                      resJson['status']='error, new directory name not provided';
+                    }
+                  }else{
+                    resJson['status']='error, blank path';
+                  }
+                }else{
+                  resJson['status']='error, path not provided';
+                }
+                res.send(JSON.stringify(resJson));
+              }
+            });
             //request to save project changes
             app.post('/browse-project-files', function(req, res){
               var fromUrl=req.headers.referer;
