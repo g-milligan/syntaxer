@@ -181,6 +181,81 @@ if(file!==undefined&&file.trim().length>0){
               //write the preview html
               fs.writeFileSync('./preview/index.html', html);
             };
+            //check to see if a file or folder at the given path can be deleted
+            var isAllowedDelete=function(path){
+              var resJson={status:'error, no initial path provided', is_dir:false};
+              path=path.trim();
+              if(path.length>0){
+                //if the path exists
+                if(fs.existsSync(path)){
+                  var canDelete=false;
+                  //if is directory
+                  if(fs.lstatSync(path).isDirectory()){
+                    resJson['is_dir']=true;
+                    //read the children of the directory
+                    var files = fs.readdirSync(path);
+                    //if there are no children in the directory
+                    if(files.length<1){
+                      canDelete=true;
+                    }else{
+                      resJson['status']='error, cannot delete a directory that contains one or more sub-directories or files (must be empty to delete)';
+                    }
+                  }else{
+                    //is file... if ends with .html
+                    if(path.lastIndexOf('.html')===path.length-'.html'.length){
+                      canDelete=true;
+                    }else{
+                      resJson['status']='error, cannot delete any file other than .html type';
+                    }
+                  }
+                  if(canDelete){
+                    resJson['status']='ok';
+                  }
+                }else{
+                  resJson['status']='error, does not exist, '+path;
+                }
+              }
+              return resJson;
+            };
+            //check if a file or folder can be deleted
+            app.post('/is-allowed-delete', function(req, res){
+              var fromUrl=req.headers.referer;
+              //if the request came from this local site
+              if(isSameHost(fromUrl)){
+                var resJson={status:'error, no initial path provided'};
+                if(req.body.hasOwnProperty('path')){
+                  var path=req.body.path;
+                  resJson=isAllowedDelete(path);
+                }
+                res.send(JSON.stringify(resJson));
+              }
+            });
+            //request to delete a file or folder
+            app.post('/delete-file-or-folder', function(req, res){
+              var fromUrl=req.headers.referer;
+              //if the request came from this local site
+              if(isSameHost(fromUrl)){
+                var resJson={status:'error, no initial path provided'};
+                if(req.body.hasOwnProperty('path')){
+                  var path=req.body.path;
+                  resJson=isAllowedDelete(path);
+                  if(resJson['status']==='ok'){
+                    resJson['status']='error, failed to remove '+path;
+                    //if folder
+                    if(resJson['is_dir']){
+                      //delete the folder
+                      fs.rmdirSync(path);
+                      resJson['status']='ok';
+                    }else{
+                      //delete the file
+                      fs.unlinkSync(path);
+                      resJson['status']='ok';
+                    }
+                  }
+                }
+                res.send(JSON.stringify(resJson));
+              }
+            });
             //request to save project changes
             app.post('/autocomplete-project-path', function(req, res){
               var fromUrl=req.headers.referer;

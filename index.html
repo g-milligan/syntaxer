@@ -1255,6 +1255,50 @@
       }
     }
   }
+  //check to see if deleting a given path is allowed
+  function browserIsAllowedDelete(path, callback){
+    if(callback!=undefined){
+      if(path!=undefined){
+        path=path.trim();
+        if(path.length>0){
+          // construct an HTTP request
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/is-allowed-delete', true);
+          xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+          xhr.onloadend=function(res){
+            //if the server responded with ok status
+            var res=JSON.parse(this.responseText);
+            callback(res);
+          };
+          var send={path:path};
+          // send the collected data as JSON
+          xhr.send(JSON.stringify(send));
+        }
+      }
+    }
+  }
+  //delete a file or folder if it can be deleted
+  function browserDeleteFileOrFolder(path, callback){
+    if(callback!=undefined){
+      if(path!=undefined){
+        path=path.trim();
+        if(path.length>0){
+          // construct an HTTP request
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/delete-file-or-folder', true);
+          xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+          xhr.onloadend=function(res){
+            //if the server responded with ok status
+            var res=JSON.parse(this.responseText);
+            callback(res);
+          };
+          var send={path:path};
+          // send the collected data as JSON
+          xhr.send(JSON.stringify(send));
+        }
+      }
+    }
+  }
   //open/create an alert-type sub menu for the file browser
   function openBrowseAlert(box, alertName, className, bodyHtml, initAction, openAction, cancelAction, okAction){
     var browseWrap=box.find('.box-col.browse:first');
@@ -1331,12 +1375,28 @@
       function(alertWrap){ //when this alert is opened
         var okBtn=alertWrap.find('.alert-content .alert-btns .alert-btn.ok:first');
         var chk=alertWrap.find('.alert-content .alert-body .yessure:first');
-        var pathMsg=alertWrap.find('.alert-content .alert-body .areyousure .msg:first');
+        var areyousureCtls=alertWrap.find('.alert-content .alert-body .areyousure:first');
+        alertWrap.find('.alert-content .alert-body > .error-msg:last').remove();
+        areyousureCtls.css('display','none');
+        okBtn.css('display','none');
+        var pathMsg=areyousureCtls.find('.msg:first');
         var scrollWrap=alertWrap.parents('.scroll:first');
         var selLi=scrollWrap.find('ul.files li.selected:first');
-        pathMsg.html(selLi.attr('path'));
         chk.attr('checked',false);
         okBtn.addClass('disabled');
+        pathMsg.html('');
+        //confirm if the selected path can be deleted
+        browserIsAllowedDelete(selLi.attr('path'), function(data){
+          if(data['status']==='ok'){
+            //set the path that can be deleted
+            pathMsg.html(selLi.attr('path'));
+            areyousureCtls.css('display','');
+            okBtn.css('display','');
+          }else{
+            //print the error status, reason for not being able to delete this file or folder
+            alertWrap.find('.alert-content .alert-body').append('<div class="error-msg"><p>'+selLi.attr('path')+'</p><p class="msg">'+data['status']+'</p></div>');
+          }
+        });
       },function(alertWrap){ //when this alert cancels
 
       },function(alertWrap){ //ok button action
@@ -1346,7 +1406,15 @@
           isValid=true;
           var pathMsg=alertWrap.find('.alert-content .alert-body .areyousure .msg:first');
           var delPath=pathMsg.html(); delPath=sanitizeProjectBrowsePath(delPath);
-          //***
+          //delete a file or folder if it can be deleted
+          browserDeleteFileOrFolder(delPath, function(data){
+            var box=alertWrap.parents('.box:first');
+            var navBarInput=box.find('.box-content .box-col.browse .nav-bar input.path:first');
+            var currentBrowsePath=sanitizeProjectBrowsePath(navBarInput[0]['currentBrowsePath']);
+            var openBtn=box.find('.box-btns .box-btn.open:first');
+            //browse to the current directory again to refresh
+            updateProjectBrowse(currentBrowsePath,openBtn['okButtonAction']);
+          });
         }
         return isValid;
       }
