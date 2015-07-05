@@ -916,6 +916,18 @@
       }
     }
   }
+  //toggle disable/enable the delete button for the file browser
+  function toggleBrowseDeleteButton(browseWrap){
+    if(browseWrap.attr('mode')==='new'){
+      var deleteBtn=browseWrap.find('.edit-btns .edit-btn.delete:first');
+      var selLi=browseWrap.find('.scroll ul.files li.selected:first');
+      if(selLi.length>0){
+        deleteBtn.removeClass('disabled');
+      }else{
+        deleteBtn.addClass('disabled');
+      }
+    }
+  }
   //function to ignore trailing slash, trim, etc... so two paths can be compared as same location
   function sanitizeProjectBrowsePath(pstr){
     if(pstr==undefined){pstr='';} pstr=pstr.trim();
@@ -1079,6 +1091,8 @@
           if(stat['status']==='ok'){
             openBtn.removeClass('disabled');
           }
+          //disable/enable the delete button
+          toggleBrowseDeleteButton(browseWrap);
         break;
       }
     }
@@ -1302,18 +1316,38 @@
   function deleteFileOrFolderAlert(box){
     //create the alert functionality and controls
     openBrowseAlert(box, 'Delete?', 'delete-file-or-folder',
-      '<p>Are you sure you want to delete? This cannot be undone.</p> <p><input name="yessure" class="yessure" type="checkbox" /> Yes! I\'m sure!</p>', //alert body html
+      '<div class="areyousure"><p>Are you sure you want to delete? This cannot be undone.</p> <p class="msg"></p> <p class="confirm"><input name="yessure" class="yessure" type="checkbox" /> Yes! I\'m sure!</p></div>', //alert body html
       function(alertWrap, cancelBtn, okBtn){ //when the alert loads for the first time
-        //***
+        var okBtn=alertWrap.find('.alert-content .alert-btns .alert-btn.ok:first');
+        var chk=alertWrap.find('.alert-content .alert-body .yessure:first');
+        chk.change(function(){
+          if(jQuery(this).is(':checked')){
+            okBtn.removeClass('disabled');
+          }else{
+            okBtn.addClass('disabled');
+          }
+        });
       },
       function(alertWrap){ //when this alert is opened
         var okBtn=alertWrap.find('.alert-content .alert-btns .alert-btn.ok:first');
+        var chk=alertWrap.find('.alert-content .alert-body .yessure:first');
+        var pathMsg=alertWrap.find('.alert-content .alert-body .areyousure .msg:first');
+        var scrollWrap=alertWrap.parents('.scroll:first');
+        var selLi=scrollWrap.find('ul.files li.selected:first');
+        pathMsg.html(selLi.attr('path'));
+        chk.attr('checked',false);
         okBtn.addClass('disabled');
       },function(alertWrap){ //when this alert cancels
 
       },function(alertWrap){ //ok button action
         var isValid=false;
-        //***
+        var okBtn=alertWrap.find('.alert-content .alert-btns .alert-btn.ok:first');
+        if(!okBtn.hasClass('disabled')){
+          isValid=true;
+          var pathMsg=alertWrap.find('.alert-content .alert-body .areyousure .msg:first');
+          var delPath=pathMsg.html(); delPath=sanitizeProjectBrowsePath(delPath);
+          //***
+        }
         return isValid;
       }
     );
@@ -1367,7 +1401,7 @@
     };
     //create the alert functionality and controls
     openBrowseAlert(box, 'New Folder', 'new-folder',
-      '<input name="new-folder" class="new-folder" type="text" /><p class="msg"></p>', //alert body html
+      '<p class="newPath"></p><input name="new-folder" class="new-folder" type="text" /><p class="msg"></p>', //alert body html
       function(alertWrap, cancelBtn, okBtn){ //when the alert loads for the first time
         var input=alertWrap.find('.alert-content .alert-body input.new-folder:first');
         input.keydown(function(e){
@@ -1388,6 +1422,11 @@
       },
       function(alertWrap){ //when this alert is opened
         var newDirInput=alertWrap.find('.alert-content .alert-body input.new-folder:first');
+        var browseWrap=alertWrap.parents('.box-col.browse:first');
+        var navBarInput=browseWrap.find('.nav-bar input.path:first');
+        var currentBrowsePath=sanitizeProjectBrowsePath(navBarInput[0]['currentBrowsePath']);
+        var newPathP=alertWrap.find('.alert-content .alert-body .newPath:first');
+        newPathP.html(currentBrowsePath);
         var msgWrap=alertWrap.find('.alert-content .alert-body .msg:first');
         msgWrap.html('');
         newDirInput.val(''); newDirInput.focus();
@@ -1401,21 +1440,18 @@
         var isValid=false;
         var okBtn=alertWrap.find('.alert-content .alert-btns .alert-btn.ok:first');
         if(validateFolder(input, okBtn)){
-          var browseWrap=input.parents('.box-col.browse:first');
-          var navBarInput=browseWrap.find('.nav-bar input.path:first');
-          if(navBarInput[0].hasOwnProperty('currentBrowsePath')){
-            //post to the server to create the new directory
-            var currentBrowsePath=sanitizeProjectBrowsePath(navBarInput[0]['currentBrowsePath']);
-            browserMakeDirectory(currentBrowsePath,input.val(),function(data){
-              if(data['status']==='ok'){
-                var box=browseWrap.parents('.box:first');
-                var openBtn=box.find('.box-btns .box-btn.open:first');
-                //browse to the directory once it's created
-                updateProjectBrowse(data['directory'],openBtn['okButtonAction']);
-              }
-            });
-            isValid=true;
-          }
+          //post to the server to create the new directory
+          var newPathP=alertWrap.find('.alert-content .alert-body .newPath:first');
+          var currentBrowsePath=sanitizeProjectBrowsePath(newPathP.html());
+          browserMakeDirectory(currentBrowsePath,input.val(),function(data){
+            if(data['status']==='ok'){
+              var box=alertWrap.parents('.box:first');
+              var openBtn=box.find('.box-btns .box-btn.open:first');
+              //browse to the directory once it's created
+              updateProjectBrowse(data['directory'],openBtn['okButtonAction']);
+            }
+          });
+          isValid=true;
         }
         return isValid;
       }
@@ -1660,12 +1696,16 @@
         var newFileInput=editBtnsWrap.find('.edit-input .input input:first');
         //edit folder structure - button events
         deleteBtn.click(function(e){
-          //alert "are you sure delete"
-          deleteFileOrFolderAlert(box);
+          if(!jQuery(this).hasClass('disabled')){
+            //alert "are you sure delete"
+            deleteFileOrFolderAlert(box);
+          }
         });
         newDirBtn.click(function(e){
-          //create new folder
-          openNewFolderInput(box);
+          if(!jQuery(this).hasClass('disabled')){
+            //create new folder
+            openNewFolderInput(box);
+          }
         });
         //new file input events
         newFileInput.blur(function(e){
@@ -1909,7 +1949,7 @@
             </div>
           </div>
           <div class="edit-btns">
-            <div class="edit-btn delete">-</div>
+            <div class="edit-btn delete disabled">-</div>
             <div class="edit-btn new-folder">New Folder</div>
             <div class="edit-input">
               <label for="project-file-name">
