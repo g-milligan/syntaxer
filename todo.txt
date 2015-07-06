@@ -14,11 +14,12 @@
 - XXX enter key to open current selected folder in project browse list (or open project file if project file is selected)
 - XXX arrow keys up and down for project browse items
 
-- new project dialog box (multistep screens)
-  - browse and choose project name
-  - choose project template
-    - edit project tabs
-    - edit project tokens
+- XXX new project dialog box (multistep screens)
+
+- Save as dialog and functionality
+
+- Project templates for rapidly building out tabs, etc...
+  - unique fields to fill out for the template, etc...
 
 - dialog box for adding new tabs? Tabs/New menu item?
 - auto complete for template.html inline files XML

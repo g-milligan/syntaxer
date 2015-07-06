@@ -942,6 +942,7 @@
     if(box.length>0){
       var browseWrap=box.find('.box-col.browse[mode="new"]:first');
       if(browseWrap.length>0){
+        ret['status']='error, the browse path in the nav-bar differs from the current open directory';
         //get status icon
         var editInputWrap=browseWrap.find('.edit-btns .edit-input:first');
         var statIconsWrap=editInputWrap.find('.status-icon:first');
@@ -972,8 +973,8 @@
                 if(encodeURIComponent(newFileName)===newFileName){
                   //if the file name doesn't contain spaces
                   if(newFileName.replace(/^\s+|\s+$/g, '')===newFileName){
-                    //if the file name doesn't contain '
-                    if(newFileName.indexOf("'")===-1){
+                    //if the file name doesn't contain other illegal characters
+                    if(newFileName.indexOf("*")===-1 && newFileName.indexOf("!")===-1 && newFileName.indexOf("(")===-1 && newFileName.indexOf(")")===-1 && newFileName.indexOf("~")===-1 && newFileName.indexOf("'")===-1){
                       //if the user didn't write .html at the end of the file name (.html extension is assumed)
                       if(newFileName.indexOf('.html')===-1 || newFileName.toLowerCase().lastIndexOf('.html')!==newFileName.length-'.html'.length){
                         var scrollWrap=browseWrap.find('.scroll:first');
@@ -995,7 +996,7 @@
                       }
                     }else{
                       //file name contains spaces
-                      ret['status']='error, file name cannot contain single quotes';
+                      ret['status']='error, file name must not contain illegal characters';
                       setInvalidIcon();
                     }
                   }else{
@@ -1231,6 +1232,33 @@
       }
     }
   }
+  //create a new project
+  function createNewProject(path, file, callback, fromFile){
+    if(callback!=undefined){
+      if(file!=undefined){
+        if(path!=undefined){
+          path=path.trim(); file=file.trim();
+          if(path.length>0 && file.length>0){
+            // construct an HTTP request
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/create-new-project', true);
+            xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+            xhr.onloadend=function(res){
+              //if the server responded with ok status
+              var res=JSON.parse(this.responseText);
+              callback(res);
+            };
+            var send={path:path,file:file};
+            if(fromFile!=undefined){
+              send['fromFile']=fromFile;
+            }
+            // send the collected data as JSON
+            xhr.send(JSON.stringify(send));
+          }
+        }
+      }
+    }
+  }
   //try to autocomplete a project path based on file system
   function browserMakeDirectory(path, mkdir, callback){
     if(callback!=undefined){
@@ -1434,7 +1462,7 @@
           //if the file name doesn't contain spaces
           if(dir.replace(/^\s+|\s+$/g, '')===dir){
             //if the file name doesn't contain '
-            if(dir.indexOf("'")===-1){
+            if(dir.indexOf("*")===-1 && dir.indexOf("!")===-1 && dir.indexOf("(")===-1 && dir.indexOf(")")===-1 && dir.indexOf("~")===-1 && dir.indexOf("'")===-1){
               //if the user didn't write .html at the end of the file name (.html extension is assumed)
               if(dir.indexOf('.html')===-1 || dir.toLowerCase().lastIndexOf('.html')!==dir.length-'.html'.length){
                 var scrollWrap=input.parents('.scroll:first');
@@ -1449,7 +1477,7 @@
                 errMsgWrap.html('Please exclude .html from the end of the directory name');
               }
             }else{
-              errMsgWrap.html('Please exclude single quotes from the directory name');
+              errMsgWrap.html('Please exclude all illegal characters');
             }
           }else{
             errMsgWrap.html('Please exclude spaces from the directory name');
@@ -1846,7 +1874,26 @@
     var box=jQuery('body section#lightbox #new-project:first');
     //define the ok button action, what should happen when you click ok
     var okButtonAction=function(openBtn){
-      console.log('CREATE!');
+      var boxWrap=openBtn.parents('.box:first');
+      var inputProjName=boxWrap.find('.box-content .box-col.browse .edit-btns .edit-input .input input.project-file-name:first');
+      var newProjName=sanitizeProjectBrowsePath(inputProjName.val());
+      if(newProjName.length>0){
+        newProjName+='.html';
+        var navBarInput=boxWrap.find('.box-content .box-col.browse .nav-bar input.path:first');
+        if(navBarInput[0].hasOwnProperty('currentBrowsePath')){
+          var currentBrowsePath=sanitizeProjectBrowsePath(navBarInput[0]['currentBrowsePath']);
+          //create the new project with a request to the server
+          createNewProject(currentBrowsePath, newProjName, function(data){
+            //done creating the new file
+            if(data['status']==='ok'){
+              //open the new project
+              document.location.href=data['url'];
+            }else{
+              //*** show error message for the attempt to create the new project
+            }
+          });
+        }
+      }
     };
     //init the project explorer controls, if not already init
     initProjectBrowseEvents(box,okButtonAction);

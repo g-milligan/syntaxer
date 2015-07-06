@@ -17,6 +17,7 @@ if(process.argv!=undefined&&process.argv.length>0){
   }
 }
 //require
+var eol = require('os').EOL;
 var express = require('express');
 var openBrowser = require('open');
 var app = express();
@@ -107,6 +108,9 @@ var insertProjectFilesJson=function(html, jsonStr){
     //insert the project files list string before the closing body tag
     var beforeClose=html.substring(0,html.lastIndexOf(closeBody));
     var atClose=html.substring(html.lastIndexOf(closeBody));
+    if(typeof jsonStr!=='string'){
+      jsonStr=JSON.stringify(jsonStr);
+    }
     html=beforeClose+startProjFiles+jsonStr+endProjFiles+atClose;
   }
   return html;
@@ -250,6 +254,114 @@ if(file!==undefined&&file.trim().length>0){
                       //delete the file
                       fs.unlinkSync(path);
                       resJson['status']='ok';
+                    }
+                  }
+                }
+                res.send(JSON.stringify(resJson));
+              }
+            });
+            //check if a file or folder can be deleted
+            app.post('/create-new-project', function(req, res){
+              var fromUrl=req.headers.referer;
+              //if the request came from this local site
+              if(isSameHost(fromUrl)){
+                var resJson={status:'error, no initial path provided'};
+                if(req.body.hasOwnProperty('path')){
+                  var path=req.body.path;
+                  if(path.lastIndexOf('/')===path.length-'/'.length){ path=path.substring(0, path.length-'/'.length); }
+                  path=path.trim();
+                  if(path.length>0){
+                    resJson['status']='error, no project file name provided';
+                    if(req.body.hasOwnProperty('file')){
+                      var file=req.body.file; file=file.trim();
+                      if(file.length>0){
+                        if(file.lastIndexOf('.html')===file.length-'.html'.length){
+                          if(fs.existsSync(path)){
+                            if(fs.lstatSync(path).isDirectory()){
+                              if(!fs.existsSync(path+'/'+file)){
+                                var fromFile='', doCreate=true, newHtml='';
+                                if(req.body.hasOwnProperty('fromFile')){
+                                  fromFile=req.body.fromFile; fromFile=fromFile.trim();
+                                  if(fromFile.length>0){
+                                    //if fromFile has a valid html extension
+                                    if(fromFile.lastIndexOf('.html')===fromFile.length-'.html'.length){
+                                      if(fs.existsSync(fromFile)){
+                                        if(!fs.lstatSync(fromFile).isDirectory()){
+                                          //make sure the save as file has valid contents
+                                          newHtml=fs.readFileSync(fromFile, 'utf8');
+                                          //if doesn't contain the project tags
+                                          if(newHtml.indexOf(startProjFiles)===-1 || newHtml.indexOf(endProjFiles)===-1){
+                                            resJson['status']='error, missing one or both project data tag';
+                                            doCreate=false;
+                                          }
+                                        }else{
+                                          resJson['status']='error, cannot save-as from directory, '+fromFile;
+                                          doCreate=false;
+                                        }
+                                      }else{
+                                        resJson['status']='error, cannot save-as from non-existent file, '+fromFile;
+                                        doCreate=false;
+                                      }
+                                    }else{
+                                      resJson['status']='error, must save-as from .html file';
+                                      doCreate=false;
+                                    }
+                                  }else{
+                                    resJson['status']='error, the save-as (from) file path is blank';
+                                    doCreate=false;
+                                  }
+                                }
+                                //if the fromFile is good data or isn't being used
+                                if(doCreate){
+                                  var fname=file.substring(0,file.lastIndexOf('.html'));
+                                  resJson['url']='http://' + host + ':' + port + '?file='+encodeURIComponent(path+'/'+file);
+                                  //if creating a new project from an existing project (save-as)
+                                  if(fromFile.length>0){
+                                    //change the project json data (project name)
+                                    var json=getProjectFilesJson(newHtml);
+                                    if(json!=undefined){
+                                      //set the new project name and replace the old data with the new data
+                                      json['name']=fname;
+                                      newHtml=insertProjectFilesJson(newHtml, json);
+                                      //save-as file
+                                      fs.writeFileSync(path+'/'+file, newHtml);
+                                      resJson['status']='ok';
+                                    }else{
+                                      resJson['status']='error, project data json tags are malformed in the save-from project file';
+                                    }
+                                  }else if(fromFile.length<1){
+                                    //creating a brand new project file... (not save-as)
+                                    newHtml+='<html>'+eol;
+                                    newHtml+='<head>'+eol;
+                                    newHtml+='<title>'+fname+'</title>'+eol;
+                                    newHtml+='<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />'+eol;
+                                    newHtml+='<meta name="viewport" content="width=device-width, initial-scale=1.0" />'+eol;
+                                    newHtml+=''+eol;
+                                    newHtml+='</head>'+eol;
+                                    newHtml+='<body>'+eol;
+                                    newHtml+=''+eol;
+                                    newHtml+='</body>'+eol;
+                                    newHtml+='</html>';
+                                    //insert the project data
+                                    newHtml=insertProjectFilesJson(newHtml, {name:fname,files:[]});
+                                    //create the file with the default contents
+                                    fs.writeFileSync(path+'/'+file, newHtml);
+                                    resJson['status']='ok';
+                                  }
+                                }
+                              }else{
+                                resJson['status']='error, already exists, '+path+'/'+file;
+                              }
+                            }else{
+                              resJson['status']='error, not a directory, '+path;
+                            }
+                          }else{
+                            resJson['status']='error, doesn\'t exist, '+path;
+                          }
+                        }else{
+                          resJson['status']='error, file name must end with .html extension';
+                        }
+                      }
                     }
                   }
                 }
