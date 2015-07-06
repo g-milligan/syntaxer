@@ -738,7 +738,7 @@
         },
         saveas:{
           _action:function(){
-            console.log('saveas file');
+            saveAsProjectBrowse();
           }
         }
       },
@@ -1868,10 +1868,10 @@
       updateProjectBrowse('',okButtonAction);
     });
   }
-  //open NEW project dialog box
-  function newProjectBrowse(){
+  //open either the save as or new project dialog box
+  function browseEditDialog(dialogId){
     //get the open project browse box
-    var box=jQuery('body section#lightbox #new-project:first');
+    var box=jQuery('body section#lightbox #'+dialogId+':first');
     //define the ok button action, what should happen when you click ok
     var okButtonAction=function(openBtn){
       var boxWrap=openBtn.parents('.box:first');
@@ -1882,6 +1882,12 @@
         var navBarInput=boxWrap.find('.box-content .box-col.browse .nav-bar input.path:first');
         if(navBarInput[0].hasOwnProperty('currentBrowsePath')){
           var currentBrowsePath=sanitizeProjectBrowsePath(navBarInput[0]['currentBrowsePath']);
+          var createFrom;
+          if(dialogId==='saveas-project'){
+            //get the path to save-as from
+            var temLi=getTemplateTabLi();
+            createFrom=getElemPath(temLi);
+          }
           //create the new project with a request to the server
           createNewProject(currentBrowsePath, newProjName, function(data){
             //done creating the new file
@@ -1891,17 +1897,25 @@
             }else{
               //*** show error message for the attempt to create the new project
             }
-          });
+          },createFrom);
         }
       }
     };
     //init the project explorer controls, if not already init
     initProjectBrowseEvents(box,okButtonAction);
     //open the project browse lightbox
-    openLightBox('new-project',function(box){
+    openLightBox(dialogId,function(box){
       //update the project browse items
       updateProjectBrowse('',okButtonAction);
     });
+  }
+  //open the save as dialog box
+  function saveAsProjectBrowse(){
+    browseEditDialog('saveas-project');
+  }
+  //open NEW project dialog box
+  function newProjectBrowse(){
+    browseEditDialog('new-project');
   }
   function openLightBox(id,callback){
     var bodyElem=jQuery('body:first');
@@ -2085,6 +2099,42 @@
       <div class="box-btns">
         <div class="box-btn cancel">Cancel</div>
         <div class="box-btn open disabled">Create Project</div>
+      </div>
+    </div>
+
+    <div class="box" id="saveas-project">
+      <h1>Save Project As<span class="box-btn cancel">X</span></h1>
+      <div class="box-content explorer">
+        <div mode="new" class="box-col browse">
+          <h2>Browse</h2>
+          <div class="nav-bar">
+            <input class="path" type="text" />
+            <div class="up-dir-btn">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 640 640"><path d="M241.808 476.333v-211.145h-78.192l114.682-125.108 114.657 125.108h-78.192v190.268h161.624v73.006h-182.449c-28.775 0-52.128-23.327-52.128-52.128z"></path></svg>
+            </div>
+          </div>
+          <div class="edit-btns">
+            <div class="edit-btn delete disabled">-</div>
+            <div class="edit-btn new-folder">New Folder</div>
+            <div class="edit-input">
+              <label for="project-file-name">
+                <span>Project Name</span>
+                <span class="status-icon">
+                  <span class="valid-icon"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512"><path d="M256 70.606c-102.384 0-185.394 83.010-185.394 185.394s83.010 185.394 185.394 185.394 185.394-83.010 185.394-185.394-83.010-185.394-185.394-185.394zM227.264 341.548l-85.305-85.316 32.769-32.769 52.525 52.548 111.434-111.433 32.769 32.769-144.191 144.202z"></path></svg></span>
+                  <span class="invalid-icon"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512"><path d="M256 70.606c-102.391 0-185.394 83.004-185.394 185.394s83.004 185.394 185.394 185.394 185.394-83.004 185.394-185.394-83.004-185.394-185.394-185.394zM348.697 196.077l-59.923 59.923 59.923 59.923v32.774h-32.774l-59.923-59.923-59.923 59.923h-32.774v-32.774l59.923-59.923-59.923-59.923v-32.774h32.774l59.923 59.923 59.923-59.923h32.774v32.774z"></path></svg></span>
+                  <span class="default-icon active"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512"><path d="M256 70.606c-102.391 0-185.394 83.004-185.394 185.394s83.004 185.394 185.394 185.394 185.394-83.004 185.394-185.394-83.004-185.394-185.394-185.394zM256 406.633c-83.192 0-150.633-67.44-150.633-150.633s67.441-150.633 150.633-150.633 150.633 67.44 150.633 150.633-67.44 150.633-150.633 150.633z"></path><path d="M199.057 326.516l32.775 32.774 103.29-103.291-103.291-103.291-32.773 32.773 70.516 70.517z"></path></svg></span>
+                </span>
+              </label>
+              <div class="input"><input type="text" name="project-file-name" class="project-file-name" /></div>
+              <div class="ext">.html</div>
+            </div>
+          </div>
+          <div class="scroll"></div>
+        </div>
+      </div>
+      <div class="box-btns">
+        <div class="box-btn cancel">Cancel</div>
+        <div class="box-btn open disabled">Save As</div>
       </div>
     </div>
 

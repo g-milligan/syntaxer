@@ -16,7 +16,9 @@
 
 - XXX new project dialog box (multistep screens)
 
-- Save as dialog and functionality
+- XXX Save as dialog and functionality
+
+- show error message for failed attempt to create a new project / save-as
 
 - Project templates for rapidly building out tabs, etc...
   - unique fields to fill out for the template, etc...
