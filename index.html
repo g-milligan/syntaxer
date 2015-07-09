@@ -1384,6 +1384,24 @@
       openAction(newAlertWrap);
     }
   }
+  //show an alert (within the lightbox) related to some sort of error
+  function errMsgAlert(box,className,errMsg,errTitle){
+    if(errTitle==undefined){errTitle='Oops...';}
+    //create the alert functionality and controls
+    openBrowseAlert(box, errTitle, className,
+      '<p>Something went wrong:</p><p>'+errMsg+'</p>', //alert body html
+      function(alertWrap, cancelBtn, okBtn){ //when the alert loads for the first time
+        cancelBtn.css('display','none');
+      },
+      function(alertWrap){ //when this alert is opened
+
+      },function(alertWrap){ //when this alert cancels
+
+      },function(alertWrap){ //ok button action
+        return true;
+      }
+    );
+  }
   //delete file or folder dialog box alert
   function deleteFileOrFolderAlert(box){
     //create the alert functionality and controls
@@ -1895,7 +1913,8 @@
               //open the new project
               document.location.href=data['url'];
             }else{
-              //*** show error message for the attempt to create the new project
+              //show error message for the attempt to create the new project
+              errMsgAlert(boxWrap,'project-create-fail-alert',data['status']);
             }
           },createFrom);
         }
