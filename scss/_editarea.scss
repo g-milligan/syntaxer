@@ -1,5 +1,9 @@
 $h-content-menu-btns:1.7rem;
 
+body.tab-overflow section#file-content{
+  top:($h-hud+$h-overflow-tabs);
+}
+
 section#file-content{
   display:block;
   width:100%;

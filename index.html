@@ -2017,11 +2017,51 @@
       return ret;
     });
   }
+  //handle the window resize event
+  function handleWindowResize(){
+    //get key elements
+    var bodyElem=jQuery('body:first');
+    var tabsWrap=bodyElem.children('nav#tabs:first');
+    var lastTabLi=tabsWrap.children('ul:first').children('li:last');
+    //reset overflow data
+    bodyElem.removeClass('tab-overflow');
+    //if there is a last tab li
+    if(lastTabLi.length>0){
+      //get the edge coordinate for the last tab
+      var tabLeft=lastTabLi.offset().left;
+      var tabRight=tabLeft+lastTabLi.outerWidth();
+      var windowWidth=window.innerWidth;
+      //if the last tab is outside of the window bounds
+      if(tabRight>windowWidth){
+        tabsWrap.outerHeight();
+        bodyElem.addClass('tab-overflow');
+      }
+    }
+  }
+  function onWindowReady(){
+    jQuery(window).ready(function(){
+      //resize event
+      var resize_timeout;
+      jQuery(window).resize(function(){
+        //try to fire the resize handler only when resize finishes (after final timeout)
+        clearTimeout(resize_timeout);
+        resize_timeout=setTimeout(function(){
+          //resize process on window resize
+          handleWindowResize();
+        },100);
+      });
+      setTimeout(function(){
+        //resize process on initial load
+        handleWindowResize();
+      },1000);
+    });
+  }
   function initSyntaxer(){
     initHud();
     openProjectFile();
     initLightbox();
     initKeyEvents();
+    onWindowReady();
   }
 </script>
 </head>

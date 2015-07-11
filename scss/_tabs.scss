@@ -1,5 +1,10 @@
 $fs-tabs: .9rem;
 
+body.tab-overflow nav#tabs{
+  overflow-x:auto;
+  height:$h-overflow-tabs;
+}
+
 nav#tabs{
   position:fixed;
   top:$h-hud;
