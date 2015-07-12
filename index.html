@@ -165,6 +165,26 @@
     }
     return content;
   }
+  //parse the template html to get all of the tab names in the order in which the appear in the template html
+  function getOrderedTabNames(){
+    var tabNames=[];
+    var temTabLi=getTemplateTabLi();
+    if(temTabLi.length>0){
+      var temContent=getFileContent(temTabLi);
+      var matches=temContent.match(/\[(.*?)\]/g); var prevMatch='';
+      for(var m=0;m<matches.length;m++){
+        var match=matches[m];
+        match=match.substring('['.length);
+        match=match.substring(0, match.length-']'.length);
+        if(match.trim().indexOf('/')===0){
+          if(prevMatch.trim()===match.substring(match.indexOf('/')+'/'.length).trim()){
+            tabNames.push(prevMatch);
+          }
+        }
+        prevMatch=match;
+      }
+    } return tabNames;
+  }
   //get the ordered file contents (from the editor)
   function getFileContents(json){
     var data=[];
@@ -473,11 +493,102 @@
       textarea[0].parentNode.replaceChild(el, textarea[0]);
     },config);
     myCodeMirror['myHintType']=hintType;
+    //get the edited string and check to see if it could influence tabs
+    var editTextIsTabEmbed=function(instance, fromLine, toLine){
+      var editTabTxt=false;
+      if(toLine==undefined){toLine=fromLine;}
+      //get the text from the "from" line to the "to" line
+      var editTxt='';
+      for(var i=fromLine;i<=toLine;i++){
+        editTxt+=instance.doc.getLine(i)+'\n';
+      }
+      editTxt=editTxt.trim();
+      //if the edit text contains one of the embed tag characters
+      if(editTxt.indexOf('[')!==-1){ editTabTxt=true; }
+      else if(editTxt.indexOf(']')!==-1){ editTabTxt=true; }
+      return editTabTxt;
+    };
+    var getTabNameAtLine=function(instance, lineIndex){
+      var ret;
+      var nameLine=instance.doc.getLine(lineIndex);
+      if(nameLine.indexOf('[')!==-1){
+        nameLine=nameLine.substring(nameLine.indexOf('[')+'['.length);
+        if(nameLine.indexOf(']')!==-1){
+          nameLine=nameLine.substring(0,nameLine.indexOf(']'));
+          nameLine=nameLine.trim();
+          if(nameLine.indexOf('/')===0){
+            nameLine=nameLine.substring('/'.length);
+            nameLine=nameLine.trim();
+          }
+          ret=nameLine;
+        }
+      }
+      return ret;
+    };
     //codemirror editor events
+    myCodeMirror.on('beforeChange', function(instance, object){
+      var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first');
+      //if this is the template tab li
+      if(tabLi.hasClass('template')){
+        //reset the tab code indicator data
+        myCodeMirror['didEditTabText']=false;
+        myCodeMirror['tabNameAtCursorBeforeEdit']=undefined;
+        if(!myCodeMirror.hasOwnProperty('tabNamesBeforeEdit')){
+          //get the list of tab names embedded in the file BEFORE the edit
+          myCodeMirror['tabNamesBeforeEdit']=getOrderedTabNames();
+        }
+        //if the line (that contains the cursor) also may have a template tab name
+        var curLine=instance.doc.getCursor().line;
+        if(editTextIsTabEmbed(instance, curLine)){
+          //get the tab name at the cursor location, if any
+          myCodeMirror['tabNameAtCursorBeforeEdit']=getTabNameAtLine(instance, curLine);
+        }
+        //if this is delete
+        if(object.origin==='+delete' || object.origin==='cut'){
+          //indicate if embed code for a tab got edited
+          var didEdit=editTextIsTabEmbed(instance, object.from.line, object.to.line);
+          myCodeMirror['didEditTabText']=didEdit;
+        }
+      }
+    });
     myCodeMirror.on('change', function(instance, object){
       //indicate unsaved change
       jQuery('body:first').addClass('has-changes');
-      jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first').addClass('has-changes');
+      var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first');
+      tabLi.addClass('has-changes');
+      //if this is the template tab li
+      if(tabLi.hasClass('template')){
+        //if not delete
+        if(object.origin!=='+delete' && object.origin!=='cut'){
+          //indicate if embed code for a tab got edited
+          var didEdit=editTextIsTabEmbed(instance, object.from.line, object.to.line);
+          myCodeMirror['didEditTabText']=didEdit;
+        }
+        //if tab text was edited
+        if(myCodeMirror['didEditTabText']){
+          //get the tab name on the line where the cursor is located
+          var nameBeforeEdit=myCodeMirror['tabNameAtCursorBeforeEdit'];
+          var tabName=getTabNameAtLine(instance, instance.doc.getCursor().line);
+          //align end-tab tag with the changed tabName (if changed)
+          if(tabName!=undefined){
+            //****
+          }
+          //get the list of all tab names that appear in the html
+          var tabNamesBeforeEdit=myCodeMirror['tabNamesBeforeEdit'];
+          var tabNames=getOrderedTabNames();
+          myCodeMirror['tabNamesBeforeEdit']=tabNames; //for the next edit
+          //if a tab was removed
+          if(tabNamesBeforeEdit.length>tabNames.length){
+
+          //if no tab was removed nor added
+          }else if(tabNamesBeforeEdit.length===tabNames.length){
+
+          //if a tab was added
+          }else if(tabNamesBeforeEdit.length<tabNames.length){
+
+          }
+        }
+      }
       //autocomplete
       if(myCodeMirror['myHintType']){
         //show the hints dropdown
@@ -491,6 +602,10 @@
     });
     //when mouse cursor position changes
     myCodeMirror.on('cursorActivity', function(instance, object){
+      if(!myCodeMirror.hasOwnProperty('tabNamesBeforeEdit')){
+        //get the list of tab names embedded in the file BEFORE the edit
+        myCodeMirror['tabNamesBeforeEdit']=getOrderedTabNames();
+      }
       //autocomplete
       if(myCodeMirror['myHintType']){
         //show the hints dropdown
