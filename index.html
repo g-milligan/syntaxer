@@ -657,7 +657,7 @@
           var nameBeforeEdit=myCodeMirror['tabNameAtCursorBeforeEdit'];
           var lineIndex=instance.doc.getCursor().line;
           var tabName=getTabNameAtLine(instance, lineIndex);
-          //if a tab name could be teased out of the current cursor line
+          //if a tab name could be teased out of the current cursor line and it's different than the tabName before edit
           if(tabName!=undefined){
             //auto-align the corresponding tag with the changed tag name
             alignLinkedTabName(instance, lineIndex);
@@ -665,15 +665,21 @@
             var tabNamesBeforeEdit=myCodeMirror['tabNamesBeforeEdit'];
             var tabNames=getOrderedTabNames();
             myCodeMirror['tabNamesBeforeEdit']=tabNames; //for the next edit
-            //if a tab was removed
-            if(tabNamesBeforeEdit.length>tabNames.length){
-
-            //if no tab was removed nor added
-            }else if(tabNamesBeforeEdit.length===tabNames.length){
-
-            //if a tab was added
-            }else if(tabNamesBeforeEdit.length<tabNames.length){
-
+            //if the tabName is different from the previous tabName
+            if(tabName!==nameBeforeEdit){
+              //if a tab was removed
+              if(tabNamesBeforeEdit.length>tabNames.length){
+                //***
+              //if no tab was removed nor added
+              }else if(tabNamesBeforeEdit.length===tabNames.length){
+                if(nameBeforeEdit!=undefined){
+                  //set the new tab name
+                  setTabPath(nameBeforeEdit, tabName);
+                }
+              //if a tab was added
+              }else if(tabNamesBeforeEdit.length<tabNames.length){
+                //***
+              }
             }
           }else{
             //a tab name couldn't be teased out of the tab line...
@@ -774,6 +780,50 @@
     //callback function
     if(callback!=undefined){
       callback(myCodeMirror, mode);
+    }
+  }
+  //update the name of a tab
+  function setTabPath(oldname, newname){
+    //update the tab name
+    var tabLi=jQuery('body:first').children('nav#tabs:first').children('ul:first').children('li[path$="/'+oldname+'"]:first');
+    if(tabLi.length<1){
+      tabLi=jQuery('body:first').children('nav#tabs:first').children('ul:first').children('li[path="'+oldname+'"]:first');
+    }
+    if(tabLi.length>0){
+      //get the new path
+      var oldpath=tabLi.attr('path');
+      var div=getEditorDiv(oldpath);
+      var newpath=oldpath;
+      if(newpath.indexOf('/')!==-1){
+        newpath=newpath.substring(0,newpath.lastIndexOf('/')+'/'.length);
+      }
+      newpath+=newname;
+      //modify the tab html
+      tabLi.addClass('modified-path');
+      if(tabLi.attr('old_path')==undefined){
+        tabLi.attr('old_path',oldpath);
+      }else{
+        //if reverting back to the original path after changing it
+        if(newpath===tabLi.attr('old_path')){
+          //remove the indicator that the path changed
+          tabLi.attr('old_path','');
+          tabLi.removeAttr('old_path');
+          tabLi.removeClass('modified-path');
+        }
+      }
+      tabLi.attr('path',newpath);
+      tabLi.attr('title',newpath);
+      if(newname.length<1){
+        tabLi.addClass('empty-name');
+        tabLi.children('span:first').html('&nbsp;');
+      }else{
+        tabLi.removeClass('empty-name');
+        tabLi.children('span:first').html(newname);
+      }
+      //modify the content div html
+      if(div!=undefined){
+        div.attr('path',newpath);
+      }
     }
   }
   function addFileTab(fpath,fcontent,isTemplateFile){

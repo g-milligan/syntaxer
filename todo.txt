@@ -24,7 +24,7 @@
   - unique fields to fill out for the template, etc...
 
 - dialog box for adding new tabs? Tabs/New menu item?
-- auto complete for template.html inline files XML
+- XXX auto complete for template.html inline files XML
 - add tab when a new file is created in template.html
 
 - Recent products (listed in the open project dialog box)

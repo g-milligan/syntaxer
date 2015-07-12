@@ -69,6 +69,21 @@ nav#tabs{
         background-color:#000;
       }*/
 
+      &.modified-path{
+        > span{
+          background-color:#D538C1;
+        }
+      }
+
+      &.empty-name{
+        opacity:.5;
+
+        > span:after{
+          content:"?";
+          font-style:italic;
+        }
+      }
+
       &.template{
         > span{
           background-color:#000;

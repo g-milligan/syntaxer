@@ -58,7 +58,7 @@
         //build the autocomplete format
         var format="";
         format+=beforeTabName+'['+tabName+']'+afterTabName+'\n\n';
-        format+=beforeTabName+'[/'+tabName+']'+afterTabName+'\n';
+        format+=beforeTabName+'[/'+tabName+']'+afterTabName;
         //set the tab name syntax tags
         editor.replaceRange(format,
           CodeMirror.Pos(newCur.line, 0),
