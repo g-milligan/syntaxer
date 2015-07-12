@@ -661,20 +661,46 @@
           if(tabName!=undefined){
             //auto-align the corresponding tag with the changed tag name
             alignLinkedTabName(instance, lineIndex);
-          }
-          //get the list of all tab names that appear in the html
-          var tabNamesBeforeEdit=myCodeMirror['tabNamesBeforeEdit'];
-          var tabNames=getOrderedTabNames();
-          myCodeMirror['tabNamesBeforeEdit']=tabNames; //for the next edit
-          //if a tab was removed
-          if(tabNamesBeforeEdit.length>tabNames.length){
+            //get the list of all tab names that appear in the html
+            var tabNamesBeforeEdit=myCodeMirror['tabNamesBeforeEdit'];
+            var tabNames=getOrderedTabNames();
+            myCodeMirror['tabNamesBeforeEdit']=tabNames; //for the next edit
+            //if a tab was removed
+            if(tabNamesBeforeEdit.length>tabNames.length){
 
-          //if no tab was removed nor added
-          }else if(tabNamesBeforeEdit.length===tabNames.length){
+            //if no tab was removed nor added
+            }else if(tabNamesBeforeEdit.length===tabNames.length){
 
-          //if a tab was added
-          }else if(tabNamesBeforeEdit.length<tabNames.length){
+            //if a tab was added
+            }else if(tabNamesBeforeEdit.length<tabNames.length){
 
+            }
+          }else{
+            //a tab name couldn't be teased out of the tab line...
+
+            //if the line is the start of a tab name placeholder
+            var suggestHint=false;
+            var curLine=instance.doc.getLine(lineIndex);
+            if(curLine.indexOf('[')!==-1){
+              curLine=curLine.substring(curLine.indexOf('[')+'['.length);
+              //if the line ends with [
+              if(curLine.length<1){ suggestHint=true; }
+              else{
+                //there is text after [...
+
+                //if there are no spaces
+                var whiteSpaceChars=curLine.match(/\s/gi);
+                if(whiteSpaceChars==undefined || whiteSpaceChars.length<1){
+                  //if there are no illegal characters in the name
+                  var allowedChars=curLine.match(/\w|\.|-/gi);
+                  if(allowedChars!=undefined && allowedChars.length===curLine.length){
+                    suggestHint=true;
+                  }
+                }
+              }
+            }
+            //show the tab placeholder completion hint?
+            myCodeMirror['suggestTabNameHint']=suggestHint;
           }
         }
       }
@@ -704,6 +730,7 @@
       //if this is the template tab li
       var temLi=jQuery('nav#tabs').children('ul:first').children('li.template.active:first');
       if(temLi.length>0){
+        myCodeMirror['suggestTabNameHint']=false;
         if(!myCodeMirror.hasOwnProperty('tabNamesBeforeEdit')){
           //get the list of tab names embedded in the file BEFORE the edit
           myCodeMirror['tabNamesBeforeEdit']=getOrderedTabNames();
