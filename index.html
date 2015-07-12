@@ -19,6 +19,7 @@
 <script type="text/javascript" src="js/addon/show-hint.js"></script>
 <script type="text/javascript" src="js/addon/hint-functions.js"></script>
 <script type="text/javascript" src="js/addon/active-line.js"></script>
+<script type="text/javascript" src="js/addon/template-hint.js"></script>
 <script type="text/javascript" src="js/addon/gljs-hint.js"></script>
 <!--<script type="text/javascript" src="js/addon/anyword-hint.js"></script>-->
 <!-- end addons -->
@@ -467,7 +468,12 @@
     var mode=''; var hintType;
     switch(ext){
       case 'js': mode='javascript'; hintType='gljs'; break;
-      case 'html': mode='htmlmixed'; break;
+      case 'html': mode='htmlmixed';
+        var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first');
+        if(tabLi.hasClass('template')){
+          hintType="template";
+        }
+      break;
       case 'frag': mode='webglslfrag'; break;
       case 'vert': mode='webglslvert'; break;
       case 'txt': mode=''; break;
@@ -510,7 +516,11 @@
     };
     var getTabNameAtLine=function(instance, lineIndex){
       var ret;
-      var nameLine=instance.doc.getLine(lineIndex);
+      //get the name line
+      var nameLine;
+      if(typeof lineIndex==='string'){ nameLine=lineIndex; }
+      else{ nameLine=instance.doc.getLine(lineIndex); }
+      //get the name from the nameLine
       if(nameLine.indexOf('[')!==-1){
         nameLine=nameLine.substring(nameLine.indexOf('[')+'['.length);
         if(nameLine.indexOf(']')!==-1){
@@ -525,6 +535,83 @@
       }
       return ret;
     };
+    var isStartOrEndTabLine=function(lineStr){
+      var startOrEnd;
+      if(lineStr.indexOf('[')!==-1){
+        lineStr=lineStr.substring(lineStr.indexOf('[')+'['.length);
+        if(lineStr.indexOf(']')!==-1){
+          lineStr=lineStr.substring(0,lineStr.indexOf(']'));
+          lineStr=lineStr.trim();
+          if(lineStr.indexOf('/')===0){
+            startOrEnd='end';
+          }else{
+            startOrEnd='start';
+          }
+        }
+      }
+      return startOrEnd;
+    };
+    var getLinkedTabNameLine=function(instance, lineIndex){
+      var ret;
+      //get the full cursor line and figure out if it's the end or start tag for a tab name
+      var thisLine=instance.doc.getLine(lineIndex);
+      var startOrEnd=isStartOrEndTabLine(thisLine);
+      if(startOrEnd!=undefined){
+        var otherLineIndex=lineIndex;
+        switch(startOrEnd){
+          case 'start': otherLineIndex+=2; break;
+          case 'end': otherLineIndex-=2; break;
+        }
+        var otherLine=instance.doc.getLine(otherLineIndex);
+        if(otherLine!=undefined){
+          //if the other tag for this tab is the opposite for this tag
+          var otherStartOrEnd=isStartOrEndTabLine(otherLine);
+          if(otherStartOrEnd!=undefined){
+            if(otherStartOrEnd!==startOrEnd){
+              var tabName=getTabNameAtLine(instance, thisLine);
+              if(tabName!=undefined){
+                var otherTabName=getTabNameAtLine(instance, otherLine);
+                if(otherTabName!=undefined){
+                  var tabNameIndex=thisLine.indexOf('[')+'['.length;
+                  var otherTabNameIndex=otherLine.indexOf('[')+'['.length;
+                  switch(startOrEnd){
+                    case 'start': otherTabNameIndex+='/'.length; break;
+                    case 'end': tabNameIndex+='/'.length; break;
+                  }
+                  //return data
+                  ret={
+                    lineIndex:lineIndex, thisLine:thisLine, startOrEnd:startOrEnd, tabNameIndex:tabNameIndex, tabName:tabName,
+                    otherLineIndex:otherLineIndex, otherLine:otherLine, otherStartOrEnd:otherStartOrEnd, otherTabNameIndex:otherTabNameIndex, otherTabName:otherTabName
+                  };
+                }
+              }
+            }
+          }
+        }
+      }
+      return ret;
+    };
+    //when one tab name is changed, the corresponding tab tag should be auto-updated
+    var alignLinkedTabName=function(instance, lineIndex){
+      var j=getLinkedTabNameLine(instance, lineIndex);
+      if(j!=undefined){
+        //if the names are out of sync
+        if(j.tabName!==j.otherTabName){
+          var replace, replaceWith;
+          switch(j.otherStartOrEnd){
+            case 'start': replace='['+j.otherTabName+']'; replaceWith='['+j.tabName+']'; break;
+            case 'end': replace='[/'+j.otherTabName+']'; replaceWith='[/'+j.tabName+']'; break;
+          }
+          //get the updated line
+          var newLine=j.otherLine.replace(replace, replaceWith);
+          //update the linked line
+          instance.doc.replaceRange(newLine,
+            CodeMirror.Pos(j.otherLineIndex, 0),
+            CodeMirror.Pos(j.otherLineIndex, j.otherLine.length)
+          );
+        }
+      }
+    };
     //codemirror editor events
     myCodeMirror.on('beforeChange', function(instance, object){
       var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first');
@@ -538,10 +625,10 @@
           myCodeMirror['tabNamesBeforeEdit']=getOrderedTabNames();
         }
         //if the line (that contains the cursor) also may have a template tab name
-        var curLine=instance.doc.getCursor().line;
-        if(editTextIsTabEmbed(instance, curLine)){
+        var lineIndex=instance.doc.getCursor().line;
+        if(editTextIsTabEmbed(instance, lineIndex)){
           //get the tab name at the cursor location, if any
-          myCodeMirror['tabNameAtCursorBeforeEdit']=getTabNameAtLine(instance, curLine);
+          myCodeMirror['tabNameAtCursorBeforeEdit']=getTabNameAtLine(instance, lineIndex);
         }
         //if this is delete
         if(object.origin==='+delete' || object.origin==='cut'){
@@ -568,10 +655,12 @@
         if(myCodeMirror['didEditTabText']){
           //get the tab name on the line where the cursor is located
           var nameBeforeEdit=myCodeMirror['tabNameAtCursorBeforeEdit'];
-          var tabName=getTabNameAtLine(instance, instance.doc.getCursor().line);
-          //align end-tab tag with the changed tabName (if changed)
+          var lineIndex=instance.doc.getCursor().line;
+          var tabName=getTabNameAtLine(instance, lineIndex);
+          //if a tab name could be teased out of the current cursor line
           if(tabName!=undefined){
-            //****
+            //auto-align the corresponding tag with the changed tag name
+            alignLinkedTabName(instance, lineIndex);
           }
           //get the list of all tab names that appear in the html
           var tabNamesBeforeEdit=myCodeMirror['tabNamesBeforeEdit'];
@@ -595,26 +684,49 @@
         myCodeMirror.showHint({
           eventTrigger:'change',
           completeSingle:false, //auto-complete when only one option remains?
-          closeOnUnfocus:false, //close options dropdown when lose focus?
+          closeOnUnfocus:true, //close options dropdown when lose focus?
           hint:CodeMirror.hint[myCodeMirror['myHintType']] //what hints list?
         });
       }
     });
     //when mouse cursor position changes
     myCodeMirror.on('cursorActivity', function(instance, object){
-      if(!myCodeMirror.hasOwnProperty('tabNamesBeforeEdit')){
-        //get the list of tab names embedded in the file BEFORE the edit
-        myCodeMirror['tabNamesBeforeEdit']=getOrderedTabNames();
-      }
       //autocomplete
       if(myCodeMirror['myHintType']){
         //show the hints dropdown
         myCodeMirror.showHint({
           eventTrigger:'cursorActivity',
           completeSingle:false, //auto-complete when only one option remains?
-          closeOnUnfocus:false, //close options dropdown when lose focus?
+          closeOnUnfocus:true, //close options dropdown when lose focus?
           hint:CodeMirror.hint[myCodeMirror['myHintType']] //what hints list?
         });
+      }
+      //if this is the template tab li
+      var temLi=jQuery('nav#tabs').children('ul:first').children('li.template.active:first');
+      if(temLi.length>0){
+        if(!myCodeMirror.hasOwnProperty('tabNamesBeforeEdit')){
+          //get the list of tab names embedded in the file BEFORE the edit
+          myCodeMirror['tabNamesBeforeEdit']=getOrderedTabNames();
+        }
+        //if the cursor is on one line that is paired with another tab tag
+        var lineIndex=instance.doc.getCursor().line
+        var json=getLinkedTabNameLine(instance, lineIndex);
+        if(json!=undefined){
+          var markTabName=function(lineIndex, charStartIndex, charEndIndex){
+            //highlight marker for the tab name
+            var marker=instance.doc.markText(
+              CodeMirror.Pos(lineIndex, charStartIndex),
+              CodeMirror.Pos(lineIndex, charEndIndex),
+              { className:'hint-focus', clearWhenEmpty:true }
+            );
+            //push this marker into an array so it can be cleared when the cursor moves
+            if(!myCodeMirror.hasOwnProperty('hintFocusMarkers') || myCodeMirror['hintFocusMarkers']==undefined){ myCodeMirror['hintFocusMarkers']=[]; }
+            myCodeMirror['hintFocusMarkers'].push(marker);
+          };
+          //highlight the start/end tags for the tag name
+          markTabName(json.lineIndex, json.tabNameIndex, json.tabNameIndex+json.tabName.length);
+          markTabName(json.otherLineIndex, json.otherTabNameIndex, json.otherTabNameIndex+json.otherTabName.length);
+        }
       }
     });
     //create a placeholder for the content menus
