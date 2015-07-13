@@ -657,33 +657,58 @@
           var nameBeforeEdit=myCodeMirror['tabNameAtCursorBeforeEdit'];
           var lineIndex=instance.doc.getCursor().line;
           var tabName=getTabNameAtLine(instance, lineIndex);
-          //if a tab name could be teased out of the current cursor line and it's different than the tabName before edit
-          if(tabName!=undefined){
-            //auto-align the corresponding tag with the changed tag name
-            alignLinkedTabName(instance, lineIndex);
-            //get the list of all tab names that appear in the html
-            var tabNamesBeforeEdit=myCodeMirror['tabNamesBeforeEdit'];
-            var tabNames=getOrderedTabNames();
-            myCodeMirror['tabNamesBeforeEdit']=tabNames; //for the next edit
-            //if the tabName is different from the previous tabName
-            if(tabName!==nameBeforeEdit){
-              //if a tab was removed
-              if(tabNamesBeforeEdit.length>tabNames.length){
-                //***
-              //if no tab was removed nor added
-              }else if(tabNamesBeforeEdit.length===tabNames.length){
-                if(nameBeforeEdit!=undefined){
+          //auto-align the corresponding tag with the changed tag name
+          alignLinkedTabName(instance, lineIndex);
+          //get the list of all tab names that appear in the html
+          var tabNamesBeforeEdit=myCodeMirror['tabNamesBeforeEdit'];
+          var tabNames=getOrderedTabNames();
+          myCodeMirror['tabNamesBeforeEdit']=tabNames; //for the next edit
+          //if no tab was removed nor added
+          var autoCompleteTab=false;
+          if(tabNamesBeforeEdit.length===tabNames.length){
+            autoCompleteTab=true;
+            if(nameBeforeEdit!=undefined){
+              //if a tab name could be teased out of the current cursor line and it's different than the tabName before edit
+              if(tabName!=undefined){
+                //if the tabName is different from the previous tabName
+                if(tabName!==nameBeforeEdit){
                   //set the new tab name
                   setTabPath(nameBeforeEdit, tabName);
+                  autoCompleteTab=false;
                 }
-              //if a tab was added
-              }else if(tabNamesBeforeEdit.length<tabNames.length){
-                //***
               }
             }
-          }else{
-            //a tab name couldn't be teased out of the tab line...
-
+          //if a tab was removed
+          }else if(tabNamesBeforeEdit.length>tabNames.length){
+            //get all of the tab names that have been removed
+            var removedTabNames=[]; var numRemoved=tabNamesBeforeEdit.length-tabNames.length;
+            for(var t=0;t<tabNamesBeforeEdit.length;t++){
+              var tname=tabNamesBeforeEdit[t];
+              if(tabNames.indexOf(tname)===-1){
+                removedTabNames.push(tname);
+                removeTab(tname);
+                if(removedTabNames.length===numRemoved){
+                  break;
+                }
+              }
+            }
+          //if a tab was added
+          }else if(tabNamesBeforeEdit.length<tabNames.length){
+            //get all of the tab names that have been added
+            var addedTabNames=[]; var numAdded=tabNames.length-tabNamesBeforeEdit.length;
+            for(var t=0;t<tabNames.length;t++){
+              var tname=tabNames[t];
+              if(tabNamesBeforeEdit.indexOf(tname)===-1){
+                addedTabNames.push(tname);
+                addFileTab(tname,undefined,undefined,true);
+                if(addedTabNames.length===numAdded){
+                  break;
+                }
+              }
+            }
+          }
+          //no tabs removed, added or modified
+          if(autoCompleteTab){
             //if the line is the start of a tab name placeholder
             var suggestHint=false;
             var curLine=instance.doc.getLine(lineIndex);
@@ -782,6 +807,26 @@
       callback(myCodeMirror, mode);
     }
   }
+  //remove a tab
+  function removeTab(tabName){
+    var tabLi=jQuery('body:first').children('nav#tabs:first').children('ul:first').children('li[path$="/'+tabName+'"]:first');
+    if(tabLi.length<1){
+      tabLi=jQuery('body:first').children('nav#tabs:first').children('ul:first').children('li[path="'+tabName+'"]:first');
+    }
+    if(tabLi.length>0){
+      tabLi.addClass('removed-tab');
+      //if this tab was never saved to the file
+      if(tabLi.hasClass('pending-save')){
+        //then just remove the elements; no lost work there, probably
+        var tabpath=tabLi.attr('path');
+        tabLi.remove();
+        var div=getEditorDiv(tabpath);
+        if(div!=undefined){
+          div.remove();
+        }
+      }
+    }
+  }
   //update the name of a tab
   function setTabPath(oldname, newname){
     //update the tab name
@@ -799,7 +844,9 @@
       }
       newpath+=newname;
       //modify the tab html
+      tabLi.removeClass('removed-tab');
       tabLi.addClass('modified-path');
+      tabLi.removeClass('pending-save');
       if(tabLi.attr('old_path')==undefined){
         tabLi.attr('old_path',oldpath);
       }else{
@@ -826,75 +873,90 @@
       }
     }
   }
-  function addFileTab(fpath,fcontent,isTemplateFile){
+  function addFileTab(fpath,fcontent,isTemplateFile,isPendingSave){
+    if(fcontent==undefined){fcontent='';}
     if(isTemplateFile==undefined){isTemplateFile=false;}
-    //get just the name without the path
-    var fname=fpath;
-    if(fname.indexOf('/')!==-1){
-      fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
+    if(isPendingSave==undefined){isPendingSave=false;}
+    //if this tab doesn't already exist as a removed tab (also fpath could be just the name)
+    var tabLi=jQuery('body:first').children('nav#tabs:first').children('ul:first').children('li[path$="/'+fpath+'"].removed-tab:first');
+    if(tabLi.length<1){
+      tabLi=jQuery('body:first').children('nav#tabs:first').children('ul:first').children('li[path="'+fpath+'"].removed-tab:first');
     }
-    //get key elements
-    var tabsWrap=jQuery('#tabs:first');
-    var ul=tabsWrap.children('ul:first');
-    var filterBox;
-    //init the ul list if not already init
-    if(ul.length<1){
-      tabsWrap.append('<ul><li name="_filter">'+getFilterInputStr('search tabs')+'</li></ul>');
-      ul=tabsWrap.children('ul:first');
-      var filterLi=ul.children('li:first');
-      filterBox=filterLi.children('span.filter-box:first');
-    }else{
-      filterBox=ul.children('li[name="_filter"]:first').children('span.filter-box:first');
-    }
-    //create the tab, if not exists already
-    if(ul.children('li[path="'+fpath+'"]:first').length<1){
-      ul.append('<li title="'+fpath+'" path="'+fpath+'"><span>'+fname+'</span></li>');
-      var newLi=ul.children('li:last');
-      if(isTemplateFile){
-        newLi.addClass('template');
+    if(tabLi.length<1){
+      //get just the name without the path
+      var fname=fpath;
+      if(fname.indexOf('/')!==-1){
+        fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
       }
-      //create the content for this tab
-      var contentWrap=jQuery('section#file-content:first');
-      if(contentWrap.children('div[path="'+fpath+'"]:first').length<1){
-        contentWrap.append('<div class="content-wrap" path="'+fpath+'"></div>');
-        var wrap=contentWrap.children('div:last');
-        wrap.append('<textarea class="raw"></textarea>');
-        var textarea=wrap.children('textarea:last');
-        textarea.val(fcontent);
+      //get key elements
+      var tabsWrap=jQuery('#tabs:first');
+      var ul=tabsWrap.children('ul:first');
+      var filterBox;
+      //init the ul list if not already init
+      if(ul.length<1){
+        tabsWrap.append('<ul><li name="_filter">'+getFilterInputStr('search tabs')+'</li></ul>');
+        ul=tabsWrap.children('ul:first');
+        var filterLi=ul.children('li:first');
+        filterBox=filterLi.children('span.filter-box:first');
+      }else{
+        filterBox=ul.children('li[name="_filter"]:first').children('span.filter-box:first');
+      }
+      //create the tab, if not exists already
+      if(ul.children('li[path="'+fpath+'"]:first').length<1){
+        ul.append('<li title="'+fpath+'" path="'+fpath+'"><span>'+fname+'</span></li>');
+        var newLi=ul.children('li:last');
         if(isTemplateFile){
-          wrap.addClass('template');
-          //*** create the add tab method
+          newLi.addClass('template');
         }
-      }
-      var showTabContent=function(cWrap,cDiv,tabLi){
-        cWrap.children('div[path]').removeClass('active');
-        cDiv.addClass('active');
-        tabLi.parent().children('li').not('li[name="_filter"]').removeClass('active');
-        tabLi.addClass('active');
-      };
-      var newSpan=newLi.children('span:first');
-      newSpan.click(function(e){
-        var tLi=jQuery(this).parent();
-        var path=tLi.attr('path');
-        var cWrap=jQuery('section#file-content:first');
-        var cDiv=cWrap.children('div[path="'+path+'"]:first');
-        if(cDiv.length>0){
-          //if the textarea isn't codemirrored yet
-          var cta=cDiv.children('textarea.raw:first');
-          if(cta.length>0){
-            //show the content after codemirror does its thing
-            showTabContent(cWrap,cDiv,tLi);
-            //codemirror the code
-            setCodemirrorContent(path,cta,function(myCodeMirror,mode){
-              //save the code mirror objects in the div property list
-              cDiv[0]['codeMirror']={object:myCodeMirror,mode:mode};
-            });
-          }else{
-            //already code mirrored... show this content for this tab
-            showTabContent(cWrap,cDiv,tLi);
+        if(isPendingSave){
+          newLi.addClass('pending-save');
+        }
+        //create the content for this tab
+        var contentWrap=jQuery('section#file-content:first');
+        if(contentWrap.children('div[path="'+fpath+'"]:first').length<1){
+          contentWrap.append('<div class="content-wrap" path="'+fpath+'"></div>');
+          var wrap=contentWrap.children('div:last');
+          wrap.append('<textarea class="raw"></textarea>');
+          var textarea=wrap.children('textarea:last');
+          textarea.val(fcontent);
+          if(isTemplateFile){
+            wrap.addClass('template');
+            //*** create the add tab method
           }
         }
-      });
+        var showTabContent=function(cWrap,cDiv,tabLi){
+          cWrap.children('div[path]').removeClass('active');
+          cDiv.addClass('active');
+          tabLi.parent().children('li').not('li[name="_filter"]').removeClass('active');
+          tabLi.addClass('active');
+        };
+        var newSpan=newLi.children('span:first');
+        newSpan.click(function(e){
+          var tLi=jQuery(this).parent();
+          var path=tLi.attr('path');
+          var cWrap=jQuery('section#file-content:first');
+          var cDiv=cWrap.children('div[path="'+path+'"]:first');
+          if(cDiv.length>0){
+            //if the textarea isn't codemirrored yet
+            var cta=cDiv.children('textarea.raw:first');
+            if(cta.length>0){
+              //show the content after codemirror does its thing
+              showTabContent(cWrap,cDiv,tLi);
+              //codemirror the code
+              setCodemirrorContent(path,cta,function(myCodeMirror,mode){
+                //save the code mirror objects in the div property list
+                cDiv[0]['codeMirror']={object:myCodeMirror,mode:mode};
+              });
+            }else{
+              //already code mirrored... show this content for this tab
+              showTabContent(cWrap,cDiv,tLi);
+            }
+          }
+        });
+      }
+    }else{
+      //this tab already exists
+      tabLi.removeClass('removed-tab');
     }
   }
   function clearProject(){

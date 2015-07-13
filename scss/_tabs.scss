@@ -69,7 +69,7 @@ nav#tabs{
         background-color:#000;
       }*/
 
-      &.modified-path{
+      &.modified-path, &.pending-save{
         > span{
           background-color:#D538C1;
         }
@@ -81,6 +81,15 @@ nav#tabs{
         > span:after{
           content:"?";
           font-style:italic;
+        }
+      }
+
+      &.removed-tab{
+        opacity:.5;
+
+        > span{
+          background-color: red;
+          text-decoration: line-through;
         }
       }
 
