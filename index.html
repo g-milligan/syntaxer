@@ -672,9 +672,25 @@
               if(tabName!=undefined){
                 //if the tabName is different from the previous tabName
                 if(tabName!==nameBeforeEdit){
-                  //set the new tab name
-                  setTabPath(nameBeforeEdit, tabName);
                   autoCompleteTab=false;
+                  //does this tab name appear more than once?
+                  var appearsCount=0;
+                  for(var n=0;n<tabNamesBeforeEdit.length;n++){
+                    if(tabNamesBeforeEdit[n]===nameBeforeEdit){
+                      appearsCount++;
+                    }
+                  }
+                  //if this tab name appears twice or more
+                  if(appearsCount>1){
+                    //if this modified tabName is no longer appearing more than once
+                    if(tabNamesBeforeEdit.indexOf(tabName)===-1){
+                      //create a new tab for the tabName that is now unique
+                      addFileTab(tabName,undefined,undefined,true);
+                    }
+                  }else{
+                    //set the new tab name
+                    setTabPath(nameBeforeEdit, tabName);
+                  }
                 }
               }
             }
