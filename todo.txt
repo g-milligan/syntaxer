@@ -20,14 +20,16 @@
 
 - XXX show error message for failed attempt to create a new project / save-as
 
+- XXX auto complete for template.html inline files XML
+- XXX add tab when a new file is created in template.html
+- XXX split the index.html script into more files because atom is bogging down
+- fix the issues with modifying an existing tab name that is repeated more than once
+- write the tab edits when save
+
 - Project templates for rapidly building out tabs, etc...
   - unique fields to fill out for the template, etc...
 
 - dialog box for adding new tabs? Tabs/New menu item?
-
-- XXX auto complete for template.html inline files XML
-- XXX add tab when a new file is created in template.html
-- fix the issues with modifying an existing tab name that is repeated more than once
 
 - Recent projects (listed in the open project dialog box)
 
