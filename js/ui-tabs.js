@@ -1,3 +1,34 @@
+//parse the template html to get all of the tab names in the order in which the appear in the template html
+function getOrderedTabNames(){
+  var tabNames=[], duplicateNames=[], isDuplicate={}, nameCount={};
+  var temTabLi=getTemplateTabLi();
+  if(temTabLi.length>0){
+    var temContent=getFileContent(temTabLi);
+    var matches=temContent.match(/\[(.*?)\]/g); var prevMatch='';
+    for(var m=0;m<matches.length;m++){
+      var match=matches[m];
+      match=match.substring('['.length);
+      match=match.substring(0, match.length-']'.length);
+      if(match.trim().indexOf('/')===0){
+        if(prevMatch.trim()===match.substring(match.indexOf('/')+'/'.length).trim()){
+          //if this tab name is duplicate
+          if(!isDuplicate.hasOwnProperty(prevMatch)){
+            isDuplicate[prevMatch]=false;
+            nameCount[prevMatch]=1;
+          }else{
+            //already saw this tab name... it's a duplicate
+            isDuplicate[prevMatch]=true;
+            nameCount[prevMatch]+=1;
+            duplicateNames.push(prevMatch);
+          }
+          //add this tab name to the list
+          tabNames.push(prevMatch);
+        }
+      }
+      prevMatch=match;
+    }
+  } return {tabNames:tabNames, duplicateNames:duplicateNames, isDuplicate:isDuplicate, nameCount:nameCount};
+}
 //very important function to init the code mirror editor for a given file path
 function setCodemirrorContent(fpath,textarea,callback){
   var wrap=textarea.parent();
@@ -57,6 +88,7 @@ function setCodemirrorContent(fpath,textarea,callback){
     else if(editTxt.indexOf(']')!==-1){ editTabTxt=true; }
     return editTabTxt;
   };
+  //given a line index, return just the [tab-name] of the line
   var getTabNameAtLine=function(instance, lineIndex){
     var ret;
     //get the name line
@@ -78,6 +110,7 @@ function setCodemirrorContent(fpath,textarea,callback){
     }
     return ret;
   };
+  //indicate if this line contains a [start] or [/end] tab
   var isStartOrEndTabLine=function(lineStr){
     var startOrEnd;
     if(lineStr.indexOf('[')!==-1){
@@ -94,6 +127,7 @@ function setCodemirrorContent(fpath,textarea,callback){
     }
     return startOrEnd;
   };
+  //given the index of a line that contains a [tab] or [/tab] retrieve information about it's sibling [/tab] or [tab]
   var getLinkedTabNameLine=function(instance, lineIndex){
     var ret;
     //get the full cursor line and figure out if it's the end or start tag for a tab name
@@ -188,7 +222,7 @@ function setCodemirrorContent(fpath,textarea,callback){
     tabLi.addClass('has-changes');
     //if this is the template tab li
     if(tabLi.hasClass('template')){
-      //if not delete
+      //if not delete (already considered in the beforeChange event)
       if(object.origin!=='+delete' && object.origin!=='cut'){
         //indicate if embed code for a tab got edited
         var didEdit=editTextIsTabEmbed(instance, object.from.line, object.to.line);
@@ -203,12 +237,12 @@ function setCodemirrorContent(fpath,textarea,callback){
         //auto-align the corresponding tag with the changed tag name
         alignLinkedTabName(instance, lineIndex);
         //get the list of all tab names that appear in the html
-        var tabNamesBeforeEdit=myCodeMirror['tabNamesBeforeEdit'];
-        var tabNames=getOrderedTabNames();
-        myCodeMirror['tabNamesBeforeEdit']=tabNames; //for the next edit
+        var tabsBeforeEdit=myCodeMirror['tabNamesBeforeEdit'];
+        var tabs=getOrderedTabNames();
+        myCodeMirror['tabNamesBeforeEdit']=tabs; //for the next edit
         //if no tab was removed nor added
         var autoCompleteTab=false;
-        if(tabNamesBeforeEdit.length===tabNames.length){
+        if(tabsBeforeEdit.tabNames.length===tabs.tabNames.length){ //***
           autoCompleteTab=true;
           if(nameBeforeEdit!=undefined){
             //if a tab name could be teased out of the current cursor line and it's different than the tabName before edit
@@ -216,17 +250,22 @@ function setCodemirrorContent(fpath,textarea,callback){
               //if the tabName is different from the previous tabName
               if(tabName!==nameBeforeEdit){
                 autoCompleteTab=false;
-                //does this tab name appear more than once?
+
+
+
+
+
+                //does this tab name appear more than once? ***
                 var appearsCount=0;
-                for(var n=0;n<tabNamesBeforeEdit.length;n++){
-                  if(tabNamesBeforeEdit[n]===nameBeforeEdit){
+                for(var n=0;n<tabsBeforeEdit.tabNames.length;n++){
+                  if(tabsBeforeEdit.tabNames[n]===nameBeforeEdit){
                     appearsCount++;
                   }
                 }
                 //if this tab name appears twice or more
                 if(appearsCount>1){
                   //if this modified tabName is no longer appearing more than once
-                  if(tabNamesBeforeEdit.indexOf(tabName)===-1){
+                  if(tabsBeforeEdit.tabNames.indexOf(tabName)===-1){
                     //create a new tab for the tabName that is now unique
                     addFileTab(tabName,undefined,undefined,true);
                   }
@@ -234,16 +273,20 @@ function setCodemirrorContent(fpath,textarea,callback){
                   //set the new tab name
                   setTabPath(nameBeforeEdit, tabName);
                 }
+
+
+
+
               }
             }
           }
         //if a tab was removed
-        }else if(tabNamesBeforeEdit.length>tabNames.length){
+        }else if(tabsBeforeEdit.tabNames.length>tabs.tabNames.length){
           //get all of the tab names that have been removed
-          var removedTabNames=[]; var numRemoved=tabNamesBeforeEdit.length-tabNames.length;
-          for(var t=0;t<tabNamesBeforeEdit.length;t++){
-            var tname=tabNamesBeforeEdit[t];
-            if(tabNames.indexOf(tname)===-1){
+          var removedTabNames=[]; var numRemoved=tabsBeforeEdit.tabNames.length-tabs.tabNames.length;
+          for(var t=0;t<tabsBeforeEdit.tabNames.length;t++){
+            var tname=tabsBeforeEdit.tabNames[t];
+            if(tabs.tabNames.indexOf(tname)===-1){
               removedTabNames.push(tname);
               removeTab(tname);
               if(removedTabNames.length===numRemoved){
@@ -252,12 +295,12 @@ function setCodemirrorContent(fpath,textarea,callback){
             }
           }
         //if a tab was added
-        }else if(tabNamesBeforeEdit.length<tabNames.length){
+        }else if(tabsBeforeEdit.tabNames.length<tabs.tabNames.length){
           //get all of the tab names that have been added
-          var addedTabNames=[]; var numAdded=tabNames.length-tabNamesBeforeEdit.length;
-          for(var t=0;t<tabNames.length;t++){
-            var tname=tabNames[t];
-            if(tabNamesBeforeEdit.indexOf(tname)===-1){
+          var addedTabNames=[]; var numAdded=tabs.tabNames.length-tabsBeforeEdit.tabNames.length;
+          for(var t=0;t<tabs.tabNames.length;t++){
+            var tname=tabs.tabNames[t];
+            if(tabsBeforeEdit.tabNames.indexOf(tname)===-1){
               addedTabNames.push(tname);
               addFileTab(tname,undefined,undefined,true);
               if(addedTabNames.length===numAdded){

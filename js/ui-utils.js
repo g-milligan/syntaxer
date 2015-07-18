@@ -139,26 +139,6 @@ function getFileContent(which){
   }
   return content;
 }
-//parse the template html to get all of the tab names in the order in which the appear in the template html
-function getOrderedTabNames(){
-  var tabNames=[];
-  var temTabLi=getTemplateTabLi();
-  if(temTabLi.length>0){
-    var temContent=getFileContent(temTabLi);
-    var matches=temContent.match(/\[(.*?)\]/g); var prevMatch='';
-    for(var m=0;m<matches.length;m++){
-      var match=matches[m];
-      match=match.substring('['.length);
-      match=match.substring(0, match.length-']'.length);
-      if(match.trim().indexOf('/')===0){
-        if(prevMatch.trim()===match.substring(match.indexOf('/')+'/'.length).trim()){
-          tabNames.push(prevMatch);
-        }
-      }
-      prevMatch=match;
-    }
-  } return tabNames;
-}
 //get the ordered file contents (from the editor)
 function getFileContents(json){
   var data=[];
