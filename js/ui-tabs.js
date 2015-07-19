@@ -66,33 +66,47 @@ function getOrderedTabNames(temContent){
     }
   } return ret;
 }
+//get data for a specific type of extension
+function getExtensionData(ext){
+  ext=ext.toLowerCase();
+  //which codemirror mode to use based on the file path extension
+  var mode='', dirPath='/'; var hintType;
+  switch(ext){
+    case 'js': mode='javascript'; hintType='gljs'; dirPath='js/'; break;
+    case 'html': mode='htmlmixed'; dirPath='html/'; break;
+    case 'template': mode='htmlmixed'; hintType='template'; dirPath=''; break;
+    case 'frag': mode='webglslfrag'; dirPath='glsl/'; break;
+    case 'vert': mode='webglslvert'; dirPath='glsl/'; break;
+    case 'txt': mode=''; dirPath='txt/'; break;
+    case 'json': mode='javascript'; dirPath='json/'; break;
+    case 'css': mode='css'; dirPath='css/'; break;
+    default:
+      break;
+  }
+  return {mode:mode, hintType:hintType, dirPath:dirPath};
+}
+//get extension string
+function getExtension(nameOrPath){
+  //get just the extension from the file path
+  var ext=nameOrPath;
+  if(ext.indexOf('.')!==-1){
+    ext=ext.substring(ext.lastIndexOf('.')+'.'.length);
+    ext=ext.trim(); ext=ext.toLowerCase();
+  }else{ext='';}
+  return ext;
+}
 //very important function to init the code mirror editor for a given file path
 function setCodemirrorContent(fpath,textarea,callback){
   var wrap=textarea.parent();
   //get just the extension from the file path
-  var ext=fpath;
-  if(ext.indexOf('.')!==-1){
-    ext=ext.substring(ext.lastIndexOf('.')+'.'.length);
-  }else{ext='';}
-  ext=ext.toLowerCase();
-  //which codemirror mode to use based on the file path extension
-  var mode=''; var hintType;
-  switch(ext){
-    case 'js': mode='javascript'; hintType='gljs'; break;
-    case 'html': mode='htmlmixed';
-      var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first');
-      if(tabLi.hasClass('template')){
-        hintType="template";
-      }
-    break;
-    case 'frag': mode='webglslfrag'; break;
-    case 'vert': mode='webglslvert'; break;
-    case 'txt': mode=''; break;
-    case 'json': mode='javascript'; break;
-    case 'css': mode='css'; break;
-    default:
-      break;
+  var ext=getExtension(fpath);
+  //if this is the main template file
+  var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first');
+  if(tabLi.hasClass('template')){
+    ext="template";
   }
+  //get data for a specific type of extension
+  var extData=getExtensionData(ext);
   //set the codemirror config options
   var config={};
   config['value']=textarea.val();
@@ -101,15 +115,15 @@ function setCodemirrorContent(fpath,textarea,callback){
     'Ctrl-Space':'autocomplete'
   };
   config['styleActiveLine']=true;
-  if(mode.length>0){
-    config['mode']=mode;
+  if(extData.mode.length>0){
+    config['mode']=extData.mode;
   }
   //init the editor textarea
   var myCodeMirror = CodeMirror(function(el) {
     //textarea.removeClass('raw');
     textarea[0].parentNode.replaceChild(el, textarea[0]);
   },config);
-  myCodeMirror['myHintType']=hintType;
+  myCodeMirror['myHintType']=extData.hintType;
   //get the edited string and check to see if it could influence tabs
   var editTextIsTabEmbed=function(instance, fromLine, toLine){
     var editTabTxt=false;
@@ -269,14 +283,19 @@ function setCodemirrorContent(fpath,textarea,callback){
         var tabs=getOrderedTabNames();
         //check to see if there are any edits of the tab tags; modify, remove, add
         var tabEditMade=false;
+        //loop through each tab li element
+        jQuery('nav#tabs:first').children('ul:first').children('li[path]').each(function(){
+          var tabLi=jQuery(this); var name=tabLi.children('span:first').text(); name=name.trim();
+          var currentTabData, prevTabData;
+          if(tabsBeforeEdit.names.hasOwnProperty(name)){ prevTabData=tabsBeforeEdit.names[name]; }
+          if(tabs.names.hasOwnProperty(name)){ currentTabData=tabs.names[name]; }
+
+        });
 
 
 
 
 
-
-
-        
         //edit the tab tag depending on the nature of its change (if any)
         var handleTabUpdate=function(name,nameQtyChange){
           var prevTab, currentTab;
@@ -445,7 +464,7 @@ function setCodemirrorContent(fpath,textarea,callback){
   });
   //callback function
   if(callback!=undefined){
-    callback(myCodeMirror, mode);
+    callback(myCodeMirror, extData.mode);
   }
 }
 //remove a tab
@@ -525,6 +544,11 @@ function addFileTab(fpath,fcontent,isTemplateFile,isPendingSave){
     var fname=fpath;
     if(fname.indexOf('/')!==-1){
       fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
+    }else{
+      //the fpath is just a file name... add a file path before the name
+      var ext=getExtension(fpath);
+      var extData=getExtensionData(ext);
+      fpath=extData.dirPath+fname;
     }
     //get key elements
     var tabsWrap=jQuery('#tabs:first');
