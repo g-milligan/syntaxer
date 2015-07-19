@@ -1,7 +1,6 @@
 //parse the template html to get all of the tab names in the order in which the appear in the template html
 function getOrderedTabNames(temContent){
   var ret;
-  var names={}, lines={}, count=0;
   //get the big template content string, if not passed as arg
   if(temContent==undefined){
     var temTabLi=getTemplateTabLi();
@@ -13,56 +12,154 @@ function getOrderedTabNames(temContent){
   if(temContent!=undefined){
     var matches=temContent.match(/\[(.*?)\]/g); var prevMatch='', prevMatchTag='';
     if(matches!=undefined && matches.length>0){
-      var lineIndex=0, linesStr=temContent;
       var tabsUl=jQuery('nav#tabs:first').children('ul:first');
-      //for each matched [tabName] tag
-      for(var m=0;m<matches.length;m++){
-        var match=matches[m];
-        var matchTag=match;
-        match=match.substring('['.length);
-        match=match.substring(0, match.length-']'.length);
-        if(match.trim().indexOf('/')===0){
-          if(prevMatch.trim()===match.substring(match.indexOf('/')+'/'.length).trim()){
-            //get the line index where this tag is found
-            var ls=linesStr.substring(0, linesStr.indexOf(prevMatchTag)+prevMatchTag.length);
-            ls=ls.trimRight(); ls=ls.split('\n'); lineIndex+=(ls.length-1);
-            linesStr=linesStr.substring(linesStr.indexOf(prevMatchTag)); //remove the parsed string up to this point
-            //start the tagData json
-            var tagData={lineIndex:lineIndex,name:prevMatch};
-            //if this tab name not found as duplicate... yet
-            if(!names.hasOwnProperty(prevMatch)){
-              names[prevMatch]=[]; lines[lineIndex]={}; //init the array for this tab name
-              //try to find the tabLi for this name, if it exists (for the first occurence of the name only)
-              if(tabsUl.length>0){
-                //try to get the tab li element for this line (using different process of elimination conditions)
-                var tabLi=tabsUl.children('li[path$="/'+prevMatch+'"]:first');
-                if(tabLi.length<1){
-                  var tabLi=tabsUl.children('li[path="'+prevMatch+'"]:first');
-                }
-                //if one of the conditions found the tab li
-                if(tabLi.length>0){
-                  //make sure the line number attribute is updated correctly
-                  tabLi.attr('line',lineIndex+'');
-                  //add this tab li element to the data
-                  tagData['tabLi']=tabLi;
-                }
-              }
+      if(tabsUl.length>0){
+        tabsUl.children('li[path]').not('.template').addClass('unmatched');
+        //function to get the line index of a [tab]
+        var lineIndex=0, linesStr=temContent;
+        var getLineIndexOfTab=function(startTab){
+          //get the line index where this tag is found
+          var ls=linesStr.substring(0, linesStr.indexOf(startTab)+startTab.length);
+          ls=ls.trimRight(); ls=ls.split('\n'); lineIndex+=(ls.length-1);
+          linesStr=linesStr.substring(linesStr.indexOf(startTab)); //remove the parsed string up to this point
+          return lineIndex;
+        };
+        //function to get the previous line index of an li element
+        var getPrevIndexOfLi=function(li){
+          //capture the previous line index, if any (default to -1)
+          var prevLineIndex=li.attr('line'); if(prevLineIndex==undefined){ prevLineIndex=''; } prevLineIndex=prevLineIndex.trim();
+          if(prevLineIndex.length<1){ prevLineIndex=-1; }
+          else{ prevLineIndex=parseInt(prevLineIndex); }
+          if(isNaN(prevLineIndex)){ prevLineIndex=-1; }
+          return prevLineIndex;
+        };
+        //function to group tab li with json data from the syntax tag
+        var groupTabLiWIthTag=function(li, json){
+          if(li!=undefined && li.length>0){
+            //update tab data json
+            json['tabLi']=li;
+            json['prevLineIndex']=getPrevIndexOfLi(li);
+            var span=li.children('span:first');
+            var spanname=span.text(); spanname=spanname.trim();
+            if(spanname!==json.name){
+              json['prevName']=spanname;
+              setTabPath(li, json.name);
             }
-            //add the tag data
-            names[prevMatch].push(tagData);
-            lines[lineIndex]=tagData;
-            count++;
+            //update li
+            li.removeClass('unmatched');
+            li.attr('line', json['lineIndex']);
+          } return json;
+        };
+        //for each matched [tabName] tag
+        var nameIndexes={}, lineIndexes={}, dataArray=[];
+        var unmatchedByName=[];
+        for(var m=0;m<matches.length;m++){
+          var match=matches[m];
+          var matchTag=match;
+          match=match.substring('['.length);
+          match=match.substring(0, match.length-']'.length);
+          if(match.trim().indexOf('/')===0){
+            if(prevMatch.trim()===match.substring(match.indexOf('/')+'/'.length).trim()){
+              //init the tab data json
+              var tabData={name:prevMatch, prevName:prevMatch, isDuplicate:true, lineIndex:-1, prevLineIndex:-1};
+              //get basic data like the line index
+              tabData['lineIndex']=getLineIndexOfTab(prevMatchTag);
+              lineIndexes[tabData['lineIndex']]=dataArray.length;
+              //if not duplicate name
+              if(!nameIndexes.hasOwnProperty(prevMatch)){
+                tabData['isDuplicate']=false;
+                nameIndexes[prevMatch]=[dataArray.length];
+                //try to get the tab li element for this line (based on the matched name)
+                var tabLi=tabsUl.children('li[path$="/'+prevMatch+'"].unmatched:first');
+                if(tabLi.length<1){ var tabLi=tabsUl.children('li[path="'+prevMatch+'"].unmatched:first'); }
+                if(tabLi.length>0){
+                  tabLi.removeClass('duplicate');
+                  //yay, a tab li exists with this name
+                  tabData=groupTabLiWIthTag(tabLi, tabData);
+                }else{
+                  //will have to find a different way to link a tab li with this syntax tag...
+                  unmatchedByName.push(tabData);
+                }
+              }else{
+                //this is a duplicate name
+                dataArray[nameIndexes[prevMatch][0]]['isDuplicate']=true; //set the first name as duplicate
+                nameIndexes[prevMatch].push(dataArray.length); //add another name index to the list
+                //add the duplicate class
+                var dupLi=tabsUl.children('li[path$="/'+prevMatch+'"]');
+                if(dupLi.length<1){ var dupLi=tabsUl.children('li[path="'+prevMatch+'"]'); }
+                if(dupLi.length>0){ dupLi.addClass('duplicate'); dupLi.removeClass('unmatched'); }
+              }
+              //add the data to the array
+              dataArray.push(tabData);
+            }
+          }
+          prevMatch=match;
+          prevMatchTag=matchTag;
+        }
+        //function to set the tab data in the dataArray
+        var setTabDataInArray=function(data){
+          //for each instance of this name in the dataArray
+          for(var i=0;i<nameIndexes[data.name].length;i++){
+            var arrayIndex=nameIndexes[data.name][i];
+            //set the data with the tab li info
+            dataArray[arrayIndex]=data;
+          }
+        };
+        //for each unmatched name (matching by name failed, but now let's try to match by line index)
+        var unmatchedByLine=[];
+        for(var n=0;n<unmatchedByName.length;n++){
+          var tabData=unmatchedByName[n];
+          //try to get the tab li element for this line (based on the matched line index)
+          var tabLi=tabsUl.children('li[path][line="'+tabData.lineIndex+'"].unmatched:first');
+          if(tabLi.length>0){
+            if(tabData['isDuplicate']){
+              tabLi.addClass('duplicate');
+            }
+            //yay, a tab li exists with this line index
+            tabData=groupTabLiWIthTag(tabLi, tabData);
+            //set the data into the dataArray
+            setTabDataInArray(tabData);
+          }else{
+            //this syntax tag couldn't be matched to a tab by line number either...
+            unmatchedByLine.push(tabData);
           }
         }
-        prevMatch=match;
-        prevMatchTag=matchTag;
+        //function to create a new tab
+        var createNewTabElement=function(data){
+          if(!data['isDuplicate']){
+            //create the new tab
+            var newLi=addFileTab(data.name,undefined,undefined,true);
+            if(newLi!=undefined && newLi.length>0){
+              //yay, a tab li exists with this line index
+              data=groupTabLiWIthTag(newLi, data);
+              //set the data into the dataArray
+              setTabDataInArray(data);
+            }
+          }
+        };
+        //if there are any unmatched tabs
+        if(tabsUl.children('li[path].unmatched').length>0){
+
+          //**** try to match tabs with syntax tags based on compairing their name extensions
+
+          /*//remove the unmatched tabs
+          tabsUl.children('li[path].unmatched').not('.removed-tab').each(function(){
+            removeTab(jQuery(this));
+          });*/
+
+        //no unmatched tabs, but there are extra syntax tags
+        }else if(unmatchedByLine.length>0){
+          for(var u=0;u<unmatchedByLine.length;u++){
+            createNewTabElement(unmatchedByLine[u]);
+          }
+        }
+        //build return json
+        ret={
+          nameIndexes:nameIndexes,
+          lineIndexes:lineIndexes,
+          dataArray:dataArray
+        }
       }
-    }
-    //build return json
-    ret={
-      count:count,
-      names:names,
-      lines:lines
     }
   } return ret;
 }
@@ -104,6 +201,8 @@ function setCodemirrorContent(fpath,textarea,callback){
   var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first');
   if(tabLi.hasClass('template')){
     ext="template";
+    //parse the tab tags (set the line attributes on the tabs)
+    var tagData=getOrderedTabNames(textarea.val());
   }
   //get data for a specific type of extension
   var extData=getExtensionData(ext);
@@ -247,10 +346,6 @@ function setCodemirrorContent(fpath,textarea,callback){
     if(tabLi.hasClass('template')){
       //reset the tab code indicator data
       myCodeMirror['didEditPossibleTabLine']=false;
-      if(!myCodeMirror.hasOwnProperty('tabNamesBeforeEdit')){
-        //get the list of tab names embedded in the file BEFORE the edit
-        myCodeMirror['tabNamesBeforeEdit']=getOrderedTabNames();
-      }
       //if this is delete
       if(object.origin==='+delete' || object.origin==='cut'){
         //indicate if embed code for a tab got edited
@@ -279,24 +374,34 @@ function setCodemirrorContent(fpath,textarea,callback){
         //auto-align the corresponding tag with the changed tag name
         alignLinkedTabName(instance, curLineIndex);
         //get the list of all tab names that appear in the html
-        var tabsBeforeEdit=myCodeMirror['tabNamesBeforeEdit'];
         var tabs=getOrderedTabNames();
         //check to see if there are any edits of the tab tags; modify, remove, add
         var tabEditMade=false;
-        //loop through each tab li element
+
+        /*//loop through each tab li element
         jQuery('nav#tabs:first').children('ul:first').children('li[path]').each(function(){
           var tabLi=jQuery(this); var name=tabLi.children('span:first').text(); name=name.trim();
-          var currentTabData, prevTabData;
-          if(tabsBeforeEdit.names.hasOwnProperty(name)){ prevTabData=tabsBeforeEdit.names[name]; }
-          if(tabs.names.hasOwnProperty(name)){ currentTabData=tabs.names[name]; }
+          //if there is current tab data for this name
+          if(tabs.names.hasOwnProperty(name)){
+            //if there are no duplicate tags for this tab
+            var currentTabData=tabs.names[name];
+            if(currentTabData.length===1){
 
-        });
+            //there are duplicate tags for this tab
+            }else if(currentTabData.length>1){
+
+            }
+          }else{
+            //this tab name was removed from the syntax tags...
+
+          }
+        });*/
 
 
 
 
 
-        //edit the tab tag depending on the nature of its change (if any)
+        /*//edit the tab tag depending on the nature of its change (if any)
         var handleTabUpdate=function(name,nameQtyChange){
           var prevTab, currentTab;
           if(tabsBeforeEdit.names.hasOwnProperty(name)){ prevTab=tabsBeforeEdit.names[name]; }
@@ -351,7 +456,7 @@ function setCodemirrorContent(fpath,textarea,callback){
           var nameQtyChange='same';
           if(tabsBeforeEdit.count<tabs.count){ nameQtyChange='more'; }
           for(name in tabs.names){ if(tabs.names.hasOwnProperty(name)){ handleTabUpdate(name,nameQtyChange); } }
-        }
+        }*/
 
 
 
@@ -363,10 +468,7 @@ function setCodemirrorContent(fpath,textarea,callback){
 
 
         //if any tab edits were made, like add, remove, modify
-        if(tabEditMade){
-          //get the list of updated tab names embedded in the file BEFORE the next edit
-          myCodeMirror['tabNamesBeforeEdit']=getOrderedTabNames();
-        }else{
+        if(!tabEditMade){
           //no tabs removed, added or modified...
 
           //if the line is the start of a tab name placeholder
@@ -422,10 +524,6 @@ function setCodemirrorContent(fpath,textarea,callback){
     var temLi=jQuery('nav#tabs').children('ul:first').children('li.template.active:first');
     if(temLi.length>0){
       myCodeMirror['suggestTabNameHint']=false;
-      if(!myCodeMirror.hasOwnProperty('tabNamesBeforeEdit')){
-        //get the list of tab names embedded in the file BEFORE the edit
-        myCodeMirror['tabNamesBeforeEdit']=getOrderedTabNames();
-      }
       //if the cursor is on one line that is paired with another tab tag
       var lineIndex=instance.doc.getCursor().line
       var json=getLinkedTabNameLine(instance, lineIndex);
@@ -497,9 +595,6 @@ function setTabPath(tabLi, newname){
       newpath+=newname;
     }else{
       newpath=newname;
-    }
-    if(newpath.indexOf('/')!==0){
-      newpath='/'+newpath;
     }
     //modify the tab html
     tabLi.removeClass('removed-tab');
@@ -614,11 +709,14 @@ function addFileTab(fpath,fcontent,isTemplateFile,isPendingSave){
           }
         }
       });
+      tabLi=newLi;
     }
   }else{
     //this tab already exists
     tabLi.removeClass('removed-tab');
   }
+  if(tabLi.length<1){ tabLi=undefined; }
+  return tabLi;
 }
 //related to the tab filter/search
 function getFilterInputStr(defaultTxt){
