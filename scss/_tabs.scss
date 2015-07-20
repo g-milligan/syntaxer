@@ -69,6 +69,13 @@ nav#tabs{
         background-color:#000;
       }*/
 
+      &.cursor{
+        > span{
+          text-decoration:underline;
+          background-color:#9E5E96;
+        }
+      }
+
       &.modified-path, &.pending-save{
         > span{
           background-color:#D538C1;
@@ -81,6 +88,15 @@ nav#tabs{
         > span:after{
           content:"?";
           font-style:italic;
+        }
+      }
+
+      &.duplicate{
+        > span{
+          background-color:yellow;
+          color:#000;
+          text-shadow:none;
+          box-shadow: inset 0 0 1px #000;
         }
       }
 

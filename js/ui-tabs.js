@@ -556,6 +556,8 @@ function setCodemirrorContent(fpath,textarea,callback){
         hint:CodeMirror.hint[myCodeMirror['myHintType']] //what hints list?
       });
     }
+    //reset the cursor class
+    jQuery('nav#tabs').children('ul:first').children('li[path].cursor').removeClass('cursor');
     //if this is the template tab li
     var temLi=jQuery('nav#tabs').children('ul:first').children('li.template.active:first');
     if(temLi.length>0){
@@ -578,6 +580,14 @@ function setCodemirrorContent(fpath,textarea,callback){
         //highlight the start/end tags for the tag name
         markTabName(json.lineIndex, json.tabNameIndex, json.tabNameIndex+json.tabName.length);
         markTabName(json.otherLineIndex, json.otherTabNameIndex, json.otherTabNameIndex+json.otherTabName.length);
+        //mark the tab li element, with a "cursor" class, that corresponds to this tab name
+        var nameSpans=jQuery('nav#tabs').children('ul:first').children('li[path]').children('span:contains("'+json.tabName+'")');
+        nameSpans.each(function(){
+          if(jQuery(this).text()===json.tabName){
+            //set the cursor class on the first tab with the matching name, then stop looking at the other tabs
+            jQuery(this).parent().addClass('cursor'); return false;
+          }
+        });
       }
     }
   });
@@ -605,6 +615,7 @@ function setCodemirrorContent(fpath,textarea,callback){
 function removeTab(tabLi){
   if(tabLi!=undefined && tabLi.length>0){
     tabLi.addClass('removed-tab');
+    tabLi.removeClass('unmatched');
     //if this tab was never saved to the file
     if(tabLi.hasClass('pending-save')){
       //then just remove the elements; no lost work there, probably
