@@ -23,8 +23,10 @@
 - XXX auto complete for template.html inline files XML
 - XXX add tab when a new file is created in template.html
 - XXX split the index.html script into more files because atom is bogging down
-- fix the issues with modifying an existing tab name that is repeated more than once
+- XXX fix the issues with modifying an existing tab name that is repeated more than once
 - write the tab edits when save
+
+- should be able to open syntaxer from the command line without having to open a file
 
 - Project templates for rapidly building out tabs, etc...
   - unique fields to fill out for the template, etc...

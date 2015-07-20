@@ -6,21 +6,33 @@ SYNTAXER_ROOT="/Users/username/syntaxer/"
 NODE_CMD="$(command -v node)"
 DIRNAME_CMD="$(command -v dirname)"
 BASENAME_CMD="$(command -v basename)"
+PWD_CMD="$(command -v pwd)"
 
-#if file exists
-if [ -f "$1" ]
+#if a file path was passed
+if [ ! -z "$1" ]
 then
-  #get full file path
-  DIR=$($DIRNAME_CMD "$1")
-  FILE=$($BASENAME_CMD "$1")
-  cd "$DIR"
-  FULL_PATH="$(pwd)/$FILE"
+  #if file exists
+  if [ -f "$1" ]
+  then
+    #get full file path
+    DIR=$($DIRNAME_CMD "$1")
+    FILE=$($BASENAME_CMD "$1")
+    cd "$DIR"
+    FULL_PATH="$(pwd)/$FILE"
+    #go to the syntaxer root directory
+    cd "$SYNTAXER_ROOT"
+    #run the syntaxer application and pass the full path to the application
+    $NODE_CMD server.js --$FULL_PATH
+  else
+    echo "\"$1\" doesn't exist"
+  fi
+else
+  #no file argument passed... just open a new blank project
+  PWD=$($PWD_CMD)
   #go to the syntaxer root directory
   cd "$SYNTAXER_ROOT"
-  #run the syntaxer application and pass the full path to the application
-  $NODE_CMD server.js --$FULL_PATH
-else
-  echo "\"$1\" doesn't exist"
+  #run the syntaxer application and pass the full path of the current directory
+  $NODE_CMD server.js --$PWD
 fi
 
 exit 0
