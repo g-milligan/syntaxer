@@ -1,4 +1,6 @@
 //parse the template html to get all of the tab names in the order in which the appear in the template html
+//getOrderedTabNames also tries to match every single valid file tag with a tag and decides
+//if some tabs should be modified, removed, or added depending on the syntax tags written into the template
 function getOrderedTabNames(temContent){
   var ret;
   //get the big template content string, if not passed as arg
@@ -15,6 +17,34 @@ function getOrderedTabNames(temContent){
       var tabsUl=jQuery('nav#tabs:first').children('ul:first');
       if(tabsUl.length>0){
         tabsUl.children('li[path]').not('.template').addClass('unmatched');
+        var anyChanges=false, modifiedIndexes={}, addedIndexes={}, removedNames=[], nameIndexes={}, lineIndexes={}, extIndexes={}, dataArray=[];
+        //add to the modified indexes json
+        var setModifiedIndex=function(json){
+          anyChanges=true;
+          if(!modifiedIndexes.hasOwnProperty(json.lineIndex)){
+            modifiedIndexes[json.lineIndex]=[];
+          }
+          if(modifiedIndexes[json.lineIndex].indexOf(json.arrayDataIndex)===-1){
+            modifiedIndexes[json.lineIndex].push(json.arrayDataIndex);
+          }
+        };
+        //add to the added indexes json
+        var setAddedIndex=function(json){
+          anyChanges=true;
+          if(!addedIndexes.hasOwnProperty(json.lineIndex)){
+            addedIndexes[json.lineIndex]=[];
+          }
+          if(addedIndexes[json.lineIndex].indexOf(json.arrayDataIndex)===-1){
+            addedIndexes[json.lineIndex].push(json.arrayDataIndex);
+          }
+        };
+        //add to the removed names
+        var setRemovedName=function(path){
+          anyChanges=true;
+          if(removedNames.indexOf(path)===-1){
+            removedNames.push(path);
+          }
+        };
         //function to get the line index of a [tab]
         var lineIndex=0, linesStr=temContent;
         var getLineIndexOfTab=function(startTab){
@@ -44,14 +74,18 @@ function getOrderedTabNames(temContent){
             if(spanname!==json.name){
               json['prevName']=spanname;
               setTabPath(li, json.name);
+              //indicate modification
+              setModifiedIndex(json);
             }
             //update li
             li.removeClass('unmatched');
-            li.attr('line', json['lineIndex']);
+            li.removeClass('removed-tab');
+            if(json['prevLineIndex']!==json['lineIndex']){
+              li.attr('line', json['lineIndex']);
+            }
           } return json;
         };
         //for each matched [tabName] tag
-        var nameIndexes={}, lineIndexes={}, dataArray=[];
         var unmatchedByName=[];
         for(var m=0;m<matches.length;m++){
           var match=matches[m];
@@ -61,7 +95,12 @@ function getOrderedTabNames(temContent){
           if(match.trim().indexOf('/')===0){
             if(prevMatch.trim()===match.substring(match.indexOf('/')+'/'.length).trim()){
               //init the tab data json
-              var tabData={name:prevMatch, prevName:prevMatch, isDuplicate:true, lineIndex:-1, prevLineIndex:-1};
+              var ext=getExtension(prevMatch);
+              var tabData={name:prevMatch, prevName:prevMatch, ext:ext, isDuplicate:true, lineIndex:-1, prevLineIndex:-1, arrayDataIndex:dataArray.length};
+              if(!extIndexes.hasOwnProperty(ext)){
+                extIndexes[ext]=[];
+              }
+              extIndexes[ext].push(dataArray.length);
               //get basic data like the line index
               tabData['lineIndex']=getLineIndexOfTab(prevMatchTag);
               lineIndexes[tabData['lineIndex']]=dataArray.length;
@@ -134,19 +173,103 @@ function getOrderedTabNames(temContent){
               data=groupTabLiWIthTag(newLi, data);
               //set the data into the dataArray
               setTabDataInArray(data);
+              //indicate the added change
+              setAddedIndex(data);
             }
           }
         };
+        //function to remove tab li
+        var removeTabElement=function(li){
+          setRemovedName(li.attr('path'));
+          removeTab(li);
+        };
         //if there are any unmatched tabs
         if(tabsUl.children('li[path].unmatched').length>0){
-
-          //**** try to match tabs with syntax tags based on compairing their name extensions
-
-          /*//remove the unmatched tabs
+          //if there are also any unmatched syntax tags
+          if(unmatchedByLine.length>0){
+            //function to set the li/data grouping that was matched together by a shared extension
+            var extLookup={}, extUnmatchedCount=0;
+            var groupExtLookupWithTag=function(tli, extension, index){
+              var data=extLookup[extension][index];
+              //yay, a tab li exists with this extension's data
+              data=groupTabLiWIthTag(tli, data);
+              //set the data into the dataArray
+              setTabDataInArray(data);
+              //remove this extension item from extLookup
+              extLookup[extension].splice(index,1);
+              extUnmatchedCount--;
+            };
+            //index the unmatched syntax tags by their extension
+            for(var e=0;e<unmatchedByLine.length;e++){
+              if(!extLookup.hasOwnProperty(unmatchedByLine[e].ext)){
+                extLookup[unmatchedByLine[e].ext]=[];
+              } extLookup[unmatchedByLine[e].ext].push(unmatchedByLine[e]);
+              extUnmatchedCount++;
+            }
+            //for each unmatched tab
+            tabsUl.children('li[path].unmatched').each(function(){
+              var li=jQuery(this); var path=li.attr('path');
+              var ext=getExtension(path);
+              if(extLookup.hasOwnProperty(ext)){
+                if(extLookup[ext].length===1){
+                  //match this tab up with this syntax tag that has the same extension
+                  groupExtLookupWithTag(li,ext,0);
+                }else if(extLookup[ext].length>1){
+                  //if the tab has a line index number attribute...
+                  var line=li.attr('line'); if(line==undefined){line='';} line=line.trim();
+                  if(line.length<1){line=-1;}else{line=parseInt(line);}
+                  if(isNaN(line)){line=-1;}
+                  if(line>-1){
+                    //find the closest line number
+                    var smallestDiff=-1, bestIndex=-1;
+                    var setBestIndexCandidate=function(i,thisLine){
+                      var breakLoop=false, diff=-1;
+                      if(thisLine===line){ diff=0; breakLoop=true; }
+                      else if(thisLine>line){ diff=thisLine-line; }
+                      else if(thisLine<line){ diff=line-thisLine; }
+                      if(bestIndex===-1 || diff<smallestDiff){
+                        smallestDiff=diff; bestIndex=i;
+                      } return breakLoop;
+                    };
+                    for(var s=0;s<extLookup[ext].length;s++){
+                      //is this tag's index the closest to the tab's index so far?
+                      if(setBestIndexCandidate(s, extLookup[ext][s].lineIndex)){ break; }
+                    }
+                    //match this tab up with the unmatched tag, that has the same extension, and the closest line index
+                    if(bestIndex>-1){ groupExtLookupWithTag(li,ext,bestIndex); }
+                  }else{
+                    //tab doesn't have a line index number attribute...
+                    //just match this tab up with the first unmatched tag, with the same extension
+                    groupExtLookupWithTag(li,ext,0);
+                  }
+                }
+              }
+            });
+            //compile remaining unmatched syntax tags, just pair any unmatched tab with an unmatched tag, if any remain
+            if(extUnmatchedCount>0){
+              for(ext in extLookup){
+                if(extLookup.hasOwnProperty(ext)){
+                  for(var e=0;e<extLookup[ext].length;e++){
+                    //if there is an unmatched tab left
+                    var leftoverLi=tabsUl.children('li[path].unmatched:first');
+                    if(leftoverLi.length>0){
+                      //yay, a tab li was paired with this syntax tag by default
+                      var data=groupTabLiWIthTag(leftoverLi, extLookup[ext][e]);
+                      //set the data into the dataArray
+                      setTabDataInArray(extLookup[ext][e]);
+                    }else{
+                      //no unmatched tabs left... so create this as a new tab
+                      createNewTabElement(extLookup[ext][e]);
+                    }
+                  }
+                }
+              }
+            }
+          }
+          //if there are only unmatched tabs remaining, but no unmatched syntax tags to pair with anymore... remove the remaining unmatched tabs
           tabsUl.children('li[path].unmatched').not('.removed-tab').each(function(){
-            removeTab(jQuery(this));
-          });*/
-
+            removeTabElement(jQuery(this));
+          });
         //no unmatched tabs, but there are extra syntax tags
         }else if(unmatchedByLine.length>0){
           for(var u=0;u<unmatchedByLine.length;u++){
@@ -155,8 +278,13 @@ function getOrderedTabNames(temContent){
         }
         //build return json
         ret={
+          anyChanges:anyChanges,
+          modifiedIndexes:modifiedIndexes,
+          addedIndexes:addedIndexes,
+          removedNames:removedNames,
           nameIndexes:nameIndexes,
           lineIndexes:lineIndexes,
+          extIndexes:extIndexes,
           dataArray:dataArray
         }
       }
@@ -373,102 +501,10 @@ function setCodemirrorContent(fpath,textarea,callback){
         var curLineIndex=instance.doc.getCursor().line;
         //auto-align the corresponding tag with the changed tag name
         alignLinkedTabName(instance, curLineIndex);
-        //get the list of all tab names that appear in the html
+        //get the list of all tab names that appear in the html (and update tabs based on written tags)
         var tabs=getOrderedTabNames();
-        //check to see if there are any edits of the tab tags; modify, remove, add
-        var tabEditMade=false;
-
-        /*//loop through each tab li element
-        jQuery('nav#tabs:first').children('ul:first').children('li[path]').each(function(){
-          var tabLi=jQuery(this); var name=tabLi.children('span:first').text(); name=name.trim();
-          //if there is current tab data for this name
-          if(tabs.names.hasOwnProperty(name)){
-            //if there are no duplicate tags for this tab
-            var currentTabData=tabs.names[name];
-            if(currentTabData.length===1){
-
-            //there are duplicate tags for this tab
-            }else if(currentTabData.length>1){
-
-            }
-          }else{
-            //this tab name was removed from the syntax tags...
-
-          }
-        });*/
-
-
-
-
-
-        /*//edit the tab tag depending on the nature of its change (if any)
-        var handleTabUpdate=function(name,nameQtyChange){
-          var prevTab, currentTab;
-          if(tabsBeforeEdit.names.hasOwnProperty(name)){ prevTab=tabsBeforeEdit.names[name]; }
-          if(tabs.names.hasOwnProperty(name)){ currentTab=tabs.names[name]; }
-          //if this is a new or modified tab name
-          if(prevTab==undefined){
-            //if there is only one of these tab names
-            if(currentTab.length===1){
-              //if this is a modified tab name
-              var lineIndex=currentTab[0].lineIndex;
-              if(tabsBeforeEdit.lines.hasOwnProperty(lineIndex)){ prevTab=tabsBeforeEdit.lines[lineIndex]; }
-              if(prevTab!=undefined){
-                //if there is a tab that can be modified
-                if(prevTab.hasOwnProperty('tabLi')){
-                  //set the modified tab name
-                  setTabPath(prevTab.tabLi, name);
-                  tabEditMade=true;
-                }
-              }else{
-                //this is a new tab name... if it doesn't already have a li
-                if(!currentTab[0].hasOwnProperty('tabLi')){
-                  addFileTab(name,undefined,undefined,true);
-                  tabEditMade=true;
-                }else{
-                  if(currentTab[0].tabLi.hasClass('removed-tab')){
-                    setTabPath(currentTab[0].tabLi, name); //tabLi should no longer have removed-tab class, etc...
-                    tabEditMade=true;
-                  }
-                }
-              }
-            }else if(currentTab.length>1){
-              //error highlight for more than one tab with the same name...
-
-            }
-          //if this tab name was removed
-          }else if(currentTab==undefined){
-            //if there is only one of these tab names
-            if(prevTab.length===1){
-              //if there is a tab that can be modified
-              if(prevTab[0].hasOwnProperty('tabLi')){
-                //remove this tabLi
-                removeTab(prevTab[0].tabLi);
-                tabEditMade=true;
-              }
-            }
-          }
-        };
-        //cycle through each of the tab names embedded in the syntax and call handleTabUpdate for each unique tab name
-        if(tabsBeforeEdit.count>tabs.count){
-          for(name in tabsBeforeEdit.names){ if(tabsBeforeEdit.names.hasOwnProperty(name)){ handleTabUpdate(name,'less'); } }
-        }else{
-          var nameQtyChange='same';
-          if(tabsBeforeEdit.count<tabs.count){ nameQtyChange='more'; }
-          for(name in tabs.names){ if(tabs.names.hasOwnProperty(name)){ handleTabUpdate(name,nameQtyChange); } }
-        }*/
-
-
-
-
-
-
-
-
-
-
         //if any tab edits were made, like add, remove, modify
-        if(!tabEditMade){
+        if(!tabs.anyChanges){
           //no tabs removed, added or modified...
 
           //if the line is the start of a tab name placeholder
@@ -569,7 +605,6 @@ function setCodemirrorContent(fpath,textarea,callback){
 function removeTab(tabLi){
   if(tabLi!=undefined && tabLi.length>0){
     tabLi.addClass('removed-tab');
-    tabLi.attr('line',''); tabLi.removeAttr('line');
     //if this tab was never saved to the file
     if(tabLi.hasClass('pending-save')){
       //then just remove the elements; no lost work there, probably
@@ -599,7 +634,6 @@ function setTabPath(tabLi, newname){
     //modify the tab html
     tabLi.removeClass('removed-tab');
     tabLi.addClass('modified-path');
-    tabLi.removeClass('pending-save');
     if(tabLi.attr('old_path')==undefined){
       tabLi.attr('old_path',oldpath);
     }
