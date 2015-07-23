@@ -53,6 +53,47 @@
         switch(beforeTabName){
           case '/*': afterTabName=' */'; break;
           case '<!--': afterTabName=' -->'; break;
+          case '//': afterTabName=''; break;
+          default:
+            if(beforeTabName.length<1){
+              var closeTag='', hasSurroundTags=false;
+              //loop through each line before this one until reaching the opening HTML tag
+              for(var u=newCur.line-1;u>-1;u--){
+                var upLine=editor.getLine(u);
+                if(upLine.indexOf('<')!==-1){
+                  if(upLine.indexOf('</')!==-1){
+                    break;
+                  }else{
+                    upLine=upLine.toLowerCase();
+                    if(upLine.indexOf('<script')!==-1){closeTag='</script>'; break;}
+                    else if(upLine.indexOf('<style')!==-1){closeTag='</style>'; break;}
+                  }
+                }
+              }
+              if(closeTag.length>0){
+                //confirm the correct closing HTML tag appears after the cursor position
+                var lineCount=editor.lineCount();
+                for(var d=newCur.line+1;d<lineCount;d++){
+                  var downLine=editor.getLine(d);
+                  if(downLine.indexOf(closeTag)!==-1){
+                    hasSurroundTags=true; break;
+                  }else if(downLine.indexOf('<')!==-1){ break; }
+                }
+              }
+              if(hasSurroundTags){
+                //choose a type of comment based on the surrounding HTML tag element
+                switch(closeTag){
+                  case '</script>': beforeTabName='/*'; afterTabName=' */'; break;
+                  case '</style>': beforeTabName='/*'; afterTabName=' */'; break;
+                }
+              }
+              //not surrounded by <style> or <script> ?
+              if(beforeTabName.length<1){
+                //must be inside plain html
+                beforeTabName='<!--'; afterTabName=' -->';
+              }
+            }
+            break;
         }
         if(beforeTabName.length>0){beforeTabName+=' ';}
         //build the autocomplete format
