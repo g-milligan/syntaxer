@@ -74,7 +74,7 @@
                 //confirm the correct closing HTML tag appears after the cursor position
                 var lineCount=editor.lineCount();
                 for(var d=newCur.line+1;d<lineCount;d++){
-                  var downLine=editor.getLine(d);
+                  var downLine=editor.getLine(d); downLine=downLine.toLowerCase();
                   if(downLine.indexOf(closeTag)!==-1){
                     hasSurroundTags=true; break;
                   }else if(downLine.indexOf('<')!==-1){ break; }

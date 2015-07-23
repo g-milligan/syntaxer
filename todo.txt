@@ -24,22 +24,28 @@
 - XXX add tab when a new file is created in template.html
 - XXX split the index.html script into more files because atom is bogging down
 - XXX fix the issues with modifying an existing tab name that is repeated more than once
-- write the tab edits when save
 
 - should be able to open syntaxer from the command line without having to open a file
-
-- Project templates for rapidly building out tabs, etc...
-  - unique fields to fill out for the template, etc...
-
-- dialog box for adding new tabs? Tabs/New menu item?
-
+- write the tab edits when save
 - Recent projects (listed in the open project dialog box)
 
-- auto complete for available vars, functions and objects (including "var ").
-  consider actual variable scope when creating the list?
+
+
+
+
 
 - data entry for glsl language auto complete info
 
+
+
+- auto complete for available vars, functions and objects (including "var ").
+  consider actual variable scope when creating the list?
 - track changes to variables flowing through the webgl process (so what's next / what's done info can be listed in the summary)
 
 - more data entry for JS webgl methods autocomplete info
+
+
+
+
+
+- Project templates for rapidly building out tabs, etc...
