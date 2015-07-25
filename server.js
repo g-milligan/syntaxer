@@ -220,6 +220,8 @@ if(file!==undefined&&file.trim().length>0){
       //open url
       var url='http://' + host + ':' + port + openFile;
 
+      var templateKey='_.html';
+
       //function that makes sure ajax requests came from this same page
       var isSameHost=function(testUrl){
         var isSame=false;
@@ -353,8 +355,8 @@ if(file!==undefined&&file.trim().length>0){
             //read the existing file contents
             var html=fs.readFileSync('./preview/index.html', 'utf8');
             //update the html if the template.html layout was modified
-            if(req.body.files.hasOwnProperty('_.html')){
-              if(req.body.files['_.html'].hasOwnProperty('content')){
+            if(req.body.files.hasOwnProperty(templateKey)){
+              if(req.body.files[templateKey].hasOwnProperty('content')){
                 numSaved++;
                 //get the project json html
                 var jsonStr=getProjectFilesStr(html);
@@ -374,7 +376,7 @@ if(file!==undefined&&file.trim().length>0){
                   }
                 }
                 //reset to the updated template html (sans embedded file content)
-                var templateHtml=req.body.files['_.html']['content'];
+                var templateHtml=req.body.files[templateKey]['content'];
                 html=templateHtml;
                 //insert the embedded content back in
                 for(var e=0;e<restoreContent.length;e++){
@@ -393,7 +395,7 @@ if(file!==undefined&&file.trim().length>0){
             //for each file to save
             for(path in req.body.files){
               if(req.body.files.hasOwnProperty(path)){
-                if(path!=='_.html'){
+                if(path!==templateKey){
                   var fileJson=req.body.files[path];
                   if(fileJson.hasOwnProperty('content')){
                     numSaved++; var updatedContent=fileJson.content;
@@ -487,9 +489,27 @@ if(file!==undefined&&file.trim().length>0){
                           }else{
                             //not creating a copy based on fromFile path...
 
+                            //if create a file that hasn't been written to disk yet
                             if(req.body.hasOwnProperty('createData')){
+                              //use createData to set newHtml string
                               createData=req.body.createData;
-                              //***
+                              if(createData.hasOwnProperty('files')){
+                                if(createData['files'].hasOwnProperty(templateKey)){
+                                  if(createData['files'][templateKey].hasOwnProperty('content')){
+                                    newHtml=createData['files'][templateKey]['content'];
+                                    //***
+                                  }else{
+                                    resJson['status']='error, cannot create data without "files.'+templateKey+'.content" property';
+                                    doCreate=false;
+                                  }
+                                }else{
+                                  resJson['status']='error, cannot create data without "files.'+templateKey+'" property';
+                                  doCreate=false;
+                                }
+                              }else{
+                                resJson['status']='error, cannot create data without "files" property';
+                                doCreate=false;
+                              }
                             }
                           }
                           //if the fromFile is good data or isn't being used
@@ -825,7 +845,6 @@ if(file!==undefined&&file.trim().length>0){
         if(isSameHost(fromUrl)){
           var args=getQs(fromUrl);
           var resJson={isNewProject:false};
-          var templateFileKey='_.html';
           if(args.hasOwnProperty('file')){
             //if the project file exists
             var fpath=decodeURIComponent(args.file);
@@ -844,7 +863,7 @@ if(file!==undefined&&file.trim().length>0){
                 }
                 var filesJson={};
                 //add the template.html file
-                filesJson[templateFileKey]={path:fpath,content:''};
+                filesJson[templateKey]={path:fpath,content:''};
                 //for each project file
                 for(var f=0;f<projJson.files.length;f++){
                   var fJson={};
@@ -854,7 +873,7 @@ if(file!==undefined&&file.trim().length>0){
                     pfname=pfname.substring(pfname.lastIndexOf('/')+'/'.length);
                   }
                   //if this name doesn't conflict with special template file name
-                  if(templateFileKey!==pfname){
+                  if(templateKey!==pfname){
                     fJson['path']=pf;
                     //fJson['name']=pfname;
                     //try to get the chunk of content for this file
@@ -872,7 +891,7 @@ if(file!==undefined&&file.trim().length>0){
                     filesJson[pf]=fJson;
                   }
                 }
-                filesJson[templateFileKey]['content']=html;
+                filesJson[templateKey]['content']=html;
                 resJson['files']=filesJson;
                 resJson['status']='ok';
               }else{
@@ -891,7 +910,7 @@ if(file!==undefined&&file.trim().length>0){
             var defaultName='[new-project]';
             var content=getDefaultTemplateHtml(defaultName);
             var filesJson={};
-            filesJson[templateFileKey]={path:'[template]',content:content};
+            filesJson[templateKey]={path:'[template]',content:content};
             resJson['name']=defaultName;
             resJson['files']=filesJson;
             resJson['status']='ok';
