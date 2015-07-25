@@ -18,7 +18,8 @@ then
     DIR=$($DIRNAME_CMD "$1")
     FILE=$($BASENAME_CMD "$1")
     cd "$DIR"
-    FULL_PATH="$(pwd)/$FILE"
+    PWD="$($PWD_CMD)"
+    FULL_PATH="$PWD/$FILE"
     #go to the syntaxer root directory
     cd "$SYNTAXER_ROOT"
     #run the syntaxer application and pass the full path to the application
@@ -28,11 +29,12 @@ then
   fi
 else
   #no file argument passed... just open a new blank project
-  PWD=$($PWD_CMD)
+  PWD="$($PWD_CMD)"
+  CURRENT_DIR="$PWD"
   #go to the syntaxer root directory
   cd "$SYNTAXER_ROOT"
   #run the syntaxer application and pass the full path of the current directory
-  $NODE_CMD server.js --$PWD
+  $NODE_CMD server.js --$CURRENT_DIR
 fi
 
 exit 0

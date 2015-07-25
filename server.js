@@ -24,6 +24,72 @@ var app = express();
 var fs = require('fs');
 var bodyParser = require('body-parser'); //required for json post handling
 
+var getDefaultTemplateHtml=function(title){
+  if(title==undefined){title='[new project]';}
+  var html='';
+  html+='<html>'+eol;
+  html+='<head>'+eol;
+  html+='<title>'+title+'</title>'+eol;
+  html+='<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />'+eol;
+  html+='<meta name="viewport" content="width=device-width, initial-scale=1.0" />'+eol;
+  html+=''+eol;
+  html+='<!-- '+eol;
+  html+='GETTING STARTED TIP: '+eol;
+  html+='In Syntaxer, this template file should contain little or no script, data or code; '+eol;
+  html+='instead, you can insert tags -- placeholders that represent where the code will be inserted when the project is rendered. '+eol;
+  html+='This will create a separate tabs, where you can edit the code separate from the other code. '+eol;
+  html+='However, when you view your program in a browser, all of the code will be rendered inline, all-together, in the same page, making the page more efficient. '+eol;
+  html+=''+eol;
+  html+='For example, you can place your main Javascript code into a tag -- [main.js] then edit code inside a tab called main.js.'+eol;
+  html+=''+eol;
+  html+='Feel free to create many different tab-tags to help keep code separate while you are working on it. '+eol;
+  html+='Go on and try it for yourself! '+eol;
+  html+=''+eol;
+  html+='Delete this message to keep your project slim and clean. '+eol;
+  html+=''+eol;
+  html+='--> '+eol;
+  html+=''+eol;
+  html+='<style name="styles" type="text/css">'+eol
+  html+='/* your CSS here... */'+eol;
+  html+='</style>'+eol;
+  html+=''+eol;
+  html+='<script name="lib" type="text/javascript">'+eol
+  html+='// your script libraries here...'+eol;
+  html+='</script>'+eol;
+  html+=''+eol;
+  html+='</head>'+eol;
+  html+='<body>'+eol;
+  html+=''+eol;
+  html+='<canvas width="900" height="900" id="canvas">...your browser doesn\'t support canvas...</canvas>'+eol;
+  html+=''+eol;
+  html+='<div id="misc-data" style="display:none;">'+eol
+  html+='<!-- your JSON or other misc data here -->...'+eol;
+  html+='</div>'+eol;
+  html+=''+eol;
+  html+='<script id="v-shader" type="x-shader/x-vertex">'+eol
+  html+='// your vertex shader code here...'+eol;
+  html+='</script>'+eol;
+  html+=''+eol;
+  html+='<script id="f-shader" type="x-shader/x-fragment">'+eol
+  html+='// your fragment shader code here...'+eol;
+  html+='</script>'+eol;
+  html+=''+eol;
+  html+='<script name="main" type="text/javascript">'+eol;
+  html+=''+eol;
+  html+='/* initialize the webgl context as an object called "gl" */'+eol;
+  html+='var canvas=document.getElementById(\'canvas\');var gl;'+eol;
+  html+='if(canvas){gl=canvas.getContext(\'webgl\')||canvas.getContext(\'experimental-webgl\');}'+eol;
+  html+='if(!gl){console.log(\'sorry, the gl context failed to initialize\');}'+eol;
+  html+=''+eol;
+  html+='// your main logic here...'+eol;
+  html+=''+eol;
+  html+='</script>'+eol;
+  html+=''+eol;
+  html+='</body>'+eol;
+  html+='</html>';
+  return html;
+}
+
 //get the project files from an html string, return string object
 var getProjectFilesStr=function(html){
   var jsonStr;
@@ -345,17 +411,7 @@ if(file!==undefined&&file.trim().length>0){
                               }
                             }else if(fromFile.length<1){
                               //creating a brand new project file... (not save-as)
-                              newHtml+='<html>'+eol;
-                              newHtml+='<head>'+eol;
-                              newHtml+='<title>'+fname+'</title>'+eol;
-                              newHtml+='<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />'+eol;
-                              newHtml+='<meta name="viewport" content="width=device-width, initial-scale=1.0" />'+eol;
-                              newHtml+=''+eol;
-                              newHtml+='</head>'+eol;
-                              newHtml+='<body>'+eol;
-                              newHtml+=''+eol;
-                              newHtml+='</body>'+eol;
-                              newHtml+='</html>';
+                              newHtml+=getDefaultTemplateHtml(fname);
                               //insert the project data
                               newHtml=insertProjectFilesJson(newHtml, {name:fname,files:[]});
                               //create the file with the default contents
@@ -559,8 +615,17 @@ if(file!==undefined&&file.trim().length>0){
             if(path.length<1){
               var args=getQs(fromUrl);
               if(args.hasOwnProperty('file')){
-                path=decodeURIComponent(args.file);
+                path=args.file;
+                path=decodeURIComponent(path);
+                //strip off the file name to get just the directory path
                 if(path.indexOf('/')!==-1){
+                  path=path.substring(0, path.lastIndexOf('/'));
+                }
+              }else if(args.hasOwnProperty('dir')){
+                path=args.dir;
+                path=decodeURIComponent(path);
+                //make sure the directory doesn't end with /
+                if(path.lastIndexOf('/')===path.length-'/'.length){
                   path=path.substring(0, path.lastIndexOf('/'));
                 }
               }
@@ -746,8 +811,9 @@ if(file!==undefined&&file.trim().length>0){
         //if the request came from this local site
         if(isSameHost(fromUrl)){
           var args=getQs(fromUrl);
+          var resJson={isNewProject:false};
+          var templateFileKey='_.html';
           if(args.hasOwnProperty('file')){
-            var resJson={};
             //if the project file exists
             var fpath=decodeURIComponent(args.file);
             if(fs.existsSync(fpath)){
@@ -765,7 +831,6 @@ if(file!==undefined&&file.trim().length>0){
                 }
                 var filesJson={};
                 //add the template.html file
-                var templateFileKey='_.html';
                 filesJson[templateFileKey]={path:fpath,content:''};
                 //for each project file
                 for(var f=0;f<projJson.files.length;f++){
@@ -805,7 +870,19 @@ if(file!==undefined&&file.trim().length>0){
               //project file doesn't exist
               resJson['status']='error, file does\'t exist';
             }
-            //get the project HTML file path from the url
+            //send project data back to the page
+            res.send(JSON.stringify(resJson));
+          //else probably opening a new, unsaved project (if there is a dir query string param in the url)
+          }else if(args.hasOwnProperty('dir')){
+            resJson['isNewProject']=true;
+            var defaultName='[new-project]';
+            var content=getDefaultTemplateHtml(defaultName);
+            var filesJson={};
+            filesJson[templateFileKey]={path:'[template]',content:content};
+            resJson['name']=defaultName;
+            resJson['files']=filesJson;
+            resJson['status']='ok';
+            //send project data back to the page
             res.send(JSON.stringify(resJson));
           }
         }else{
