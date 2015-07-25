@@ -919,11 +919,20 @@ function browseEditDialog(dialogId){
       var navBarInput=boxWrap.find('.box-content .box-col.browse .nav-bar input.path:first');
       if(navBarInput[0].hasOwnProperty('currentBrowsePath')){
         var currentBrowsePath=sanitizeProjectBrowsePath(navBarInput[0]['currentBrowsePath']);
-        var createFrom;
+        //if this is ok button for save-as action
+        var createFrom, createData;
         if(dialogId==='saveas-project'){
-          //get the path to save-as from
-          var temLi=getTemplateTabLi();
-          createFrom=getElemPath(temLi);
+          //if a saved project file is in the qs file path (if not a new unsaved project)
+          var qs=getQs();
+          if(qs.hasOwnProperty('file')){
+            //get the path to save-as from
+            var temLi=getTemplateTabLi();
+            createFrom=getElemPath(temLi);
+          //if this is probably a new unsaved file
+          }else if(qs.hasOwnProperty('dir')){
+            //get the unsaved data for this project's tabs
+            createData=getUnsavedTabChangesData();
+          }
         }
         //create the new project with a request to the server
         createNewProject(currentBrowsePath, newProjName, function(data){
@@ -935,7 +944,7 @@ function browseEditDialog(dialogId){
             //show error message for the attempt to create the new project
             errMsgAlert(boxWrap,'project-create-fail-alert',data['status']);
           }
-        },createFrom);
+        },createFrom,createData);
       }
     }
   };

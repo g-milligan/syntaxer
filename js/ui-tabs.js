@@ -295,7 +295,7 @@ function getOrderedTabNames(temContent){
 function getExtensionData(ext){
   ext=ext.toLowerCase();
   //which codemirror mode to use based on the file path extension
-  var mode='', dirPath='/'; var hintType;
+  var mode='', dirPath='misc/'; var hintType;
   switch(ext){
     case 'js': mode='javascript'; hintType='gljs'; dirPath='js/'; break;
     case 'html': mode='htmlmixed'; dirPath='html/'; break;
@@ -469,7 +469,8 @@ function setCodemirrorContent(fpath,textarea,callback){
   };
   //codemirror editor events
   myCodeMirror.on('beforeChange', function(instance, object){
-    var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first');
+    var thepath=jQuery(instance.display.lineDiv).parents('div.content-wrap:first').attr('path');
+    var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+thepath+'"]:first');
     //if this is the template tab li
     if(tabLi.hasClass('template')){
       //reset the tab code indicator data
@@ -485,7 +486,8 @@ function setCodemirrorContent(fpath,textarea,callback){
   myCodeMirror.on('change', function(instance, object){
     //indicate unsaved change
     jQuery('body:first').addClass('has-changes');
-    var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+fpath+'"]:first');
+    var thepath=jQuery(instance.display.lineDiv).parents('div.content-wrap:first').attr('path');
+    var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+thepath+'"]:first');
     tabLi.addClass('has-changes');
     //if this is the template tab li
     if(tabLi.hasClass('template')){
@@ -819,4 +821,95 @@ function addFilterBoxItem(filterBox,itemJson){
       }
     }
   }
+}
+function clearUnsavedTabChanges(){
+  var bodyElem=jQuery('body:first');
+  bodyElem.removeClass('has-changes');
+  jQuery('nav#tabs ul li.removed-tab[path]').remove();
+  jQuery('nav#tabs ul li.pending-save[path]').removeClass('pending-save');
+  jQuery('nav#tabs ul li.has-changes[path]').removeClass('.has-changes');
+  jQuery('nav#tabs ul li.modified-path[path]').removeClass('.modified-path');
+  jQuery('nav#tabs ul li[old_path]').removeAttr('old_path');
+}
+//get a json of the unsaved tab changes that need save
+function getUnsavedTabChangesData(){
+  var saveData;
+  var qs=getQs();
+  //if there are any project changes
+  var bodyElem=jQuery('body:first');
+  if(bodyElem.hasClass('has-changes') || qs.hasOwnProperty('dir')){
+    saveData={};
+    //build the save data
+    var contentWrap=jQuery('#file-content:first');
+    //see if file is removed
+    var isRemoved=function(path){
+      var isRemoved=false;
+      if(saveData.hasOwnProperty('removed')){
+        if(saveData['removed'].indexOf(path)!==-1){
+          isRemoved=true;
+        }
+      } return isRemoved;
+    };
+    //add file content
+    var addFileContent=function(li){
+      var path=li.attr('path');
+      //if this file is not listed as removed
+      if(!isRemoved(path)){
+        //get the content div
+        var cDiv=contentWrap.children('div.content-wrap[path="'+path+'"]:first');
+        //init json
+        if(li.hasClass('template')){ path='_.html'; }
+        if(!saveData.hasOwnProperty('files')){
+          saveData['files']={};
+        }
+        //if this path hasn't already been added to the list
+        if(!saveData['files'].hasOwnProperty(path)){
+          saveData['files'][path]={};
+          //if the content is not blank, then set it
+          saveData['files'][path]['content']=getFileContent(cDiv);
+        }
+      }
+    };
+    //if this is a new project that doesn't have any saved files
+    if(qs.hasOwnProperty('dir')){
+      //make sure and save the template file content
+      var tabLi=getTemplateTabLi();
+      addFileContent(tabLi);
+    }
+    //each tab that's been removed
+    jQuery('nav#tabs ul li.removed-tab[path]').each(function(){
+      var tabLi=jQuery(this); var path=tabLi.attr('path');
+      var oldPath=tabLi.attr('old_path'); if(oldPath==undefined){oldPath='';}
+      if(oldPath.length>0){ path=oldPath; }
+      //if not already listed as removed
+      if(!isRemoved(path)){
+        if(!saveData.hasOwnProperty('removed')){
+          saveData['removed']=[];
+        }
+        saveData['removed'].push(path);
+      }
+    });
+    //each tab that hasn't been saved yet
+    jQuery('nav#tabs ul li.pending-save[path]').not('.empty-name').each(function(){
+      var tabLi=jQuery(this);
+      addFileContent(tabLi);
+    });
+    //each tab that has content changes
+    jQuery('nav#tabs ul li.has-changes[path]').not('.empty-name').each(function(){
+      var tabLi=jQuery(this);
+      addFileContent(tabLi);
+    });
+    //each tab that has a modified name
+    jQuery('nav#tabs ul li.modified-path[path]').not('.empty-name').each(function(){
+      var tabLi=jQuery(this); var path=tabLi.attr('path');
+      var oldPath=tabLi.attr('old_path'); if(oldPath==undefined){oldPath='';}
+      if(!isRemoved(oldPath)){
+        if(!saveData.hasOwnProperty('rename')){
+          saveData['rename']={};
+        }
+        saveData['rename'][oldPath]=path;
+      }
+    });
+  }
+  return saveData;
 }

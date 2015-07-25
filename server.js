@@ -35,14 +35,16 @@ var getDefaultTemplateHtml=function(title){
   html+=''+eol;
   html+='<!-- '+eol;
   html+='GETTING STARTED TIP: '+eol;
-  html+='In Syntaxer, this template file should contain little or no script, data or code; '+eol;
-  html+='instead, you can insert tags -- placeholders that represent where the code will be inserted when the project is rendered. '+eol;
-  html+='This will create a separate tabs, where you can edit the code separate from the other code. '+eol;
-  html+='However, when you view your program in a browser, all of the code will be rendered inline, all-together, in the same page, making the page more efficient. '+eol;
+  html+='This template file can contain little or no code... '+eol;
+  html+='Because you can insert tags -- placeholders that represent code. '+eol;
+  html+='Placing tags create separate tabs where you can edit code. '+eol;
+  html+=''+eol;
+  html+='Tab code will be rendered inline, all-together, in the same .html file. '+eol;
+  html+='But while you edit, you can keep code separate (in different tabs). '+eol;
   html+=''+eol;
   html+='For example, you can place your main Javascript code into a tag -- [main.js] then edit code inside a tab called main.js.'+eol;
   html+=''+eol;
-  html+='Feel free to create many different tab-tags to help keep code separate while you are working on it. '+eol;
+  html+='Feel free to create many different tab-tags to help keep code separate while you edit. '+eol;
   html+='Go on and try it for yourself! '+eol;
   html+=''+eol;
   html+='Delete this message to keep your project slim and clean. '+eol;
@@ -340,7 +342,95 @@ if(file!==undefined&&file.trim().length>0){
           res.send(JSON.stringify(resJson));
         }
       });
-      //check if a file or folder can be deleted
+      //request to save project changes
+      app.post('/save-project', function(req, res){
+        var fromUrl=req.headers.referer;
+        //if the request came from this local site
+        if(isSameHost(fromUrl)){
+          var resJson={}; var numSaved=0;
+          //if the preview file exists
+          if(fs.existsSync('./preview/index.html')){
+            //read the existing file contents
+            var html=fs.readFileSync('./preview/index.html', 'utf8');
+            //update the html if the template.html layout was modified
+            if(req.body.files.hasOwnProperty('_.html')){
+              if(req.body.files['_.html'].hasOwnProperty('content')){
+                numSaved++;
+                //get the project json html
+                var jsonStr=getProjectFilesStr(html);
+                var json=JSON.parse(jsonStr);
+                //save the embedded content so it can be restored
+                var restoreContent=[];
+                for(var f=0;f<json.files.length;f++){
+                  var fp=json.files[f];
+                  //get only the file name, no path
+                  var fn=fp;
+                  if(fn.indexOf('/')!==-1){
+                    fn=fn.substring(fn.lastIndexOf('/')+'/'.length);
+                  }
+                  var parts=getSplitContent(html,fn);
+                  if(parts!=undefined){
+                    restoreContent.push({name:fn,content:parts[1]});
+                  }
+                }
+                //reset to the updated template html (sans embedded file content)
+                var templateHtml=req.body.files['_.html']['content'];
+                html=templateHtml;
+                //insert the embedded content back in
+                for(var e=0;e<restoreContent.length;e++){
+                  var rName=restoreContent[e]['name'];
+                  var rContent=restoreContent[e]['content'];
+                  var parts=getSplitContent(html,rName);
+                  if(parts!=undefined){
+                    //restore embedded tab content
+                    html=parts[0]+rContent+parts[2];
+                  }
+                }
+                //insert the project json back in
+                html=insertProjectFilesJson(html, jsonStr);
+              }
+            }
+            //for each file to save
+            for(path in req.body.files){
+              if(req.body.files.hasOwnProperty(path)){
+                if(path!=='_.html'){
+                  var fileJson=req.body.files[path];
+                  if(fileJson.hasOwnProperty('content')){
+                    numSaved++; var updatedContent=fileJson.content;
+                    //get only the file name, no path
+                    var fname=path;
+                    if(fname.indexOf('/')!==-1){
+                      fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
+                    }
+                    //update the content that's embedded in the html
+                    var contentParts=getSplitContent(html,fname);
+                    if(contentParts!=undefined){
+                      //update the html with the updatedContent
+                      html=contentParts[0]+updatedContent+contentParts[2];
+                    }
+                  }
+                }
+              }
+            }
+            //if any files were modified
+            if(numSaved>0){
+              /*var plur='s';
+              if(numSaved===1){
+                plur='';
+              }
+              console.log('Saving (' + numSaved + ') embedded tab-section'+plur+'...');*/
+              //write the changes
+              fs.writeFileSync('./preview/index.html', html);
+            }
+            resJson['status']='ok';
+          }else{
+            resJson['status']='error, preview-file / save-destination doesn\'t exist.';
+          }
+          resJson['count']=numSaved;
+          res.send(JSON.stringify(resJson));
+        }
+      });
+      //create new project file for save-as, new or copied from existing project
       app.post('/create-new-project', function(req, res){
         var fromUrl=req.headers.referer;
         //if the request came from this local site
@@ -359,36 +449,47 @@ if(file!==undefined&&file.trim().length>0){
                     if(fs.existsSync(path)){
                       if(fs.lstatSync(path).isDirectory()){
                         if(!fs.existsSync(path+'/'+file)){
-                          var fromFile='', doCreate=true, newHtml='';
+                          var fromFile='', doCreate=true, newHtml='', createData={};
+                          //if creating a file based on an existing file (path)
                           if(req.body.hasOwnProperty('fromFile')){
-                            fromFile=req.body.fromFile; fromFile=fromFile.trim();
-                            if(fromFile.length>0){
-                              //if fromFile has a valid html extension
-                              if(fromFile.lastIndexOf('.html')===fromFile.length-'.html'.length){
-                                if(fs.existsSync(fromFile)){
-                                  if(!fs.lstatSync(fromFile).isDirectory()){
-                                    //make sure the save as file has valid contents
-                                    newHtml=fs.readFileSync(fromFile, 'utf8');
-                                    //if doesn't contain the project tags
-                                    if(newHtml.indexOf(startProjFiles)===-1 || newHtml.indexOf(endProjFiles)===-1){
-                                      resJson['status']='error, missing one or both project data tag';
+                            fromFile=req.body.fromFile;
+                            if(typeof fromFile==='string'){
+                              fromFile=fromFile.trim();
+                              if(fromFile.length>0){
+                                //if fromFile has a valid html extension
+                                if(fromFile.lastIndexOf('.html')===fromFile.length-'.html'.length){
+                                  if(fs.existsSync(fromFile)){
+                                    if(!fs.lstatSync(fromFile).isDirectory()){
+                                      //make sure the save as file has valid contents
+                                      newHtml=fs.readFileSync(fromFile, 'utf8');
+                                      //if doesn't contain the project tags
+                                      if(newHtml.indexOf(startProjFiles)===-1 || newHtml.indexOf(endProjFiles)===-1){
+                                        resJson['status']='error, missing one or both project data tag';
+                                        doCreate=false;
+                                      }
+                                    }else{
+                                      resJson['status']='error, cannot save-as from directory, '+fromFile;
                                       doCreate=false;
                                     }
                                   }else{
-                                    resJson['status']='error, cannot save-as from directory, '+fromFile;
+                                    resJson['status']='error, cannot save-as from non-existent file, '+fromFile;
                                     doCreate=false;
                                   }
                                 }else{
-                                  resJson['status']='error, cannot save-as from non-existent file, '+fromFile;
+                                  resJson['status']='error, must save-as from .html file';
                                   doCreate=false;
                                 }
                               }else{
-                                resJson['status']='error, must save-as from .html file';
+                                resJson['status']='error, the save-as (from) file path is blank';
                                 doCreate=false;
                               }
-                            }else{
-                              resJson['status']='error, the save-as (from) file path is blank';
-                              doCreate=false;
+                            }
+                          }else{
+                            //not creating a copy based on fromFile path...
+
+                            if(req.body.hasOwnProperty('createData')){
+                              createData=req.body.createData;
+                              //***
                             }
                           }
                           //if the fromFile is good data or isn't being used
@@ -701,94 +802,6 @@ if(file!==undefined&&file.trim().length>0){
               }
             }
           }
-          res.send(JSON.stringify(resJson));
-        }
-      });
-      //request to save project changes
-      app.post('/save-project', function(req, res){
-        var fromUrl=req.headers.referer;
-        //if the request came from this local site
-        if(isSameHost(fromUrl)){
-          var resJson={}; var numSaved=0;
-          //if the preview file exists
-          if(fs.existsSync('./preview/index.html')){
-            //read the existing file contents
-            var html=fs.readFileSync('./preview/index.html', 'utf8');
-            //update the html if the template.html layout was modified
-            if(req.body.files.hasOwnProperty('_.html')){
-              if(req.body.files['_.html'].hasOwnProperty('content')){
-                numSaved++;
-                //get the project json html
-                var jsonStr=getProjectFilesStr(html);
-                var json=JSON.parse(jsonStr);
-                //save the embedded content so it can be restored
-                var restoreContent=[];
-                for(var f=0;f<json.files.length;f++){
-                  var fp=json.files[f];
-                  //get only the file name, no path
-                  var fn=fp;
-                  if(fn.indexOf('/')!==-1){
-                    fn=fn.substring(fn.lastIndexOf('/')+'/'.length);
-                  }
-                  var parts=getSplitContent(html,fn);
-                  if(parts!=undefined){
-                    restoreContent.push({name:fn,content:parts[1]});
-                  }
-                }
-                //reset to the updated template html (sans embedded file content)
-                var templateHtml=req.body.files['_.html']['content'];
-                html=templateHtml;
-                //insert the embedded content back in
-                for(var e=0;e<restoreContent.length;e++){
-                  var rName=restoreContent[e]['name'];
-                  var rContent=restoreContent[e]['content'];
-                  var parts=getSplitContent(html,rName);
-                  if(parts!=undefined){
-                    //restore embedded tab content
-                    html=parts[0]+rContent+parts[2];
-                  }
-                }
-                //insert the project json back in
-                html=insertProjectFilesJson(html, jsonStr);
-              }
-            }
-            //for each file to save
-            for(path in req.body.files){
-              if(req.body.files.hasOwnProperty(path)){
-                if(path!=='_.html'){
-                  var fileJson=req.body.files[path];
-                  if(fileJson.hasOwnProperty('content')){
-                    numSaved++; var updatedContent=fileJson.content;
-                    //get only the file name, no path
-                    var fname=path;
-                    if(fname.indexOf('/')!==-1){
-                      fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
-                    }
-                    //update the content that's embedded in the html
-                    var contentParts=getSplitContent(html,fname);
-                    if(contentParts!=undefined){
-                      //update the html with the updatedContent
-                      html=contentParts[0]+updatedContent+contentParts[2];
-                    }
-                  }
-                }
-              }
-            }
-            //if any files were modified
-            if(numSaved>0){
-              /*var plur='s';
-              if(numSaved===1){
-                plur='';
-              }
-              console.log('Saving (' + numSaved + ') embedded tab-section'+plur+'...');*/
-              //write the changes
-              fs.writeFileSync('./preview/index.html', html);
-            }
-            resJson['status']='ok';
-          }else{
-            resJson['status']='error, preview-file / save-destination doesn\'t exist.';
-          }
-          resJson['count']=numSaved;
           res.send(JSON.stringify(resJson));
         }
       });
