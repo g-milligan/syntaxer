@@ -451,7 +451,7 @@ if(file!==undefined&&file.trim().length>0){
                     if(fs.existsSync(path)){
                       if(fs.lstatSync(path).isDirectory()){
                         if(!fs.existsSync(path+'/'+file)){
-                          var fromFile='', doCreate=true, newHtml='', createData={};
+                          var fromFile='', doCreate=true, newHtml='', createData={}, doCreateData=false;
                           //if creating a file based on an existing file (path)
                           if(req.body.hasOwnProperty('fromFile')){
                             fromFile=req.body.fromFile;
@@ -496,8 +496,52 @@ if(file!==undefined&&file.trim().length>0){
                               if(createData.hasOwnProperty('files')){
                                 if(createData['files'].hasOwnProperty(templateKey)){
                                   if(createData['files'][templateKey].hasOwnProperty('content')){
+                                    doCreateData=true;
+                                    //get the template html
                                     newHtml=createData['files'][templateKey]['content'];
-                                    //***
+                                    //init the project json
+                                    var projName=file;
+                                    if(projName.indexOf('/')!==-1){
+                                      projName=projName.substring(projName.lastIndexOf('/')+'/'.length);
+                                    }
+                                    if(projName.indexOf('.html')!==-1){
+                                      if(projName.lastIndexOf('.html')===projName.length-'.html'.length){
+                                        projName=projName.substring(0, projName.lastIndexOf('.html'));
+                                      }
+                                    }
+                                    var projJson={name:projName,files:[]};
+                                    //for each tab content to insert into the template html
+                                    for(key in createData['files']){
+                                      if(createData['files'].hasOwnProperty(key)){
+                                        //if not the template file
+                                        if(key!==templateKey){
+                                          if(projJson['files'].indexOf(key)===-1){
+                                            projJson['files'].push(key);
+                                          }
+                                          var fcontent=createData['files'][key]['content'];
+                                          if(fcontent.length>0){
+                                            //get just the file name
+                                            var name=key;
+                                            if(name.indexOf('/')!==-1){
+                                              name=name.substring(name.lastIndexOf('/')+'/'.length);
+                                            }
+                                            //put the file content into the template html
+                                            var parts=getSplitContent(newHtml,name);
+                                            if(parts!=undefined){
+                                              //restore embedded tab content into the template html
+                                              newHtml=parts[0]+fcontent+parts[2];
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                    //insert the project json into the template html
+                                    newHtml=insertProjectFilesJson(newHtml, projJson);
+                                    //if the project json couldn't be inserted into the template html
+                                    if(getProjectFilesStr(newHtml)==undefined){
+                                      resJson['status']='error, could not place the project data... possibly missing end </body> tag?';
+                                      doCreate=false;
+                                    }
                                   }else{
                                     resJson['status']='error, cannot create data without "files.'+templateKey+'.content" property';
                                     doCreate=false;
@@ -516,9 +560,14 @@ if(file!==undefined&&file.trim().length>0){
                           if(doCreate){
                             var fname=file.substring(0,file.lastIndexOf('.html'));
                             resJson['url']='http://' + host + ':' + port + '?file='+encodeURIComponent(path+'/'+file);
+                            //if creating a new file that has never been saved yet (opened blank, unsaved syntaxer project)
+                            if(doCreateData){
+                              //create the file with the possibly modified contents
+                              fs.writeFileSync(path+'/'+file, newHtml);
+                              resJson['status']='ok';
                             //if creating a new project from an existing project (save-as)
-                            if(fromFile.length>0){
-                              //change the project json data (project name)
+                            }else if(fromFile.length>0){
+                              //change the project json data (project name)... "save as" project option
                               var json=getProjectFilesJson(newHtml);
                               if(json!=undefined){
                                 //set the new project name and replace the old data with the new data
@@ -531,7 +580,7 @@ if(file!==undefined&&file.trim().length>0){
                                 resJson['status']='error, project data json tags are malformed in the save-from project file';
                               }
                             }else if(fromFile.length<1){
-                              //creating a brand new project file... (not save-as)
+                              //creating a brand new project file (that hasn't been edited yet: "new" project option)... (not save-as)
                               newHtml+=getDefaultTemplateHtml(fname);
                               //insert the project data
                               newHtml=insertProjectFilesJson(newHtml, {name:fname,files:[]});
