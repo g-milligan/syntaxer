@@ -25,7 +25,7 @@
 - XXX split the index.html script into more files because atom is bogging down
 - XXX fix the issues with modifying an existing tab name that is repeated more than once
 
-- should be able to open syntaxer from the command line without having to open a file
+- XXX should be able to open syntaxer from the command line without having to open a file
 - write the tab edits when save
 - Recent projects (listed in the open project dialog box)
 

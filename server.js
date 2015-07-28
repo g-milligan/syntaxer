@@ -42,7 +42,7 @@ var getDefaultTemplateHtml=function(title){
   html+='Tab code will be rendered inline, all-together, in the same .html file. '+eol;
   html+='But while you edit, you can keep code separate (in different tabs). '+eol;
   html+=''+eol;
-  html+='For example, you can place your main Javascript code into a tag -- [main.js] then edit code inside a tab called main.js.'+eol;
+  html+='For example, you can place your main Javascript code into a tag -- [ main.js ] (no spaces inside brackets) then edit code inside a tab called main.js.'+eol;
   html+=''+eol;
   html+='Feel free to create many different tab-tags to help keep code separate while you edit. '+eol;
   html+='Go on and try it for yourself! '+eol;
@@ -65,7 +65,7 @@ var getDefaultTemplateHtml=function(title){
   html+='<canvas width="900" height="900" id="canvas">...your browser doesn\'t support canvas...</canvas>'+eol;
   html+=''+eol;
   html+='<div id="misc-data" style="display:none;">'+eol
-  html+='<!-- your JSON or other misc data here -->...'+eol;
+  html+='<!-- your JSON or other misc data here... -->'+eol;
   html+='</div>'+eol;
   html+=''+eol;
   html+='<script id="v-shader" type="x-shader/x-vertex">'+eol
