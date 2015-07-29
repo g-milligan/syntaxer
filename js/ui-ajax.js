@@ -92,7 +92,7 @@ function saveProject(){
         var res=JSON.parse(this.responseText);
         if(res.status==='ok'){
           //if any tab content was saved
-          if(res.count>0){
+          if(res.modified>0 || res.removed>0 || res.renamed>0){
             //refresh preview window, if open
             refreshPreviewWindow();
             //remove unsaved marker classes

@@ -532,6 +532,9 @@ function setCodemirrorContent(fpath,textarea,callback){
           }
           //show the tab placeholder completion hint?
           myCodeMirror['suggestTabNameHint']=suggestHint;
+        }else{
+          //tab changes... check to see if the tabs still fit within the window
+          handleWindowResize();
         }
       }
     }
@@ -827,8 +830,8 @@ function clearUnsavedTabChanges(){
   bodyElem.removeClass('has-changes');
   jQuery('nav#tabs ul li.removed-tab[path]').remove();
   jQuery('nav#tabs ul li.pending-save[path]').removeClass('pending-save');
-  jQuery('nav#tabs ul li.has-changes[path]').removeClass('.has-changes');
-  jQuery('nav#tabs ul li.modified-path[path]').removeClass('.modified-path');
+  jQuery('nav#tabs ul li.has-changes[path]').removeClass('has-changes');
+  jQuery('nav#tabs ul li.modified-path[path]').removeClass('modified-path');
   jQuery('nav#tabs ul li[old_path]').removeAttr('old_path');
 }
 //get a json of the unsaved tab changes that need save

@@ -28,6 +28,7 @@
 - XXX should be able to open syntaxer from the command line without having to open a file
 - write the tab edits when save
 - Recent projects (listed in the open project dialog box)
+- allow rename the template.html file
 
 
 

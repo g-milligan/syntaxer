@@ -349,78 +349,168 @@ if(file!==undefined&&file.trim().length>0){
         var fromUrl=req.headers.referer;
         //if the request came from this local site
         if(isSameHost(fromUrl)){
-          var resJson={}; var numSaved=0;
+          var resJson={}, numModified=0, numRemoved=0, numRenamed=0;
           //if the preview file exists
           if(fs.existsSync('./preview/index.html')){
             //read the existing file contents
             var html=fs.readFileSync('./preview/index.html', 'utf8');
-            //update the html if the template.html layout was modified
-            if(req.body.files.hasOwnProperty(templateKey)){
-              if(req.body.files[templateKey].hasOwnProperty('content')){
-                numSaved++;
+            //==REMOVE TAB FILES==
+            if(req.body.hasOwnProperty('removed')){
+              if(req.body.removed.length>0){
                 //get the project json html
-                var jsonStr=getProjectFilesStr(html);
-                var json=JSON.parse(jsonStr);
-                //save the embedded content so it can be restored
-                var restoreContent=[];
-                for(var f=0;f<json.files.length;f++){
-                  var fp=json.files[f];
+                var jsonStr=getProjectFilesStr(html); var json=JSON.parse(jsonStr);
+                //for each tab to remove
+                for(var r=0;r<req.body.removed.length;r++){
+                  var remName=req.body.removed[r]; var remPath=remName;
                   //get only the file name, no path
-                  var fn=fp;
-                  if(fn.indexOf('/')!==-1){
-                    fn=fn.substring(fn.lastIndexOf('/')+'/'.length);
+                  if(remName.indexOf('/')!==-1){
+                    remName=remName.substring(remName.lastIndexOf('/')+'/'.length);
                   }
-                  var parts=getSplitContent(html,fn);
+                  //get the split parts around the embedded tabs
+                  var parts=getSplitContent(html,remName);
                   if(parts!=undefined){
-                    restoreContent.push({name:fn,content:parts[1]});
+                    //if this file is also listed in the project's json
+                    var indexOfRemPath=json['files'].indexOf(remPath);
+                    if(indexOfRemPath!==-1){
+                      //remove the file from the project json that's kept before closing body tag
+                      json['files'].splice(indexOfRemPath, 1);
+                      //remove from embedded html content
+                      html=parts[0]+parts[2];
+                      console.log(parts[0]); //*** remove the tags too
+                      numRemoved++;
+                    }
                   }
                 }
-                //reset to the updated template html (sans embedded file content)
-                var templateHtml=req.body.files[templateKey]['content'];
-                html=templateHtml;
-                //insert the embedded content back in
-                for(var e=0;e<restoreContent.length;e++){
-                  var rName=restoreContent[e]['name'];
-                  var rContent=restoreContent[e]['content'];
-                  var parts=getSplitContent(html,rName);
-                  if(parts!=undefined){
-                    //restore embedded tab content
-                    html=parts[0]+rContent+parts[2];
-                  }
+                //if any removed
+                if(numRemoved>0){
+                  //replace the project HTML json with the updated version
+                  html=insertProjectFilesJson(html, json);
                 }
-                //insert the project json back in
-                html=insertProjectFilesJson(html, jsonStr);
               }
             }
-            //for each file to save
-            for(path in req.body.files){
-              if(req.body.files.hasOwnProperty(path)){
-                if(path!==templateKey){
-                  var fileJson=req.body.files[path];
-                  if(fileJson.hasOwnProperty('content')){
-                    numSaved++; var updatedContent=fileJson.content;
+            //==RENAMED TAB FILES==
+            if(req.body.hasOwnProperty('rename')){
+              //get the project json html
+              var jsonStr=getProjectFilesStr(html); var json=JSON.parse(jsonStr);
+              //for each tab to rename
+              for(oldPath in req.body.rename){
+                if(req.body.rename.hasOwnProperty(oldPath)){
+                  var newPath=req.body.rename[oldPath];
+                  //get only the file name, no path
+                  var oldName=oldPath;
+                  if(oldName.indexOf('/')!==-1){
+                    oldName=oldName.substring(oldName.lastIndexOf('/')+'/'.length);
+                  }
+                  //get only the file name, no path
+                  var newName=newPath;
+                  if(newName.indexOf('/')!==-1){
+                    newName=newName.substring(newName.lastIndexOf('/')+'/'.length);
+                  }
+                  //get the split parts around the embedded tab
+                  var parts=getSplitContent(html,oldName);
+                  if(parts!=undefined){
+                    //if this file is also listed in the project's json
+                    var indexOfPath=json['files'].indexOf(oldPath);
+                    if(indexOfPath!==-1){
+                      if(oldName!==newName){
+                        //validate that the old token is inside parts[0] and parts[2]
+                        var oldStartToken=getStartToken(oldName);
+                        if(parts[0].lastIndexOf(oldStartToken)!==-1){
+                          var oldEndToken=getEndToken(oldName);
+                          if(parts[2].indexOf(oldEndToken)!==-1){
+                            //rename the file in the project json that's kept before closing body tag
+                            json['files'][indexOfPath]=newPath;
+                            //get the new tokens
+                            var newStartToken=getStartToken(newName);
+                            var newEndToken=getEndToken(newName);
+                            //get new part chunks
+                            var newStart=parts[0]; var newEnd=parts[2];
+                            //replace the old token in the end chunk
+                            newEnd=newEnd.replace(oldEndToken, newEndToken);
+                            //replace the end token with the new version
+                            var beforeOldStartToken=newStart.substring(0,newStart.lastIndexOf(oldStartToken));
+                            var afterOldStartToken=newStart.substring(beforeOldStartToken.length+oldStartToken.length);
+                            newStart=beforeOldStartToken+newStartToken+afterOldStartToken;
+                            //put chunks back together
+                            html=newStart+parts[1]+newEnd;
+                            numRenamed++;
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              //if any tabs renamed
+              if(numRenamed>0){
+                //replace the project HTML json with the updated version
+                html=insertProjectFilesJson(html, json);
+              }
+            }
+            //if there were any added or modified files (data with content)
+            if(req.body.hasOwnProperty('files')){
+              //==UPDATE TEMPLATE.HTML CONTENT==
+              if(req.body.files.hasOwnProperty(templateKey)){
+                if(req.body.files[templateKey].hasOwnProperty('content')){
+                  numModified++;
+                  //get the project json html
+                  var jsonStr=getProjectFilesStr(html); var json=JSON.parse(jsonStr);
+                  //save the embedded content so it can be restored
+                  var restoreContent=[];
+                  for(var f=0;f<json.files.length;f++){
+                    var fp=json.files[f];
                     //get only the file name, no path
-                    var fname=path;
-                    if(fname.indexOf('/')!==-1){
-                      fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
+                    var fn=fp;
+                    if(fn.indexOf('/')!==-1){
+                      fn=fn.substring(fn.lastIndexOf('/')+'/'.length);
                     }
-                    //update the content that's embedded in the html
-                    var contentParts=getSplitContent(html,fname);
-                    if(contentParts!=undefined){
-                      //update the html with the updatedContent
-                      html=contentParts[0]+updatedContent+contentParts[2];
+                    var parts=getSplitContent(html,fn);
+                    if(parts!=undefined){
+                      restoreContent.push({name:fn,content:parts[1]});
+                    }
+                  }
+                  //reset to the updated template html (sans embedded file content)
+                  var templateHtml=req.body.files[templateKey]['content'];
+                  html=templateHtml;
+                  //insert the embedded content back in
+                  for(var e=0;e<restoreContent.length;e++){
+                    var rName=restoreContent[e]['name'];
+                    var rContent=restoreContent[e]['content'];
+                    var parts=getSplitContent(html,rName);
+                    if(parts!=undefined){
+                      //restore embedded tab content
+                      html=parts[0]+rContent+parts[2];
+                    }
+                  }
+                  //insert the project json back in
+                  html=insertProjectFilesJson(html, jsonStr);
+                }
+              }
+              //==UPDATE OTHER TAB CONTENT (NOT TEMPLATE.HTML)==
+              for(path in req.body.files){
+                if(req.body.files.hasOwnProperty(path)){
+                  if(path!==templateKey){
+                    var fileJson=req.body.files[path];
+                    if(fileJson.hasOwnProperty('content')){
+                      numModified++; var updatedContent=fileJson.content;
+                      //get only the file name, no path
+                      var fname=path;
+                      if(fname.indexOf('/')!==-1){
+                        fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
+                      }
+                      //update the content that's embedded in the html
+                      var contentParts=getSplitContent(html,fname);
+                      if(contentParts!=undefined){
+                        //update the html with the updatedContent
+                        html=contentParts[0]+updatedContent+contentParts[2];
+                      }
                     }
                   }
                 }
               }
             }
-            //if any files were modified
-            if(numSaved>0){
-              /*var plur='s';
-              if(numSaved===1){
-                plur='';
-              }
-              console.log('Saving (' + numSaved + ') embedded tab-section'+plur+'...');*/
+            //WRITE MODIFICATIONS TO DISK
+            if(numModified>0 || numRemoved>0 || numRenamed>0){
               //write the changes
               fs.writeFileSync('./preview/index.html', html);
             }
@@ -428,7 +518,9 @@ if(file!==undefined&&file.trim().length>0){
           }else{
             resJson['status']='error, preview-file / save-destination doesn\'t exist.';
           }
-          resJson['count']=numSaved;
+          resJson['modified']=numModified; //modified OR added
+          resJson['removed']=numRemoved;
+          resJson['renamed']=numRenamed;
           res.send(JSON.stringify(resJson));
         }
       });
