@@ -1,5 +1,6 @@
 .DS_Store
 /css
 /preview
+/state
 .sass-cache
 node_modules

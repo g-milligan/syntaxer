@@ -259,11 +259,106 @@ if(file!==undefined&&file.trim().length>0){
         }
         return qs;
       };
-
+      //update the recent projects data, given the project path
+      var updateRecentProjects=function(projPath, args){
+        if(args!=undefined){
+          if(args.hasOwnProperty('type')){
+            if(!fs.existsSync('./state/')){
+              //create state directory
+              fs.mkdirSync('./state/');
+            }
+            //get the existing data, if not the first time updating the data
+            var jsonStr='{"id":{},"path":{},"in_order":{"create":[],"modify":[],"open":[]},"data":{}}';
+            if(fs.existsSync('./state/recent_projects.json')){
+              //read the existing file contents
+              jsonStr=fs.readFileSync('./state/recent_projects.json', 'utf8');
+            }
+            var json=JSON.parse(jsonStr);
+            //function to write to the file
+            var writeToDataFile=function(j){
+              //write the json into the file
+              var str=JSON.stringify(j);
+              if(str!=undefined){
+                fs.writeFileSync('./state/recent_projects.json', str);
+              }
+            };
+            //if there is a path property in this json
+            if(json.hasOwnProperty('path')){
+              //if there is an id property in this json
+              if(json.hasOwnProperty('id')){
+                if(json.hasOwnProperty('in_order')){
+                  if(json.hasOwnProperty('data')){
+                    var writeToFile=false;
+                    //function to get a date string
+                    var getDateStr=function(date){
+                      if(date==undefined){ date=new Date(); }
+                      var y=date.getFullYear()+'.';
+                      var m=(date.getMonth()+1)+'.';
+                      var d=date.getDate()+'.';
+                      var h=date.getHours()+'.';
+                      var min=date.getMinutes()+'.';
+                      var s=date.getSeconds()+'';
+                      return y+m+d+h+min+s;
+                    };
+                    //if the project's basic data is not already initialized
+                    if(!json.path.hasOwnProperty(projPath)){
+                      //get a new unique id for this project
+                      var newId=Object.keys(json.id).length+1;
+                      while(json.id.hasOwnProperty(newId)){ newId++; }
+                      //init the new project's data (if the path ever changes, have to update the path in two places inside recent_projects.json)
+                      json.id[newId]=projPath;
+                      json.path[projPath]=newId;
+                      //init the ordered list of events like create, modify
+                      json.in_order.create.push(newId);
+                      json.in_order.modify.push(newId);
+                      //init the primary data property for this project
+                      var currentDate=getDateStr();
+                      json.data[newId]={create:currentDate,modify:currentDate,opens:0,open_time_hours:0};
+                      //write this data
+                      writeToFile=true;
+                    }
+                    //get the project id
+                    var projId=json.path[projPath];
+                    //function to update something in an in_order list
+                    var updateOrder=function(which){
+                      if(json.in_order.hasOwnProperty(which)){
+                        //if this project id is already in the ordered array
+                        var indexOfId=json.in_order[which].indexOf(projId);
+                        if(indexOfId!==-1){
+                          //remove this id from its current position
+                          json.in_order[which].splice(indexOfId, 1);
+                        }
+                        //add this project id to the end of the ordered list of ids
+                        json.in_order[which].push(projId);
+                      }
+                    }
+                    //depending on the type of update
+                    switch(args.type){
+                      case 'open': //update this project as recently opened
+                        //update the order in which this project was opened
+                        updateOrder('open');
+                        json.data[projId]['opens']++;
+                        writeToFile=true;
+                        break;
+                      case 'modify':
+                        //update the order in which this project was modified
+                        updateOrder('modify');
+                        json.data[projId]['modify']=getDateStr();
+                        writeToFile=true;
+                        break;
+                    }
+                    if(writeToFile){ writeToDataFile(json); }
+                  }
+                }
+              }
+            }
+          }
+        }
+      };
       //create the preview index.html file
       var setPreviewIndexHtml=function(html){
         if(!fs.existsSync('./preview/')){
-          //create dist directory
+          //create preview directory
           fs.mkdirSync('./preview/');
         }
         //write the preview html
@@ -376,7 +471,7 @@ if(file!==undefined&&file.trim().length>0){
                       json['files'].splice(indexOfRemPath, 1);
                       //remove from embedded html content
                       html=parts[0]+parts[2];
-                      console.log(parts[0]); //*** remove the tags too
+                      //don't have to remove the tags because there should be a template html content update that takes care of this
                       numRemoved++;
                     }
                   }
@@ -513,6 +608,8 @@ if(file!==undefined&&file.trim().length>0){
             if(numModified>0 || numRemoved>0 || numRenamed>0){
               //write the changes
               fs.writeFileSync('./preview/index.html', html);
+              //update the recent projects data
+              //*** updateRecentProjects(***, {type:'modify'});
             }
             resJson['status']='ok';
           }else{
@@ -996,6 +1093,8 @@ if(file!==undefined&&file.trim().length>0){
               if(projJson!=undefined){
                 //create the preview index.html
                 setPreviewIndexHtml(html);
+                //update the recent projects data
+                updateRecentProjects(fpath, {type:'open'});
                 //remove the project files json string from the html
                 html=removeProjectFilesJson(html);
                 //get the project name, if in the json
