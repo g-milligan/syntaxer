@@ -27,7 +27,13 @@
 
 - XXX should be able to open syntaxer from the command line without having to open a file
 - XXX write the tab edits when save
+
+- shortcut key for pack project
+- list shortuct keys next to menu item
+- flash message to indicate packed project
+
 - Recent projects (listed in the open project dialog box)
+  - remove projects from list if they don't exist anymore (or indicate that they are missing)
 - allow rename the template.html file
 
 

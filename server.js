@@ -439,12 +439,58 @@ if(file!==undefined&&file.trim().length>0){
           res.send(JSON.stringify(resJson));
         }
       });
-      //request to save project changes
+      //request to pack project changes (write preview file over original project file)
+      app.post('/pack-project', function(req, res){
+        var fromUrl=req.headers.referer;
+        //if the request came from this local site
+        if(isSameHost(fromUrl)){
+          var resJson={};
+          if(req.body.hasOwnProperty('path')){
+            //if the preview file exists
+            if(fs.existsSync('./preview/index.html')){
+              var path=req.body.path;
+              if(fs.existsSync(path)){
+                if(!fs.lstatSync(path).isDirectory()){
+                  if(path.lastIndexOf('.html')===path.length-'.html'.length){
+                    //read the existing preview file contents
+                    var html=fs.readFileSync('./preview/index.html', 'utf8');
+                    //if contains opening project tag
+                    if(html.indexOf(startProjFiles)!==-1){
+                      if(html.indexOf(endProjFiles)!==-1){
+                        //write the changes
+                        fs.writeFileSync(path, html);
+                        resJson['status']='ok';
+                        updateRecentProjects(path, {type:'modify'});
+                      }else{
+                        resJson['status']='error, malformed preview index file. Missing "'+endProjFiles+'"';
+                      }
+                    }else{
+                      resJson['status']='error, malformed preview index file. Missing "'+startProjFiles+'"';
+                    }
+                  }else{
+                    resJson['status']='error, cannot pack path that isn\'t type .html: '+path;
+                  }
+                }else{
+                  resJson['status']='error, not a file - is directory: '+path;
+                }
+              }else{
+                resJson['status']='error, project path doesn\'t exist: '+path;
+              }
+            }else{
+              resJson['status']='error, preview-file / save-destination doesn\'t exist.';
+            }
+          }else{
+            resJson['status']='error, no project path specified.';
+          }
+          res.send(JSON.stringify(resJson));
+        }
+      });
+      //request to save project changes (write to preview index.html file)
       app.post('/save-project', function(req, res){
         var fromUrl=req.headers.referer;
         //if the request came from this local site
         if(isSameHost(fromUrl)){
-          var resJson={}, numModified=0, numRemoved=0, numRenamed=0;
+          var resJson={}, numModified=0, numRemoved=0, numRenamed=0, numAdded=0;
           //if the preview file exists
           if(fs.existsSync('./preview/index.html')){
             //read the existing file contents
@@ -582,12 +628,14 @@ if(file!==undefined&&file.trim().length>0){
                 }
               }
               //==UPDATE OTHER TAB CONTENT (NOT TEMPLATE.HTML)==
+              var addedFilesJson;
               for(path in req.body.files){
                 if(req.body.files.hasOwnProperty(path)){
                   if(path!==templateKey){
+                    //if this path key has a child content property
                     var fileJson=req.body.files[path];
                     if(fileJson.hasOwnProperty('content')){
-                      numModified++; var updatedContent=fileJson.content;
+                      var updatedContent=fileJson.content;
                       //get only the file name, no path
                       var fname=path;
                       if(fname.indexOf('/')!==-1){
@@ -598,24 +646,43 @@ if(file!==undefined&&file.trim().length>0){
                       if(contentParts!=undefined){
                         //update the html with the updatedContent
                         html=contentParts[0]+updatedContent+contentParts[2];
+                        //make sure the file path is added to the project json
+                        var isNewAdded=false;
+                        if(addedFilesJson==undefined){ addedFilesJson=getProjectFilesJson(html); }
+                        if(addedFilesJson!=undefined){
+                          //there should be a files property, but if not, make sure there is
+                          if(!addedFilesJson.hasOwnProperty('files')){ addedFilesJson['files']=[]; }
+                          //if this file path is not already listed in the files list
+                          if(addedFilesJson['files'].indexOf(path)===-1){
+                            //add this file path to the project json files list
+                            addedFilesJson['files'].push(path);
+                            numAdded++; isNewAdded=true;
+                          }
+                        }
+                        //if modified (not newly added)
+                        if(!isNewAdded){ numModified++; }
                       }
                     }
                   }
                 }
               }
+              //if any new files were specified, that need to be added to the project json
+              if(numAdded>0){
+                //replace the project HTML json with the updated version
+                html=insertProjectFilesJson(html, addedFilesJson);
+              }
             }
             //WRITE MODIFICATIONS TO DISK
-            if(numModified>0 || numRemoved>0 || numRenamed>0){
+            if(numModified>0 || numAdded>0 || numRemoved>0 || numRenamed>0){
               //write the changes
               fs.writeFileSync('./preview/index.html', html);
-              //update the recent projects data
-              //*** updateRecentProjects(***, {type:'modify'});
             }
             resJson['status']='ok';
           }else{
             resJson['status']='error, preview-file / save-destination doesn\'t exist.';
           }
-          resJson['modified']=numModified; //modified OR added
+          resJson['modified']=numModified; //modified NOT added
+          resJson['added']=numAdded; //added NOT modified
           resJson['removed']=numRemoved;
           resJson['renamed']=numRenamed;
           res.send(JSON.stringify(resJson));

@@ -506,7 +506,7 @@ function setCodemirrorContent(fpath,textarea,callback){
         //get the list of all tab names that appear in the html (and update tabs based on written tags)
         var tabs=getOrderedTabNames();
         //if any tab edits were made, like add, remove, modify
-        if(!tabs.anyChanges){
+        if(tabs==undefined || !tabs.anyChanges){
           //no tabs removed, added or modified...
 
           //if the line is the start of a tab name placeholder

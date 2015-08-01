@@ -166,6 +166,11 @@
             saveProject();
           }
         },
+        pack:{
+          _action:function(){
+            packProject();
+          }
+        },
         saveas:{
           _action:function(){
             saveAsProjectBrowse();
@@ -376,7 +381,8 @@
         <ul>
           <li name="new"><span>New</span></li>
           <li name="open"><span>Open</span></li>
-          <li name="save"><span>Save</span></li>
+          <li name="save"><span>Save Preview</span></li>
+          <li name="pack"><span>Pack/Save Changes</span></li>
           <li name="saveas"><span>Save As</span></li>
         </ul>
       </li>
