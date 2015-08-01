@@ -460,6 +460,7 @@ if(file!==undefined&&file.trim().length>0){
                         //write the changes
                         fs.writeFileSync(path, html);
                         resJson['status']='ok';
+                        resJson['path']=path;
                         updateRecentProjects(path, {type:'modify'});
                       }else{
                         resJson['status']='error, malformed preview index file. Missing "'+endProjFiles+'"';

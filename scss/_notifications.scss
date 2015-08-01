@@ -1,0 +1,79 @@
+$h-note-btns: 3rem;
+
+#notifications{
+  @include borderbox();
+  width:0;height:0;overflow:hidden;
+  opacity:0;@include transition(opacity .2s linear);
+  position:fixed;left:0;top:0;z-index:9999;
+  cursor:pointer;
+  background-color:rgba(0,0,0,.3);
+
+  .notification{
+    position: fixed;
+    font-family:$f-code;
+    left: 0;
+    top: 10%;
+    right: 0;
+    max-width: 50%;
+    max-height: 40%;
+
+    margin: auto;
+    display: none;
+    text-align: center;
+    background-color: #2D2D2D;
+    color:#fff;
+    border-radius: 1rem;
+    box-shadow: inset 0 0 0 #000,0 0 10px rgba(0,0,0,.8);
+    border: solid 5px #A5A5A5;
+
+    &.active{
+      display: inline-block;
+    }
+
+    .content{
+      padding:1rem;
+      overflow:auto;
+      @include borderbox();
+    }
+  }
+
+  .notification.hasBtns{
+    min-height: ($h-note-btns * 4);
+    
+    .content{
+      @include borderbox();
+      position:absolute;
+      left:0;
+      right:0;
+      top:0;
+      bottom:$h-note-btns;
+    }
+    .note-btns{
+      height:$h-note-btns;
+      line-height:($h-note-btns * .8);
+      @include borderbox();
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+
+      .note-btn{
+        display: inline-block;
+        height:80%;
+        background-color: #6F6F6F;
+        box-shadow: inset 0 0 1rem rgba(0,0,0,.6);
+        padding: 0 2.5rem;
+        border-radius: .5rem;
+        text-shadow: -1px 2px 3px rgba(0,0,0,.8);
+        font-size: 1rem;
+        @include transition(background-color .2s linear);
+
+        &:hover{
+          background-color: #D4D4D4;
+        }
+      }
+    }
+  }
+}
+#notifications.active{opacity:1;}
+#notifications.active,#notifications.fade-out{width:100%;height:100%;}

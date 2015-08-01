@@ -31,8 +31,8 @@ function loadPreviewIFrame(callback){
             }
             bodyElem.removeClass('loading-preview-iframe');
           }else{
-            //returned errors...
-            //*** display json.status
+            //returned errors... show error message
+            oops(json['status']);
           }
         }
       }
@@ -67,8 +67,8 @@ function openProjectFile(){
           }
         }
       }else{
-        //returned errors...
-        //*** display json.status
+        //returned errors... show error message
+        oops(json['status']);
       }
     }
   }
@@ -103,6 +103,9 @@ function saveProject(callback){
               callback(res);
             }
           }
+        }else{
+          //returned errors... show error message
+          oops(res['status']);
         }
       };
       // send the collected data as JSON
@@ -125,29 +128,43 @@ function packProject(callback){
     var bodyElem=jQuery('body:first');
     //function to pack up the project file with the new changes
     var doPack=function(){
-      //if there is a template path
-      var temLi=getTemplateTabLi(); var temPath=temLi.attr('path');
-      if(temPath!=undefined && temPath.length>0){
-        // construct an HTTP request
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/pack-project', true);
-        xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-        xhr.onloadend=function(res){
-          //if the server responded with ok status
-          var res=JSON.parse(this.responseText);
-          if(res.status==='ok'){
-            //*** flash success message
-            //if there is a callback function
-            if(callback!=undefined){
-              callback(res);
+      if(jQuery('body:first').hasClass('pending-pack')){
+        //if there is a template path
+        var temLi=getTemplateTabLi(); var temPath=temLi.attr('path');
+        if(temPath!=undefined && temPath.length>0){
+          // construct an HTTP request
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/pack-project', true);
+          xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+          xhr.onloadend=function(res){
+            //if the server responded with ok status
+            var res=JSON.parse(this.responseText);
+            if(res.status==='ok'){
+              jQuery('body:first').removeClass('pending-pack');
+              //flash success message
+              showNote({
+                id:'project-packed',
+                content:'Project packed <br />'+res['path']
+              });
+              //if there is a callback function
+              if(callback!=undefined){
+                callback(res);
+              }
+            }else{
+              //show error message
+              oops(res['status']);
             }
-          }else{
-            //*** flash error message
-          }
-        };
-        // send the collected data as JSON
-        var sendData={path:temPath};
-        xhr.send(JSON.stringify(sendData));
+          };
+          // send the collected data as JSON
+          var sendData={path:temPath};
+          xhr.send(JSON.stringify(sendData));
+        }
+      }else{
+        //flash message
+        showNote({
+          id:'project-packed',
+          content:'Already packed... no new changes'
+        });
       }
     };
     //if there are any project changes (not yet saved to the preview)

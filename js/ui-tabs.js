@@ -485,7 +485,8 @@ function setCodemirrorContent(fpath,textarea,callback){
   });
   myCodeMirror.on('change', function(instance, object){
     //indicate unsaved change
-    jQuery('body:first').addClass('has-changes');
+    var bodyElem=jQuery('body:first');
+    bodyElem.addClass('has-changes'); bodyElem.addClass('pending-pack');
     var thepath=jQuery(instance.display.lineDiv).parents('div.content-wrap:first').attr('path');
     var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+thepath+'"]:first');
     tabLi.addClass('has-changes');

@@ -30,7 +30,7 @@
 
 - XXX shortcut key for pack project
 - XXX list shortuct keys next to menu item
-- flash message to indicate packed project
+- XXX flash message to indicate packed project
 
 - Recent projects (listed in the open project dialog box)
   - remove projects from list if they don't exist anymore (or indicate that they are missing)
