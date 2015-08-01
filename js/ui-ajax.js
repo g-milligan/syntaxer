@@ -136,10 +136,13 @@ function packProject(callback){
           //if the server responded with ok status
           var res=JSON.parse(this.responseText);
           if(res.status==='ok'){
+            //*** flash success message
             //if there is a callback function
             if(callback!=undefined){
               callback(res);
             }
+          }else{
+            //*** flash error message
           }
         };
         // send the collected data as JSON

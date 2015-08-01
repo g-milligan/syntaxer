@@ -34,7 +34,13 @@
 
 - Recent projects (listed in the open project dialog box)
   - remove projects from list if they don't exist anymore (or indicate that they are missing)
-- allow rename the template.html file
+  - update the number of hours spent on the project
+
+
+
+
+
+
 
 
 
@@ -56,3 +62,6 @@
 
 
 - Project templates for rapidly building out tabs, etc...
+
+
+- allow rename the template.html file
