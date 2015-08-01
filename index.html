@@ -177,25 +177,8 @@
           }
         }
       },
-      edit:{
-        undo:{
-          _action:function(){
-            console.log('undo action');
-          }
-        },
-        redo:{
-          _action:function(){
-            console.log('redo action');
-          }
-        }
-      },
       preview:{
-        showwindow:{
-          _action:function(){
-            openPreviewWindow();
-          }
-        },
-        reloadwindow:{
+        showreload:{
           _action:function(){
             openPreviewWindow();
             refreshPreviewWindow();
@@ -305,12 +288,47 @@
           case 's':
             //if Command+S
             e.preventDefault(); ret=false;
-            saveProject();
+            //if also shift key
+            if(e.shiftKey){
+              packProject();
+            }else{
+              saveProject();
+            }
+            break;
+          case 'o':
+            //if also shift key
+            if(e.shiftKey){
+              e.preventDefault(); ret=false;
+              openProjectBrowse();
+            }
+            break;
+          case 'p':
+            //if also shift key
+            if(e.shiftKey){
+              e.preventDefault(); ret=false;
+              openPreviewWindow();
+              refreshPreviewWindow();
+            }
             break;
           case 'i':
             //if Command+I
             e.preventDefault(); ret=false;
             openContentMenu('insert');
+            break;
+        }
+      }else if(e.altKey){
+        //get character
+        var char=String.fromCharCode(e.keyCode); if(char==undefined){char='';}
+        char=char.toLowerCase();
+        //depending on character
+        switch(char){
+          case 's':
+            e.preventDefault(); ret=false;
+            saveAsProjectBrowse();
+            break;
+          case 'n':
+            e.preventDefault(); ret=false;
+            newProjectBrowse();
             break;
         }
       }else{
@@ -379,23 +397,16 @@
     <ul>
       <li name="project"><span>Project</span>
         <ul>
-          <li name="new"><span>New</span></li>
-          <li name="open"><span>Open</span></li>
-          <li name="save"><span>Save Preview</span></li>
-          <li name="pack"><span>Pack/Save Changes</span></li>
-          <li name="saveas"><span>Save As</span></li>
-        </ul>
-      </li>
-      <li name="edit"><span>Edit</span>
-        <ul>
-          <li name="undo"><span>Undo</span></li>
-          <li name="redo"><span>Redo</span></li>
+          <li name="new"><span>New<shortcut>Alt + N</shortcut></span></li>
+          <li name="open"><span>Open<shortcut>Cmd + Shift + O</shortcut></span></li>
+          <li name="save"><span>Save Preview<shortcut>Cmd + S</shortcut></span></li>
+          <li name="pack"><span>Pack/Save Changes<shortcut>Cmd + Shift + S</shortcut></span></li>
+          <li name="saveas"><span>Save As<shortcut>Alt + S</shortcut></span></li>
         </ul>
       </li>
       <li name="preview"><span>Preview</span>
         <ul>
-          <li name="showwindow"><span>Show Window</span></li>
-          <li name="reloadwindow"><span>Reload Window</span></li>
+          <li name="showreload"><span>Show/Reload<shortcut>Cmd + Shift + P</shortcut></span></li>
         </ul>
       </li>
     </ul>
