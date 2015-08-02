@@ -63,11 +63,6 @@ nav#hud{
       }
 
       &:hover{
-        > span{
-          background-color:#fff;
-          color:#000;
-        }
-
         > ul{
           display:block;
         }
@@ -105,6 +100,12 @@ nav#hud{
       line-height:$h-hud;
       display:inline-block;
 
+      &:hover{
+        > span{
+          color:red;
+        }
+      }
+
       > span{
         padding:0 1rem;
       }
@@ -121,10 +122,17 @@ nav#hud{
 
     li.lvl1{
       display:block;
+
       > span{
         font-size:($fs-hud*.85);
         line-height:130%;
         padding:.2rem 1rem;
+      }
+
+      &:hover{
+        > span{
+          background-color:#424242;
+        }
       }
     }
     li.lvl1:last-child{
