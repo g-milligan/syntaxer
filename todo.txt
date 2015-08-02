@@ -31,13 +31,14 @@
 - XXX shortcut key for pack project
 - XXX list shortuct keys next to menu item
 - XXX flash message to indicate packed project
+- XXX prevent closing without saving or packing the project
 
 - Recent projects (listed in the open project dialog box)
-  - limit the number of projects to 100
+  - XXX limit the number of projects to 100
   - remove projects from list if they don't exist anymore (or indicate that they are missing)
   - update the number of hours spent on the project
 
-- prevent closing without saving or packing the project
+
 
 
 

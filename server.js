@@ -259,6 +259,45 @@ if(file!==undefined&&file.trim().length>0){
         }
         return qs;
       };
+      //remove project from recent_projects.json
+      var removeRecentProject=function(json, projKey){
+        var path, id;
+        //if project id was provided
+        if(!isNaN(parseInt(projKey))){
+          if(json.id.hasOwnProperty(projKey)){
+            path=json.id[projKey];
+          }
+        //project path provided
+        }else if(typeof projKey==='string'){
+          path=projKey;
+        }
+        if(path!=undefined){
+          if(json.path.hasOwnProperty(path)){
+            var id=json.path[path];
+            //remove path:id property
+            delete json.path[path];
+            //clean this project's data from the in_order arrays
+            for(orderKey in json.in_order){
+              if(json.in_order.hasOwnProperty(orderKey)){
+                var indexOfId=json.in_order[orderKey].indexOf(id);
+                if(indexOfId!==-1){
+                  //remove this id from its current position in this in_order array
+                  json.in_order[orderKey].splice(indexOfId, 1);
+                }
+              }
+            }
+            if(json.data.hasOwnProperty(id)){
+              //remove data:id property
+              delete json.data[id];
+            }
+            if(json.id.hasOwnProperty(id)){
+              //remove id:path property
+              delete json.id[id];
+            }
+          }
+        }
+        return json;
+      };
       //update the recent projects data, given the project path
       var updateRecentProjects=function(projPath, args){
         if(args!=undefined){
@@ -302,8 +341,30 @@ if(file!==undefined&&file.trim().length>0){
                     };
                     //if the project's basic data is not already initialized
                     if(!json.path.hasOwnProperty(projPath)){
+                      var maxProjects=100;
                       //get a new unique id for this project
                       var newId=Object.keys(json.id).length+1;
+                      //if there are more than maxProjects
+                      if(newId>maxProjects){
+                        //remove the excess number of projects
+                        var lowestDeletedId=-1;
+                        var excessNum=newId-maxProjects;
+                        for(var e=0;e<excessNum;e++){
+                          //remove recent project (project that was opened the longest time ago)
+                          var removeProjId=json.in_order.open[0];
+                          json=removeRecentProject(json, removeProjId);
+                          if(e===0 || lowestDeletedId>removeProjId){
+                            //instead of going to a higher project id, recycle this old id
+                            lowestDeletedId=removeProjId;
+                          }
+                          writeToFile=true;
+                        }
+                        if(lowestDeletedId>-1){
+                          //instead of going to a higher project id, recycle this old lower id
+                          newId=lowestDeletedId;
+                        }
+                      }
+                      //make sure the new id is unique
                       while(json.id.hasOwnProperty(newId)){ newId++; }
                       //init the new project's data (if the path ever changes, have to update the path in two places inside recent_projects.json)
                       json.id[newId]=projPath;

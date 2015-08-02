@@ -21,7 +21,7 @@ function loadPreviewIFrame(callback){
                 bodyElem.prepend('<iframe id="preview-index-iframe" src="'+json['href']+'"></iframe>');
                 var iframe=bodyElem.children('iframe#preview-index-iframe:first');
                 iframe.error(function(){
-
+                  oops('The preview-index-iframe, used to provide access to autocomplete data elements, failed to load.');
                 });
                 iframe.load(function(){
                   //callback function (if any provided)

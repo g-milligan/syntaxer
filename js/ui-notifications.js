@@ -1,3 +1,4 @@
+//close a popup note (similar to an alert)
 function hideNote(noteWraps){
   if(noteWraps.length>0){
     //transition fade out for the wrap
@@ -12,6 +13,7 @@ function hideNote(noteWraps){
     },300);
   }
 }
+//show a popup note (similar to an alert)
 function showNote(args){
   if(args!=undefined){
     if(args.hasOwnProperty('id')){
@@ -110,6 +112,7 @@ function showNote(args){
     }
   }
 }
+//the oops function can be used to display error messages returned from ajax requests
 function oops(msg){
   if(msg!=undefined && msg.length>0 && msg!=='ok'){
     msg=msg.replace(/</g, '&lt;'); msg=msg.replace(/>/g, '&gt;');

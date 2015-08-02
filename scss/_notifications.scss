@@ -39,7 +39,7 @@ $h-note-btns: 3rem;
 
   .notification.hasBtns{
     min-height: ($h-note-btns * 4);
-    
+
     .content{
       @include borderbox();
       position:absolute;
@@ -63,6 +63,7 @@ $h-note-btns: 3rem;
         background-color: #6F6F6F;
         box-shadow: inset 0 0 1rem rgba(0,0,0,.6);
         padding: 0 2.5rem;
+        margin: 0 .5rem;
         border-radius: .5rem;
         text-shadow: -1px 2px 3px rgba(0,0,0,.8);
         font-size: 1rem;

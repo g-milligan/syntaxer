@@ -378,6 +378,39 @@
       },1000);
     });
   }
+  //make sure there are no unsaved changes before closing or leaving the page
+  function beforeExitSyntaxer(e){
+    var bodyElem=jQuery('body:first');
+    //if the preview hasn't been updated with all of the changes
+    var msg, msgStart='Close without saving? \n', msgPreview=' - Forget saving preview? \n', msgPack=' - Forget saving/packing project? \n';
+    if(bodyElem.hasClass('has-changes')){
+      msg=msgStart+msgPreview+msgPack;
+    //if the project file hasn't been updated with all of the changes
+    }else if(bodyElem.hasClass('pending-pack')){
+      msg=msgStart+msgPack;
+    }
+    //if there are any unsaved changes that need saving
+    if(msg!=undefined && msg.length>0){
+      //show option to pack
+      showNote({
+        id:'pack-project-before-leave',
+        content:'Pack project? <br />This will save all changes.',
+        btns:{
+          ok:{
+            text:'OK',
+            action:function(){
+              packProject();
+            }
+          },
+          cancel:{
+            text:'Cancel'
+          }
+        }
+      });
+    }
+    return msg;
+  }
+  //main entry point init
   function initSyntaxer(){
     initHud();
     openProjectFile();
@@ -387,7 +420,7 @@
   }
 </script>
 </head>
-<body id="body" onload="javascript:initSyntaxer();">
+<body id="body" onload="javascript:initSyntaxer();" onbeforeunload="javascript:return beforeExitSyntaxer(event);">
   <section id="file-content"></section>
   <section id="hints-info">
     <div class="info-title"></div>
@@ -516,6 +549,6 @@
   </section>
 
   <section id="notifications"></section>
-  
+
 </body>
 </html>
