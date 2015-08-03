@@ -35,8 +35,9 @@
 
 - Recent projects (listed in the open project dialog box)
   - XXX limit the number of projects to 100
-  - remove projects from list if they don't exist anymore (or indicate that they are missing)
   - update the number of hours spent on the project
+  - remove projects from list if they don't exist anymore (or indicate that they are missing)
+
 
 
 

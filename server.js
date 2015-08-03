@@ -24,6 +24,17 @@ var app = express();
 var fs = require('fs');
 var bodyParser = require('body-parser'); //required for json post handling
 
+//function to get a date string
+var getDateStr=function(date){
+  if(date==undefined){ date=new Date(); }
+  var y=date.getFullYear()+'.';
+  var m=(date.getMonth()+1)+'.';
+  var d=date.getDate()+'.';
+  var h=date.getHours()+'.';
+  var min=date.getMinutes()+'.';
+  var s=date.getSeconds()+'';
+  return y+m+d+h+min+s;
+};
 var getDefaultTemplateHtml=function(title){
   if(title==undefined){title='[new project]';}
   var html='';
@@ -328,17 +339,6 @@ if(file!==undefined&&file.trim().length>0){
                 if(json.hasOwnProperty('in_order')){
                   if(json.hasOwnProperty('data')){
                     var writeToFile=false;
-                    //function to get a date string
-                    var getDateStr=function(date){
-                      if(date==undefined){ date=new Date(); }
-                      var y=date.getFullYear()+'.';
-                      var m=(date.getMonth()+1)+'.';
-                      var d=date.getDate()+'.';
-                      var h=date.getHours()+'.';
-                      var min=date.getMinutes()+'.';
-                      var s=date.getSeconds()+'';
-                      return y+m+d+h+min+s;
-                    };
                     //if the project's basic data is not already initialized
                     if(!json.path.hasOwnProperty(projPath)){
                       var maxProjects=100;
@@ -1262,6 +1262,7 @@ if(file!==undefined&&file.trim().length>0){
                 }
                 filesJson[templateKey]['content']=html;
                 resJson['files']=filesJson;
+                resJson['timestamp']=getDateStr();
                 resJson['status']='ok';
               }else{
                 //project data not in the file
@@ -1282,6 +1283,7 @@ if(file!==undefined&&file.trim().length>0){
             filesJson[templateKey]={path:'[template]',content:content};
             resJson['name']=defaultName;
             resJson['files']=filesJson;
+            resJson['timestamp']=getDateStr();
             resJson['status']='ok';
             //send project data back to the page
             res.send(JSON.stringify(resJson));

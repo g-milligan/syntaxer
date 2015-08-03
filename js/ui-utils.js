@@ -284,3 +284,14 @@ function getFileContents(json){
   }
   return data;
 }
+//function to get a date string
+function getDateStr(date){
+  if(date==undefined){ date=new Date(); }
+  var y=date.getFullYear()+'.';
+  var m=(date.getMonth()+1)+'.';
+  var d=date.getDate()+'.';
+  var h=date.getHours()+'.';
+  var min=date.getMinutes()+'.';
+  var s=date.getSeconds()+'';
+  return y+m+d+h+min+s;
+}

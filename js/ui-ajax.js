@@ -66,6 +66,10 @@ function openProjectFile(){
             }
           }
         }
+        //mark the time that the project was opened
+        if(json.hasOwnProperty('timestamp')){
+          jQuery('body:first').attr('open_time', json['timestamp']);
+        }
       }else{
         //returned errors... show error message
         oops(json['status']);
