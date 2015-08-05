@@ -115,6 +115,7 @@ function showNote(args){
 //the oops function can be used to display error messages returned from ajax requests
 function oops(msg){
   if(msg!=undefined && msg.length>0 && msg!=='ok'){
+    console.log('Oops: '+msg);
     msg=msg.replace(/</g, '&lt;'); msg=msg.replace(/>/g, '&gt;');
     showNote({
       id:'oops-message',

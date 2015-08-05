@@ -35,6 +35,22 @@ var getDateStr=function(date){
   var s=date.getSeconds()+'';
   return y+m+d+h+min+s;
 };
+var getDateFromStr=function(str){
+  var date;
+  if(str!=undefined){
+    if(str.length>0){
+      if(str.indexOf('.')!==-1){
+        var parts=str.split('.');
+        if(parts.length===6){
+          var y=parseInt(parts[0]); var m=parseInt(parts[1]); var d=parseInt(parts[2]);
+          var h=parseInt(parts[3]); var min=parseInt(parts[4]); var s=parseInt(parts[5]);
+          date=new Date(y, m, d, h, min, s, 0);
+        }
+      }
+    }
+  }
+  return date;
+};
 var getDefaultTemplateHtml=function(title){
   if(title==undefined){title='[new project]';}
   var html='';
@@ -232,6 +248,7 @@ if(file!==undefined&&file.trim().length>0){
       var url='http://' + host + ':' + port + openFile;
 
       var templateKey='_.html';
+      var openTimestamp;
 
       //function that makes sure ajax requests came from this same page
       var isSameHost=function(testUrl){
@@ -311,7 +328,9 @@ if(file!==undefined&&file.trim().length>0){
       };
       //update the recent projects data, given the project path
       var updateRecentProjects=function(projPath, args){
+        var ret='error, args is undefined';
         if(args!=undefined){
+          ret='error, args.type is undefined';
           if(args.hasOwnProperty('type')){
             if(!fs.existsSync('./state/')){
               //create state directory
@@ -333,6 +352,7 @@ if(file!==undefined&&file.trim().length>0){
               }
             };
             //if there is a path property in this json
+            ret='error, recent_projects.json is malformed with one or more missing properties';
             if(json.hasOwnProperty('path')){
               //if there is an id property in this json
               if(json.hasOwnProperty('id')){
@@ -341,80 +361,117 @@ if(file!==undefined&&file.trim().length>0){
                     var writeToFile=false;
                     //if the project's basic data is not already initialized
                     if(!json.path.hasOwnProperty(projPath)){
-                      var maxProjects=100;
-                      //get a new unique id for this project
-                      var newId=Object.keys(json.id).length+1;
-                      //if there are more than maxProjects
-                      if(newId>maxProjects){
-                        //remove the excess number of projects
-                        var lowestDeletedId=-1;
-                        var excessNum=newId-maxProjects;
-                        for(var e=0;e<excessNum;e++){
-                          //remove recent project (project that was opened the longest time ago)
-                          var removeProjId=json.in_order.open[0];
-                          json=removeRecentProject(json, removeProjId);
-                          if(e===0 || lowestDeletedId>removeProjId){
-                            //instead of going to a higher project id, recycle this old id
-                            lowestDeletedId=removeProjId;
+                      //should not have to create a new project and update the time it has been open at the same time
+                      if(args.type!=='update_open_time'){
+                        var maxProjects=100;
+                        //get a new unique id for this project
+                        var newId=Object.keys(json.id).length+1;
+                        //if there are more than maxProjects
+                        if(newId>maxProjects){
+                          //remove the excess number of projects
+                          var lowestDeletedId=-1;
+                          var excessNum=newId-maxProjects;
+                          for(var e=0;e<excessNum;e++){
+                            //remove recent project (project that was opened the longest time ago)
+                            var removeProjId=json.in_order.open[0];
+                            json=removeRecentProject(json, removeProjId);
+                            if(e===0 || lowestDeletedId>removeProjId){
+                              //instead of going to a higher project id, recycle this old id
+                              lowestDeletedId=removeProjId;
+                            }
+                            writeToFile=true;
                           }
+                          if(lowestDeletedId>-1){
+                            //instead of going to a higher project id, recycle this old lower id
+                            newId=lowestDeletedId;
+                          }
+                        }
+                        //make sure the new id is unique
+                        while(json.id.hasOwnProperty(newId)){ newId++; }
+                        //init the new project's data (if the path ever changes, have to update the path in two places inside recent_projects.json)
+                        json.id[newId]=projPath;
+                        json.path[projPath]=newId;
+                        //init the ordered list of events like create, modify
+                        json.in_order.create.push(newId);
+                        json.in_order.modify.push(newId);
+                        //init the primary data property for this project
+                        var currentDate=getDateStr();
+                        json.data[newId]={create:currentDate,modify:currentDate,opens:0,open_time_hours:0};
+                        //write this data
+                        writeToFile=true;
+                      }
+                    }
+                    //if this project is in the data
+                    ret='error, recent_projects.json doesn\'t contain data for the path, '+projPath;
+                    if(json.path.hasOwnProperty(projPath)){
+                      //get the project id
+                      var projId=json.path[projPath];
+                      //function to update something in an in_order list
+                      var updateOrder=function(which){
+                        if(json.in_order.hasOwnProperty(which)){
+                          //if this project id is already in the ordered array
+                          var indexOfId=json.in_order[which].indexOf(projId);
+                          if(indexOfId!==-1){
+                            //remove this id from its current position
+                            json.in_order[which].splice(indexOfId, 1);
+                          }
+                          //add this project id to the end of the ordered list of ids
+                          json.in_order[which].push(projId);
+                        }
+                      }
+                      //depending on the type of update
+                      switch(args.type){
+                        case 'open': //update this project as recently opened
+                          //update the order in which this project was opened
+                          updateOrder('open');
+                          json.data[projId]['opens']++;
                           writeToFile=true;
-                        }
-                        if(lowestDeletedId>-1){
-                          //instead of going to a higher project id, recycle this old lower id
-                          newId=lowestDeletedId;
-                        }
+                          break;
+                        case 'update_open_time': //update the time tracking for this project being open
+                          ret='error, must specify args.open_time';
+                          if(args.hasOwnProperty('open_time')){
+                            //get the number of hours so far
+                            var hoursSoFar=json.data[projId]['open_time_hours'];
+                            hoursSoFar=parseFloat(hoursSoFar);
+                            //get date strings
+                            var open_time=args['open_time'];
+                            var current_time=getDateStr();
+                            //get date objects
+                            var openDate=getDateFromStr(open_time);
+                            var currentDate=getDateFromStr(current_time);
+                            //figure out the number of hours between the two dates
+                            var hours = Math.abs(currentDate - openDate) / 36e5;
+                            //add the number of hours to the total
+                            hoursSoFar+=hours;
+                            //round to four decimal places
+                            hoursSoFar=Math.round(hoursSoFar*10000)/10000;
+                            //update the number of hours
+                            json.data[projId]['open_time_hours']=hoursSoFar;
+                            writeToFile=true;
+                          }
+                          break;
+                        case 'modify':
+                          //update the order in which this project was modified
+                          updateOrder('modify');
+                          json.data[projId]['modify']=getDateStr();
+                          writeToFile=true;
+                          break;
+                        default:
+                          ret='error, unkown action type, '+args.type;
+                          break;
                       }
-                      //make sure the new id is unique
-                      while(json.id.hasOwnProperty(newId)){ newId++; }
-                      //init the new project's data (if the path ever changes, have to update the path in two places inside recent_projects.json)
-                      json.id[newId]=projPath;
-                      json.path[projPath]=newId;
-                      //init the ordered list of events like create, modify
-                      json.in_order.create.push(newId);
-                      json.in_order.modify.push(newId);
-                      //init the primary data property for this project
-                      var currentDate=getDateStr();
-                      json.data[newId]={create:currentDate,modify:currentDate,opens:0,open_time_hours:0};
-                      //write this data
-                      writeToFile=true;
-                    }
-                    //get the project id
-                    var projId=json.path[projPath];
-                    //function to update something in an in_order list
-                    var updateOrder=function(which){
-                      if(json.in_order.hasOwnProperty(which)){
-                        //if this project id is already in the ordered array
-                        var indexOfId=json.in_order[which].indexOf(projId);
-                        if(indexOfId!==-1){
-                          //remove this id from its current position
-                          json.in_order[which].splice(indexOfId, 1);
-                        }
-                        //add this project id to the end of the ordered list of ids
-                        json.in_order[which].push(projId);
+                      if(writeToFile){
+                        writeToDataFile(json);
+                        ret='ok';
                       }
                     }
-                    //depending on the type of update
-                    switch(args.type){
-                      case 'open': //update this project as recently opened
-                        //update the order in which this project was opened
-                        updateOrder('open');
-                        json.data[projId]['opens']++;
-                        writeToFile=true;
-                        break;
-                      case 'modify':
-                        //update the order in which this project was modified
-                        updateOrder('modify');
-                        json.data[projId]['modify']=getDateStr();
-                        writeToFile=true;
-                        break;
-                    }
-                    if(writeToFile){ writeToDataFile(json); }
                   }
                 }
               }
             }
           }
         }
+        return ret;
       };
       //create the preview index.html file
       var setPreviewIndexHtml=function(html){
@@ -882,6 +939,11 @@ if(file!==undefined&&file.trim().length>0){
                             if(doCreateData){
                               //create the file with the possibly modified contents
                               fs.writeFileSync(path+'/'+file, newHtml);
+                              //if there is a listed open timestamp (should be)
+                              if(createData.hasOwnProperty('open_time')){ //the original time the blank project was opened
+                                //save the open_time so it can be accessed when the newly saved file is opened
+                                openTimestamp=createData['open_time'];
+                              }
                               resJson['status']='ok';
                             //if creating a new project from an existing project (save-as)
                             }else if(fromFile.length>0){
@@ -1092,7 +1154,23 @@ if(file!==undefined&&file.trim().length>0){
           res.send(JSON.stringify(resJson));
         }
       });
-      //request to save project changes
+      //request to update the estimated amount of time that the project has been open in a browser
+      app.post('/update-project-time-open', function(req, res){
+        var fromUrl=req.headers.referer;
+        //if the request came from this local site
+        if(isSameHost(fromUrl)){
+          var resJson={status:'error, no initial path provided'};
+          if(req.body.hasOwnProperty('path')){
+            if(req.body.hasOwnProperty('open_time')){
+              resJson['status']=updateRecentProjects(req.body['path'], {type:'update_open_time', open_time:req.body['open_time']});
+            }else{
+              resJson['status']='error, no start time, open_time, specified';
+            }
+          }
+          res.send(JSON.stringify(resJson));
+        }
+      });
+      //request to browse file system
       app.post('/browse-project-files', function(req, res){
         var fromUrl=req.headers.referer;
         //if the request came from this local site
@@ -1262,7 +1340,14 @@ if(file!==undefined&&file.trim().length>0){
                 }
                 filesJson[templateKey]['content']=html;
                 resJson['files']=filesJson;
-                resJson['timestamp']=getDateStr();
+                //if this file is being opened now (not already open as an unsaved new file)
+                if(openTimestamp==undefined){
+                  resJson['open_time']=getDateStr();
+                }else{
+                  //there is a cached open_time for this file (already opened as an unsaved file)
+                  resJson['open_time']=openTimestamp;
+                  openTimestamp=undefined;
+                }
                 resJson['status']='ok';
               }else{
                 //project data not in the file
@@ -1283,7 +1368,7 @@ if(file!==undefined&&file.trim().length>0){
             filesJson[templateKey]={path:'[template]',content:content};
             resJson['name']=defaultName;
             resJson['files']=filesJson;
-            resJson['timestamp']=getDateStr();
+            resJson['open_time']=getDateStr();
             resJson['status']='ok';
             //send project data back to the page
             res.send(JSON.stringify(resJson));

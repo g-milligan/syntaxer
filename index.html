@@ -380,33 +380,43 @@
   }
   //make sure there are no unsaved changes before closing or leaving the page
   function beforeExitSyntaxer(e){
-    var bodyElem=jQuery('body:first');
-    //if the preview hasn't been updated with all of the changes
-    var msg, msgStart='Close without saving? \n', msgPreview=' - Forget saving preview? \n', msgPack=' - Forget saving/packing project? \n';
-    if(bodyElem.hasClass('has-changes')){
-      msg=msgStart+msgPreview+msgPack;
-    //if the project file hasn't been updated with all of the changes
-    }else if(bodyElem.hasClass('pending-pack')){
-      msg=msgStart+msgPack;
-    }
-    //if there are any unsaved changes that need saving
-    if(msg!=undefined && msg.length>0){
-      //show option to pack
-      showNote({
-        id:'pack-project-before-leave',
-        content:'Pack project? <br />This will save all changes.',
-        btns:{
-          ok:{
-            text:'OK',
-            action:function(){
-              packProject();
+    var msg, qs=getQs();
+    //if this is a saved file (on disk)
+    if(qs.hasOwnProperty('file')){
+      //update the estimated time the project has been open
+      updateProjectTimeOpen();
+      //get the body element
+      var bodyElem=jQuery('body:first');
+      //if the preview hasn't been updated with all of the changes
+      var msgStart='Close without saving? \n', msgPreview=' - Forget saving preview? \n', msgPack=' - Forget saving/packing project? \n';
+      if(bodyElem.hasClass('has-changes')){
+        msg=msgStart+msgPreview+msgPack;
+      //if the project file hasn't been updated with all of the changes
+      }else if(bodyElem.hasClass('pending-pack')){
+        msg=msgStart+msgPack;
+      }
+      //if there are any unsaved changes that need saving
+      if(msg!=undefined && msg.length>0){
+        //show option to pack
+        showNote({
+          id:'pack-project-before-leave',
+          content:'Pack project? <br />This will save all changes.',
+          btns:{
+            ok:{
+              text:'OK',
+              action:function(){
+                packProject();
+              }
+            },
+            cancel:{
+              text:'Cancel'
             }
-          },
-          cancel:{
-            text:'Cancel'
           }
-        }
-      });
+        });
+      }
+    //if file not saved to disk yet
+    }else if(qs.hasOwnProperty('dir')){
+
     }
     return msg;
   }

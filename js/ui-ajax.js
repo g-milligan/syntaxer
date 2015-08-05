@@ -41,6 +41,45 @@ function loadPreviewIFrame(callback){
     }
   }
 }
+//update the estimated amount of time this project has been open
+function updateProjectTimeOpen(callback){
+  //if the preview index iframe hasn't already been created
+  var bodyElem=jQuery('body:first');
+  var open_time=bodyElem.attr('open_time'); if(open_time==undefined){ open_time=''; }
+  if(open_time.length>0){
+    var temLi=getTemplateTabLi();
+    if(temLi.length>0){
+      var path=temLi.attr('path'); if(path==undefined){path='';}
+      if(path.length>0){
+        // construct an HTTP request
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/update-project-time-open', true);
+        xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+        xhr.onloadend=function(res){
+          //if the server responded with ok status
+          var res=JSON.parse(this.responseText);
+          if(res.status==='ok'){
+            if(json.hasOwnProperty('open_time')){
+              //set the updated open time
+              var bodyElem=jQuery('body:first');
+              bodyElem.attr('open_time', json['open_time']);
+              //callback, if any
+              if(callback!=undefined){
+                callback(res);
+              }
+            }
+          }else{
+            //returned errors... show error message
+            oops(json['status']);
+          }
+        }
+        // send the collected data as JSON
+        var send={path:path ,open_time:open_time};
+        xhr.send(JSON.stringify(send));
+      }
+    }
+  }
+}
 function openProjectFile(){
   var xmlhttp = new XMLHttpRequest();
   xmlhttp.onreadystatechange=function(){
@@ -67,8 +106,8 @@ function openProjectFile(){
           }
         }
         //mark the time that the project was opened
-        if(json.hasOwnProperty('timestamp')){
-          jQuery('body:first').attr('open_time', json['timestamp']);
+        if(json.hasOwnProperty('open_time')){
+          jQuery('body:first').attr('open_time', json['open_time']);
         }
       }else{
         //returned errors... show error message

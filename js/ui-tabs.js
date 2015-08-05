@@ -879,6 +879,13 @@ function getUnsavedTabChangesData(){
       //make sure and save the template file content
       var tabLi=getTemplateTabLi();
       addFileContent(tabLi);
+      //get the timestamp that this new project was opened
+      var openTime=bodyElem.attr('open_time');
+      if(openTime!=undefined){
+        if(openTime.length>0){
+          saveData['open_time']=openTime;
+        }
+      }
     }
     //each tab that's been removed
     jQuery('nav#tabs ul li.removed-tab[path]').each(function(){
