@@ -252,12 +252,56 @@ function updateRecentProjectListing(){
                   if(data['recent_projects'].hasOwnProperty('in_order')){
                     //link the recent projects data to this lightbox
                     box[0]['recentProjectsData']=data['recent_projects'];
+                    var pathHierarchy={}, repeatFNames=[], html='', projIndex=0;
                     //for each recent project
                     for(projId in box[0]['recentProjectsData']['id']){
                       if(box[0]['recentProjectsData']['id'].hasOwnProperty(projId)){
                         var projPath=box[0]['recentProjectsData']['id'][projId];
-                        console.log(projPath); //***
+                        //put the path into pathHierarchy
+                        var pathsArray=projPath.split('/'), levelJson=pathHierarchy, isFName=true, fname;
+                        for(var p=pathsArray.length-1;p>-1;p--){
+                          var path=pathsArray[p];
+                          if(path.length>0){
+                            if(!levelJson.hasOwnProperty(path)){
+                              levelJson[path]={};
+                            }else{
+                              //this path dir appears more than once... if this is a repeat file name
+                              if(isFName){
+                                repeatFNames.push(path);
+                              }
+                            }
+                            levelJson=levelJson[path];
+                            if(isFName){ fname=path; }
+                            isFName=false;
+                          }
+                        }
+                        //put the html into the page
+                        html+='<div class="recent-project" name="'+fname+'">'; //start div.recent-project
+                        html+='<div class="lbl"><div class="num">'+(projIndex+1)+'</div><div class="check"></div></div>';
+                        html+='<div class="pane">'; //start div.pane
+                        html+='<div class="title" title="'+projPath+'">'; //start div.title
+                        html+='<div class="unique-name">'+fname+'</div>';
+                        html+='<div class="open-btn">'+svgOpen+'</div>';
+                        html+='</div>'; //end div.title
+                        html+='<div class="data">'; //start div.data
+                        //***
+                        html+='</div>'; //end div.data
+                        html+='</div>'; //end div.pane
+                        html+='</div>'; //end div.recent-project
+                        //next project index
+                        projIndex++;
                       }
+                    }
+                    //if there are any recent projects in the list
+                    if(html.length>0){
+                      //indicate with a class (allows space for filter controls)
+                      recentProjWrap.addClass('has-projects');
+                      //set the project list items in the scroll area
+                      scrollWrap.html(html);
+                      //for each recent project
+                      scrollWrap.children('.recent-project').each(function(){
+                        //***
+                      });
                     }
                   }
                 }
