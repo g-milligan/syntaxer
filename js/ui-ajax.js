@@ -239,11 +239,32 @@ function requestProjectFiles(callback,requestedPath){
       //if the server responded with ok status
       var res=JSON.parse(this.responseText);
       callback(res);
+      //show error message if something went wrong
+      if(res['status']!=='ok'){
+        oops(res['status']);
+      }
     };
     if(requestedPath==undefined){
       requestedPath='';
     }
     var send={path:requestedPath};
+    // send the collected data as JSON
+    xhr.send(JSON.stringify(send));
+  }
+}
+//request the recent projects json data
+function requestRecentProjectsData(callback){
+  if(callback!=undefined){
+    // construct an HTTP request
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/request-recent-projects-data', true);
+    xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+    xhr.onloadend=function(res){
+      //if the server responded with ok status
+      var res=JSON.parse(this.responseText);
+      callback(res);
+    };
+    var send={};
     // send the collected data as JSON
     xhr.send(JSON.stringify(send));
   }

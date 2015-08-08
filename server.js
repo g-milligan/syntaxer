@@ -557,6 +557,27 @@ if(file!==undefined&&file.trim().length>0){
           res.send(JSON.stringify(resJson));
         }
       });
+      //request to delete a file or folder
+      app.post('/request-recent-projects-data', function(req, res){
+        var fromUrl=req.headers.referer;
+        //if the request came from this local site
+        if(isSameHost(fromUrl)){
+          var resJson={status:'error, recent_projects.json data doesn\'t exist'};
+          if(fs.existsSync('./state/recent_projects.json')){
+            //read the existing file contents
+            var jsonStr=fs.readFileSync('./state/recent_projects.json', 'utf8');
+            var json=JSON.parse(jsonStr);
+            //make the data smaller by removing redundant path.id association
+            if(json.hasOwnProperty('path')){
+              delete json['path'];
+            }
+            //set the projects' data
+            resJson['recent_projects']=json;
+            resJson['status']='ok';
+          }
+          res.send(JSON.stringify(resJson));
+        }
+      });
       //request to pack project changes (write preview file over original project file)
       app.post('/pack-project', function(req, res){
         var fromUrl=req.headers.referer;

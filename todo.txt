@@ -38,6 +38,11 @@
   - XXX update the number of hours spent on the project
   - remove projects from list if they don't exist anymore (or indicate that they are missing)
 
+- Handle notifications that appear on top of each other. They should wait their turn so the first has time to fade out. (array of pending notes to show?)
+- Command+F text search
+- Syntax detection _complete (don't end a parameter with a nested comma, eg: ",")
+- Project Stats in the project menu, created, modified, time open, etc...
+
 
 
 

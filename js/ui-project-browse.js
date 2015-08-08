@@ -232,6 +232,43 @@ function toggleBrowseOpenButton(liClick){
   }
   return openBtn;
 }
+//show the recent projects listing
+function updateRecentProjectListing(){
+  var box=jQuery('body section#lightbox .box.open:first');
+  //if the recent projects data hasn't already been linked to this lightbox
+  if(!box[0].hasOwnProperty('recentProjectsData')){
+    var recentProjWrap=box.find('.box-content .recent-projects:first');
+    //if a lightbox, that has recent projects, is open
+    if(recentProjWrap.length>0){
+      var scrollWrap=recentProjWrap.find('.scroll:first');
+      //if the recent projects are not already loaded
+      if(scrollWrap.find('p.msg.no-recent:first').length>0){
+        //request the recent projects' data
+        requestRecentProjectsData(function(data){
+          if(data['status']==='ok'){
+            if(data.hasOwnProperty('recent_projects')){
+              if(data['recent_projects'].hasOwnProperty('id')){
+                if(data['recent_projects'].hasOwnProperty('data')){
+                  if(data['recent_projects'].hasOwnProperty('in_order')){
+                    //link the recent projects data to this lightbox
+                    box[0]['recentProjectsData']=data['recent_projects'];
+                    //for each recent project
+                    for(projId in box[0]['recentProjectsData']['id']){
+                      if(box[0]['recentProjectsData']['id'].hasOwnProperty(projId)){
+                        var projPath=box[0]['recentProjectsData']['id'][projId];
+                        console.log(projPath); //***
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+}
 //update the browse path for the project browse dialag box
 function updateProjectBrowse(path,okButtonAction){
   if(path==undefined){path='';}
@@ -332,6 +369,8 @@ function updateProjectBrowse(path,okButtonAction){
       }else{
         scrollWrap.html('<p class="msg">folder empty...</p>');
       }
+      //populate the recent projects, if not already populated
+      updateRecentProjectListing();
     }else{
       //something wrong with the data.status
       navBarInput.addClass('err-path');
