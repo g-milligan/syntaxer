@@ -33,10 +33,11 @@
 - XXX flash message to indicate packed project
 - XXX prevent closing without saving or packing the project
 
-- Recent projects (listed in the open project dialog box)
+- XXX Recent projects (listed in the open project dialog box)
   - XXX limit the number of projects to 100
   - XXX update the number of hours spent on the project
-  - remove projects from list if they don't exist anymore (or indicate that they are missing)
+  - XXX remove projects from list if they don't exist anymore (or indicate that they are missing)
+  - recent projects search filtering and order by
 
 - Handle notifications that appear on top of each other. They should wait their turn so the first has time to fade out. (array of pending notes to show?)
 - Command+F text search

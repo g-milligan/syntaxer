@@ -1,3 +1,4 @@
+var noRecentProjectsHtml;
 //function to scroll a selected browse file li item into view if it's not already in view
 function scrollToBrowseFileLi(li,callback){
   if(li!=undefined){
@@ -252,56 +253,80 @@ function updateRecentProjectListing(){
                   if(data['recent_projects'].hasOwnProperty('in_order')){
                     //link the recent projects data to this lightbox
                     box[0]['recentProjectsData']=data['recent_projects'];
-                    var pathHierarchy={}, repeatFNames=[], html='', projIndex=0;
+                    var temLi=getTemplateTabLi(); var currentProjPath=temLi.attr('path');
+                    var html='', projIndex=0;
                     //for each recent project
                     for(projId in box[0]['recentProjectsData']['id']){
                       if(box[0]['recentProjectsData']['id'].hasOwnProperty(projId)){
                         var projPath=box[0]['recentProjectsData']['id'][projId];
-                        //put the path into pathHierarchy
-                        var pathsArray=projPath.split('/'), levelJson=pathHierarchy, isFName=true, fname;
-                        for(var p=pathsArray.length-1;p>-1;p--){
-                          var path=pathsArray[p];
-                          if(path.length>0){
-                            if(!levelJson.hasOwnProperty(path)){
-                              levelJson[path]={};
-                            }else{
-                              //this path dir appears more than once... if this is a repeat file name
-                              if(isFName){
-                                repeatFNames.push(path);
-                              }
-                            }
-                            levelJson=levelJson[path];
-                            if(isFName){ fname=path; }
-                            isFName=false;
+                        //if this isn't the current open project (current project doesn't show up in recent projects listing)
+                        if(projPath!==currentProjPath){
+                          //get just the file name, no path
+                          var fname=projPath;
+                          if(fname.lastIndexOf('/')!==-1){
+                            fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
                           }
+                          //put the html into the page
+                          html+='<div class="recent-project" name="'+fname+'">'; //start div.recent-project
+                          html+='<div class="lbl"><div class="num">'+(projIndex+1)+'</div><div class="check"></div></div>';
+                          html+='<div class="pane">'; //start div.pane
+                          html+='<div class="title" title="'+projPath+'">'; //start div.title
+                          html+='<div class="unique-name">'+fname+'</div>';
+                          html+='<div class="open-btn">'+svgOpen+'</div>';
+                          html+='</div>'; //end div.title
+                          html+='<div class="data">'; //start div.data
+                          //***
+                          html+='</div>'; //end div.data
+                          html+='</div>'; //end div.pane
+                          html+='</div>'; //end div.recent-project
+                          //next project index
+                          projIndex++;
                         }
-                        //put the html into the page
-                        html+='<div class="recent-project" name="'+fname+'">'; //start div.recent-project
-                        html+='<div class="lbl"><div class="num">'+(projIndex+1)+'</div><div class="check"></div></div>';
-                        html+='<div class="pane">'; //start div.pane
-                        html+='<div class="title" title="'+projPath+'">'; //start div.title
-                        html+='<div class="unique-name">'+fname+'</div>';
-                        html+='<div class="open-btn">'+svgOpen+'</div>';
-                        html+='</div>'; //end div.title
-                        html+='<div class="data">'; //start div.data
-                        //***
-                        html+='</div>'; //end div.data
-                        html+='</div>'; //end div.pane
-                        html+='</div>'; //end div.recent-project
-                        //next project index
-                        projIndex++;
                       }
                     }
                     //if there are any recent projects in the list
                     if(html.length>0){
-                      //indicate with a class (allows space for filter controls)
-                      recentProjWrap.addClass('has-projects');
+                      //save the html that displays when there are no recent projects
+                      if(noRecentProjectsHtml==undefined){
+                        noRecentProjectsHtml=scrollWrap.html();
+                      }
                       //set the project list items in the scroll area
                       scrollWrap.html(html);
                       //for each recent project
                       scrollWrap.children('.recent-project').each(function(){
-                        //***
+                        var divRecentProj=jQuery(this);
+                        var divLbl=divRecentProj.children('.lbl:first');
+                        //select check event
+                        divLbl.click(function(){
+                          //get key elements
+                          var dwrap=jQuery(this).parents('.recent-project:first');
+                          var parentBox=dwrap.parents('.box:first');
+                          var removeBtn=parentBox.find('.box-btns .box-btn.remove-recent:first');
+                          //toggle select class
+                          if(dwrap.hasClass('selected')){ dwrap.removeClass('selected'); }
+                          else{ dwrap.addClass('selected'); }
+                          //if any selected
+                          if(dwrap.parent().children('.selected').length>0){
+                            //remove deselected class from the remove-projects button
+                            removeBtn.removeClass('disabled');
+                          }else{
+                            //add deselected class from the remove-projects button
+                            removeBtn.addClass('disabled');
+                          }
+                        });
+                        var divPane=divRecentProj.children('.pane:first')
+                        var divTitle=divPane.children('.title:first');
+                        //open project event
+                        divTitle.click(function(){
+                          var navPath=sanitizeProjectBrowsePath(jQuery(this).attr('title'));
+                          var parentBox=jQuery(this).parents('.box:first');
+                          var openBtn=parentBox.find('.box-btns .box-btn.open:first');
+                          //browse to the current directory again to refresh
+                          updateProjectBrowse(navPath,openBtn['okButtonAction']);
+                        });
                       });
+                      //set initial order and unique project names, etc...
+                      reorderRecentProjects(scrollWrap);
                     }
                   }
                 }
@@ -673,6 +698,84 @@ function openNewFolderInput(box){
     }
   );
 }
+//reorder the recent projects listing depending on the order, or after items are removed
+function reorderRecentProjects(scrollWrap, orderBy){
+  if(scrollWrap.length>0){
+    //function to check if this project has a unique file name
+    var uniqueNames=[];
+    var checkIfUniqueName=function(recentProjDiv){
+      var nameEl=recentProjDiv.find('.pane .title .unique-name:first');
+      var projName=nameEl.text();
+      if(uniqueNames.indexOf(projName)!==-1){ recentProjDiv.addClass('duplicate-name'); }
+      else{ uniqueNames.push(projName); }
+    };
+    //if there are no recent projects
+    var recentProjDivs=scrollWrap.children('.recent-project');
+    if(recentProjDivs.length<1){
+      //show the no recent projects message
+      scrollWrap.html(noRecentProjectsHtml);
+      //indicate with a class (allows space for filter controls)
+      scrollWrap.parents('.box-col.recent-projects:first').removeClass('has-projects');
+    }else{
+      //there are one or more recent projects...
+      //indicate with a class (allows space for filter controls)
+      scrollWrap.parents('.box-col.recent-projects:first').addClass('has-projects');
+      //if no args to set a specific order
+      if(orderBy==undefined){
+        //make sure the numbering is correct for the existing order
+        recentProjDivs.each(function(i){
+          var numEl=jQuery(this).find('.lbl .num:first');
+          numEl.text((i+1)+'');
+          //indicate duplicate name
+          checkIfUniqueName(jQuery(this));
+        });
+      }else{
+        //order by a specific set of rules, orderBy...
+
+      }
+    }
+    //if there any projects with duplicate listed file names
+    if(scrollWrap.children('.recent-project.duplicate-name').length>0){
+      //use unique names instead of duplicate names, by showing more of the file path
+      scrollWrap.children('.recent-project.duplicate-name').each(function(){
+        jQuery(this).removeClass('duplicate-name');
+        //if not already updated this name
+        if(!jQuery(this).hasClass('updated-name')){
+          var nameEl=jQuery(this).find('.pane .title .unique-name:first');
+          var name=nameEl.text();
+          //find all name elements that contain this text
+          var nameEls=scrollWrap.find('.recent-project .pane .title .unique-name:contains("'+name+'")');
+          nameEls.each(function(){
+            var thisName=jQuery(this).text();
+            if(thisName===name){
+              var titleEl=jQuery(this).parents('.title:first');
+              var uniquePath=titleEl.attr('title'); jQuery(this).attr('name',uniquePath);
+              jQuery(this).addClass('making-unique');
+              titleEl.parents('.recent-project:first').addClass('updated-name');
+            }
+          });
+          //update the text
+          var updateNameEls=scrollWrap.find('.recent-project .pane .title .unique-name.making-unique');
+          updateNameEls.each(function(){
+            jQuery(this).removeClass('making-unique');
+            var fullPath=jQuery(this).attr('name');
+            fullPath=fullPath.split('/'); var uniqueEnd='';
+            //keep adding to the path until it's unique
+            for(var p=fullPath.length-1;p>-1;p--){
+              uniqueEnd='/'+fullPath[p]+uniqueEnd;
+              //if this ending part of the full path is unique
+              if(updateNameEls.filter('[name$="'+uniqueEnd+'"]').length===1){
+                jQuery(this).text(uniqueEnd); break;
+              }
+            }
+          });
+          updateNameEls.attr('name',''); updateNameEls.removeAttr('name');
+        }
+      });
+      scrollWrap.children('.recent-project.updated-name').removeClass('updated-name');
+    }
+  }
+};
 //add the events to nav-bar, project file explorer, open button controls
 function initProjectBrowseEvents(box,okButtonAction){
   var browseWrap=box.find('.box-col.browse:first');
@@ -905,62 +1008,100 @@ function initProjectBrowseEvents(box,okButtonAction){
       } return ret;
     });
     //if this file explorer is in new-file mode
-    if(browseWrap.attr('mode')==='new'){
-      var editBtnsWrap=browseWrap.children('.edit-btns:first');
-      var deleteBtn=editBtnsWrap.children('.edit-btn.delete:first');
-      var newDirBtn=editBtnsWrap.children('.edit-btn.new-folder:first');
-      var newFileInput=editBtnsWrap.find('.edit-input .input input:first');
-      //edit folder structure - button events
-      deleteBtn.click(function(e){
-        if(!jQuery(this).hasClass('disabled')){
-          //alert "are you sure delete"
-          deleteFileOrFolderAlert(box);
-        }
-      });
-      newDirBtn.click(function(e){
-        if(!jQuery(this).hasClass('disabled')){
-          //create new folder
-          openNewFolderInput(box);
-        }
-      });
-      //new file input events
-      newFileInput.blur(function(e){
-        //decide if the open button should be enabled or not
-        toggleBrowseOpenButton();
-      });
-      newFileInput.keyup(function(e){
-        //decide if the open button should be enabled or not
-        toggleBrowseOpenButton();
-      });
-      newFileInput.keydown(function(e){
-        //depending on which key pressed
-        switch(e.keyCode){
-          case 38: //up arrow
-            e.preventDefault(); e.stopPropagation();
-            var nextLi=getArrowNextItem('up'); selectBrowseFileLi(nextLi);
-            break;
-          case 40: //down arrow
-            e.preventDefault(); e.stopPropagation();
-            var nextLi=getArrowNextItem('down'); selectBrowseFileLi(nextLi);
-            break;
-          case 13: //enter key
-            e.preventDefault(); e.stopPropagation();
-            var stat=validateNewProjectNameDialog();
-            if(stat['status']==='ok'){
-              //fire the action event
-              okButtonAction(openBtn);
-            }else{
-              //show the problem status
-              var statMsgWrap=editBtnsWrap.find('.edit-input .status-msg:first');
-              statMsgWrap.addClass('show');
+    var browseModeKey=browseWrap.attr('mode');
+    switch(browseModeKey){
+      case 'new':
+        var editBtnsWrap=browseWrap.children('.edit-btns:first');
+        var deleteBtn=editBtnsWrap.children('.edit-btn.delete:first');
+        var newDirBtn=editBtnsWrap.children('.edit-btn.new-folder:first');
+        var newFileInput=editBtnsWrap.find('.edit-input .input input:first');
+        //edit folder structure - button events
+        deleteBtn.click(function(e){
+          if(!jQuery(this).hasClass('disabled')){
+            //alert "are you sure delete"
+            deleteFileOrFolderAlert(box);
+          }
+        });
+        newDirBtn.click(function(e){
+          if(!jQuery(this).hasClass('disabled')){
+            //create new folder
+            openNewFolderInput(box);
+          }
+        });
+        //new file input events
+        newFileInput.blur(function(e){
+          //decide if the open button should be enabled or not
+          toggleBrowseOpenButton();
+        });
+        newFileInput.keyup(function(e){
+          //decide if the open button should be enabled or not
+          toggleBrowseOpenButton();
+        });
+        newFileInput.keydown(function(e){
+          //depending on which key pressed
+          switch(e.keyCode){
+            case 38: //up arrow
+              e.preventDefault(); e.stopPropagation();
+              var nextLi=getArrowNextItem('up'); selectBrowseFileLi(nextLi);
+              break;
+            case 40: //down arrow
+              e.preventDefault(); e.stopPropagation();
+              var nextLi=getArrowNextItem('down'); selectBrowseFileLi(nextLi);
+              break;
+            case 13: //enter key
+              e.preventDefault(); e.stopPropagation();
+              var stat=validateNewProjectNameDialog();
+              if(stat['status']==='ok'){
+                //fire the action event
+                okButtonAction(openBtn);
+              }else{
+                //show the problem status
+                var statMsgWrap=editBtnsWrap.find('.edit-input .status-msg:first');
+                statMsgWrap.addClass('show');
+              }
+              break;
+            case 27: //esc key
+              e.preventDefault(); e.stopPropagation();
+              jQuery(this).val('');
+              break;
+          }
+        });
+        break;
+      case 'open':
+        var removeBtn=box.find('.box-btns .box-btn.remove-recent:first');
+        //remove recent project button click event
+        removeBtn.click(function(){
+          if(!jQuery(this).hasClass('disabled')){
+            var recentScrollWrap=jQuery(this).parents('.box:first').find('.box-content .box-col.recent-projects .scroll:first');
+            if(recentScrollWrap.length>0){
+              var removePaths=[];
+              recentScrollWrap.children('.recent-project.selected').each(function(){
+                var removePath=jQuery(this).find('.pane .title:first').attr('title');
+                removePaths.push(removePath);
+              });
+              if(removePaths.length>0){
+                //remove the list of selected projects from recent_projects.json
+                removeRecentProjectData(removePaths, function(data){
+                  if(data['status']==='ok'){
+                    //no remove these projects from the UI
+                    recentScrollWrap.children('.recent-project.selected').each(function(){
+                      var removePath=jQuery(this).find('.pane .title:first').attr('title');
+                      //if this path was removed from the .json
+                      if(data['paths'].indexOf(removePath)!==-1){
+                        jQuery(this).addClass('remove-this');
+                      }
+                    });
+                    //remove from recent projects from the ui
+                    recentScrollWrap.children('.remove-this').remove();
+                    //update the numbering
+                    reorderRecentProjects(recentScrollWrap);
+                  }
+                });
+              }
             }
-            break;
-          case 27: //esc key
-            e.preventDefault(); e.stopPropagation();
-            jQuery(this).val('');
-            break;
-        }
-      });
+          }
+        });
+        break;
     }
   }
   //if this file explorer is in new-file mode

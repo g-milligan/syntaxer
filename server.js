@@ -396,7 +396,11 @@ if(file!==undefined&&file.trim().length>0){
                         json.in_order.modify.push(newId);
                         //init the primary data property for this project
                         var currentDate=getDateStr();
-                        json.data[newId]={create:currentDate,modify:currentDate,opens:0,open_time_hours:0};
+                        json.data[newId]={
+                          create:currentDate, modify:currentDate,
+                          last_open:currentDate, opens:0,
+                          open_time_hours:0
+                        };
                         //write this data
                         writeToFile=true;
                       }
@@ -425,6 +429,7 @@ if(file!==undefined&&file.trim().length>0){
                           //update the order in which this project was opened
                           updateOrder('open');
                           json.data[projId]['opens']++;
+                          json.data[projId]['last_open']=getDateStr();
                           writeToFile=true;
                           break;
                         case 'update_open_time': //update the time tracking for this project being open
@@ -518,6 +523,47 @@ if(file!==undefined&&file.trim().length>0){
         }
         return resJson;
       };
+      //check if a file or folder can be deleted
+      app.post('/remove-recent-project-data', function(req, res){
+        var fromUrl=req.headers.referer;
+        //if the request came from this local site
+        if(isSameHost(fromUrl)){
+          var resJson={status:'error, no paths provided',paths:[]};
+          if(req.body.hasOwnProperty('paths')){
+            var paths=req.body.paths;
+            if(fs.existsSync('./state/recent_projects.json')){
+              //read the existing file contents
+              var jsonStr=fs.readFileSync('./state/recent_projects.json', 'utf8');
+              var json=JSON.parse(jsonStr), writeToFile=false;
+              //for each path to remove
+              for(var p=0;p<paths.length;p++){
+                var path=paths[p];
+                if(json.path.hasOwnProperty(path)){
+                  //remove project data
+                  json=removeRecentProject(json, path);
+                  writeToFile=true;
+                  resJson['paths'].push(path);
+                }
+              }
+              //if any paths were removed
+              if(writeToFile){
+                var str=JSON.stringify(json);
+                if(str!=undefined){
+                  fs.writeFileSync('./state/recent_projects.json', str);
+                  resJson['status']='ok';
+                }else{
+                  resJson['status']='error, failed to write malformed json to recent_projects.json';
+                }
+              }else{
+                resJson['status']='error, recent_projects.json doesn\'t contain those paths';
+              }
+            }else{
+              resJson['status']='error, recent_projects.json data file does not exist';
+            }
+          }
+          res.send(JSON.stringify(resJson));
+        }
+      });
       //check if a file or folder can be deleted
       app.post('/is-allowed-delete', function(req, res){
         var fromUrl=req.headers.referer;

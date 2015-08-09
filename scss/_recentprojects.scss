@@ -7,7 +7,7 @@ $h-recent-project-wrap: 4rem;
       position:relative;display:block;height:$h-recent-project-wrap;color:#929292;border:solid 1px #ccc;
 
       .lbl{
-        cursor:pointer;position:absolute;left:0;top:0;bottom:0;width:$w-recent-project-lbl;line-height:($h-recent-project-wrap / 2);@include borderbox();padding:5px;background-color:rgba(0,0,0,.05);text-align:center;border:solid 1px #9E9E9E;border-bottom:none;border-top:none;
+        cursor:pointer;position:absolute;left:0;top:0;bottom:0;width:$w-recent-project-lbl;line-height:($h-recent-project-wrap / 2);@include borderbox();padding:5px;background-color:rgba(0,0,0,.05);text-align:center;border:solid 1px #9E9E9E;border-bottom:none;border-top:none;@include noselect();
 
         .num{
           position:absolute;bottom:0;left:0;right:0;height:50%;@include borderbox();font-family:$f-code;font-size:.8rem;
@@ -15,8 +15,11 @@ $h-recent-project-wrap: 4rem;
         .check{
           position:absolute;top:0;left:0;right:0;height:50%;@include borderbox();padding:6px;
 
+          &:before{
+            content:"";display:block;width:100%;height:100%;@include borderbox();border:solid 1px #9E9E9E;box-shadow:inset 1px -2px 5px rgba(0,0,0,.07);background-color:#E4E4E4;border-radius:0px;
+          }
           &:after{
-            content:"";display:block;width:100%;height:100%;@include borderbox();border:solid 1px #9E9E9E;box-shadow:inset 1px -2px 5px rgba(0,0,0,.07);background-color:rgba(255,255,255,.05);border-radius:0px;
+            position:absolute;left:0;top:0;text-align:center;display:block;width:100%;height:100%;line-height:($h-recent-project-wrap / 2);font-size:($h-recent-project-wrap / 4);
           }
         }
       }
@@ -25,8 +28,11 @@ $h-recent-project-wrap: 4rem;
 
         }
         .check{
-          &:after{
+          &:before{
             box-shadow: inset -2px 3px 5px rgba(0, 0, 0, 0.1);background-color:rgba(0, 0, 0, 0.03);
+          }
+          &:after{
+            color:#fff;
           }
         }
       }
@@ -34,10 +40,10 @@ $h-recent-project-wrap: 4rem;
         position:absolute;left:$w-recent-project-lbl;right:0;top:0;bottom:0;
 
         .title{
-          position:absolute;left:0;top:0;width:100%;height:50%;cursor:pointer;
+          position:absolute;left:0;top:0;width:100%;height:50%;cursor:pointer;white-space:nowrap;
 
           .unique-name{
-            @include borderbox();@include transition(color .3s linear);width:100%;height:100%;line-height:($h-recent-project-wrap / 2);overflow:hidden;text-align:right;border-right:solid ($h-recent-project-wrap / 2) transparent;
+            @include borderbox();@include transition(color .3s linear);white-space:nowrap;width:100%;height:100%;line-height:($h-recent-project-wrap / 2);overflow:hidden;text-align:right;border-right:solid ($h-recent-project-wrap / 2) transparent;
           }
           .open-btn{
             width:($h-recent-project-wrap / 2);height:100%;position:absolute;right:0;top:0;text-align:right;
@@ -69,6 +75,23 @@ $h-recent-project-wrap: 4rem;
           position:absolute;left:0;bottom:0;height:50%;
 
 
+        }
+      }
+    }
+    .recent-project.selected{
+      .lbl{
+        background-color:rgba(0, 0, 0, 0.15);
+
+        .num{
+          color:#fff;
+        }
+        .check{
+          &:before{
+            border:solid 1px #BFBFBF;
+          }
+          &:after{
+            content:"X";
+          }
         }
       }
     }
