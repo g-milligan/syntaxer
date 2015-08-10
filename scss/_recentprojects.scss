@@ -1,7 +1,48 @@
 $w-recent-project-lbl: 2rem;
 $h-recent-project-wrap: 4rem;
 
-.box-col.recent-projects.has-projects{
+.box-col.recent-projects{
+
+  .filter{
+    display:none;height:$h-recent-project-wrap;
+
+    > div{
+      width:100%;height:50%;position:relative;@include borderbox();
+
+      .bar{
+        position:absolute;left:0;top:0;bottom:0;right:$w-recent-project-lbl;margin:auto;height:100%;
+
+        .icon-btn{
+          width:$w-recent-project-lbl;height:100%;position:absolute;left:0;top:0;bottom:0;margin:auto;cursor:pointer;
+        }
+
+        input.search-recent-project{
+          display:inline-block;@include borderbox();width:100%;height:100%;line-height:0.8rem;padding:0 .5rem;font-size:.8rem;background-color:transparent;border:none;border-left:solid $w-recent-project-lbl transparent;outline:none;color:#8C8C8C;
+        }
+
+        .order-by-btn{
+
+        }
+
+        .asc-desc-btn{
+
+        }
+      }
+
+      .reset-btn{
+        width:$w-recent-project-lbl;position:absolute;right:0;top:0;bottom:0;height:100%;cursor:pointer;
+      }
+    }
+
+    > div.search{
+      background-color:#fff;border:solid 1px #ccc;border-left:none;border-right:none;
+    }
+
+    > div.order{
+
+    }
+  }
+
   .scroll{
     .recent-project{
       position:relative;display:block;height:$h-recent-project-wrap;color:#929292;border:solid 1px #ccc;
@@ -101,5 +142,13 @@ $h-recent-project-wrap: 4rem;
     .recent-project:nth-child(even){
       background-color:#EFEFEF;
     }
+  }
+}
+section#lightbox div.box .box-content .box-col.recent-projects.show-filters{
+  .filter{
+    display:block;
+  }
+  .scroll{
+    top:($h-recent-project-wrap + $h-lightbox-col-title);
   }
 }

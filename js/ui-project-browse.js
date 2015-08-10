@@ -710,28 +710,34 @@ function reorderRecentProjects(scrollWrap, orderBy){
       else{ uniqueNames.push(projName); }
     };
     //if there are no recent projects
+    var recentProjWrap=scrollWrap.parents('.box-col.recent-projects:first');
     var recentProjDivs=scrollWrap.children('.recent-project');
     if(recentProjDivs.length<1){
       //show the no recent projects message
       scrollWrap.html(noRecentProjectsHtml);
       //indicate with a class (allows space for filter controls)
-      scrollWrap.parents('.box-col.recent-projects:first').removeClass('has-projects');
+      recentProjWrap.removeClass('has-projects').removeClass('show-filters');
     }else{
       //there are one or more recent projects...
+      
       //indicate with a class (allows space for filter controls)
-      scrollWrap.parents('.box-col.recent-projects:first').addClass('has-projects');
+      recentProjWrap.addClass('has-projects');
+      if(recentProjDivs.length>1){ recentProjWrap.addClass('show-filters'); }
+      else{ recentProjWrap.removeClass('show-filters'); }
       //if no args to set a specific order
       if(orderBy==undefined){
         //make sure the numbering is correct for the existing order
-        recentProjDivs.each(function(i){
+        var divIndex=0;
+        recentProjDivs.each(function(){
           var numEl=jQuery(this).find('.lbl .num:first');
-          numEl.text((i+1)+'');
+          numEl.text((divIndex+1)+'');
+          divIndex++;
           //indicate duplicate name
           checkIfUniqueName(jQuery(this));
         });
       }else{
         //order by a specific set of rules, orderBy...
-
+        //***
       }
     }
     //if there any projects with duplicate listed file names
