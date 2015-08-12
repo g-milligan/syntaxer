@@ -1107,16 +1107,22 @@ function initProjectBrowseEvents(box,okButtonAction){
             }
           }
         });
-        //init the recent projects filter events
+        //get elements from the recent projects filter
         var filterWrap=box.find('.recent-projects .filter:first');
         var searchWrap=filterWrap.children('.search:first');
         var orderWrap=filterWrap.children('.order:first');
+        var searchInput=searchWrap.find('.bar input.search-recent-project:first');
+        var searchClearBtn=searchWrap.children('.reset-btn:last');
+        var orderClearBtn=orderWrap.children('.reset-btn:last');
         var searchBtn=searchWrap.find('.bar .icon-btn:first');
-        var orderBtn=orderWrap.find('.bar .icon-btn:first');
+        var orderIconBtn=orderWrap.find('.bar .icon-btn:first');
+        var orderBtn=orderWrap.find('.bar .order-btn:first');
         var ascDescBtn=orderWrap.find('.bar .asc-desc-btn:first');
         var ascBtn=ascDescBtn.children('.asc:first');
         var descBtn=ascDescBtn.children('.desc:first');
-        searchBtn.html(svgSearch); orderBtn.html(svgOrder); ascBtn.html(svgAscend); descBtn.html(svgDescend);
+        //add some svg button images
+        searchBtn.html(svgSearch); orderIconBtn.html(svgOrder); ascBtn.html(svgAscend); descBtn.html(svgDescend);
+        //init events for the recent projects filter
         //***
 
         break;
