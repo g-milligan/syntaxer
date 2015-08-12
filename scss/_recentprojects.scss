@@ -4,16 +4,24 @@ $h-recent-project-wrap: 4rem;
 .box-col.recent-projects{
 
   .filter{
-    display:none;height:$h-recent-project-wrap;
+    display:none;height:$h-recent-project-wrap;font-size:.8rem;
 
     > div{
-      width:100%;height:50%;position:relative;@include borderbox();
+      width:100%;height:50%;position:relative;@include borderbox();line-height:($h-recent-project-wrap / 2);
 
       .bar{
         position:absolute;left:0;top:0;bottom:0;right:$w-recent-project-lbl;margin:auto;height:100%;
 
         .icon-btn{
           width:$w-recent-project-lbl;height:100%;position:absolute;left:0;top:0;bottom:0;margin:auto;cursor:pointer;
+
+          svg{
+            display:block;width:100%;height:100%;
+
+            path{
+              fill:#ccc;@include transition(fill .3s linear);
+            }
+          }
         }
 
         input.search-recent-project{
@@ -21,25 +29,92 @@ $h-recent-project-wrap: 4rem;
         }
 
         .order-by-btn{
+          display:inline-block;@include borderbox();width:100%;border-left:solid $w-recent-project-lbl transparent;
+        }
 
+        .order-btn{
+          display:inline-block;@include borderbox();width:70%;position:relative;cursor:pointer;color:#929292;@include transition(color .3s linear);
+        }
+
+        .order-btn:hover{
+          color:#7f1171;
+
+          svg{
+            path{
+              fill:#7f1171;
+            }
+          }
         }
 
         .asc-desc-btn{
+          display:inline-block;@include borderbox();width:30%;height:100%;cursor:pointer;
 
+          svg{
+            path{
+              fill:#ccc;@include transition(fill .3s linear);
+            }
+          }
+
+          .asc, .desc{
+            display:none;width:$w-recent-project-lbl;height:100%;
+          }
+
+          &.asc{
+            .asc{
+              display:block;
+            }
+          }
+          &.desc{
+            .desc{
+              display:block;
+            }
+          }
+        }
+
+        .asc-desc-btn:hover{
+          svg{
+            path{
+              fill:#7f1171;
+            }
+          }
         }
       }
 
       .reset-btn{
-        width:$w-recent-project-lbl;position:absolute;right:0;top:0;bottom:0;height:100%;cursor:pointer;
+        width:$w-recent-project-lbl;position:absolute;right:0;top:0;bottom:0;height:100%;cursor:pointer;font-size:.8rem;
+
+        &:before{
+          content:"X";display:block;font-family:$f-code;line-height:($h-recent-project-wrap / 2);text-align:center;color:#ccc;@include transition(color .3s linear);
+        }
+      }
+
+      .reset-btn:hover{
+        &:before{
+          color:#7f1171;
+        }
       }
     }
 
     > div.search{
       background-color:#fff;border:solid 1px #ccc;border-left:none;border-right:none;
+
+      .icon-btn:hover{
+        svg{
+          path{
+            fill:#7f1171;
+          }
+        }
+      }
     }
 
     > div.order{
+      .bar{
+        font-size:0;
 
+        > *{
+          font-size:.8rem;vertical-align:top;
+        }
+      }
     }
   }
 

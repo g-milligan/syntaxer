@@ -719,7 +719,7 @@ function reorderRecentProjects(scrollWrap, orderBy){
       recentProjWrap.removeClass('has-projects').removeClass('show-filters');
     }else{
       //there are one or more recent projects...
-      
+
       //indicate with a class (allows space for filter controls)
       recentProjWrap.addClass('has-projects');
       if(recentProjDivs.length>1){ recentProjWrap.addClass('show-filters'); }
@@ -1107,6 +1107,18 @@ function initProjectBrowseEvents(box,okButtonAction){
             }
           }
         });
+        //init the recent projects filter events
+        var filterWrap=box.find('.recent-projects .filter:first');
+        var searchWrap=filterWrap.children('.search:first');
+        var orderWrap=filterWrap.children('.order:first');
+        var searchBtn=searchWrap.find('.bar .icon-btn:first');
+        var orderBtn=orderWrap.find('.bar .icon-btn:first');
+        var ascDescBtn=orderWrap.find('.bar .asc-desc-btn:first');
+        var ascBtn=ascDescBtn.children('.asc:first');
+        var descBtn=ascDescBtn.children('.desc:first');
+        searchBtn.html(svgSearch); orderBtn.html(svgOrder); ascBtn.html(svgAscend); descBtn.html(svgDescend);
+        //***
+
         break;
     }
   }
