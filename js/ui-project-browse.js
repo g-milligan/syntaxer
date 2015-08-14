@@ -1123,8 +1123,33 @@ function initProjectBrowseEvents(box,okButtonAction){
         //add some svg button images
         searchBtn.html(svgSearch); orderIconBtn.html(svgOrder); ascBtn.html(svgAscend); descBtn.html(svgDescend);
         //init events for the recent projects filter
-        //***
-
+        ascDescBtn.click(function(){
+          //***
+        });
+        orderBtn.click(function(){
+          //***
+        });
+        orderClearBtn.click(function(){
+          //***
+        });
+        searchClearBtn.click(function(){
+          //***
+        });
+        searchBtn.click(function(){
+          //***
+        });
+        searchInput.keydown(function(e){
+          switch(e.keyCode){
+            case 13: //enter key
+              e.preventDefault(); e.stopPropagation();
+              searchBtn.click();
+              break;
+            case 27: //esc key
+              e.preventDefault(); e.stopPropagation();
+              searchClearBtn.click();
+              break;
+          }
+        });
         break;
     }
   }
