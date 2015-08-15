@@ -4,7 +4,7 @@ $h-recent-project-wrap: 4rem;
 .box-col.recent-projects{
 
   .filter{
-    display:none;height:$h-recent-project-wrap;font-size:.8rem;
+    display:none;height:$h-recent-project-wrap;font-size:.8rem;border-bottom:solid 1px #DCDCDC;@include borderbox();
 
     > div{
       width:100%;height:50%;position:relative;@include borderbox();line-height:($h-recent-project-wrap / 2);
@@ -150,8 +150,10 @@ $h-recent-project-wrap: 4rem;
   }
 
   .scroll{
+    background-color:#EFEFEF;
+
     .recent-project{
-      position:relative;display:block;height:$h-recent-project-wrap;color:#929292;border:solid 1px #ccc;
+      position:relative;display:block;height:$h-recent-project-wrap;color:#929292;border:solid 1px #ccc;background-color:#F4F4F4;
 
       &.hide{
         display:none;
