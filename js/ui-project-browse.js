@@ -267,7 +267,7 @@ function updateRecentProjectListing(){
                             fname=fname.substring(fname.lastIndexOf('/')+'/'.length);
                           }
                           //put the html into the page
-                          html+='<div class="recent-project" name="'+fname+'">'; //start div.recent-project
+                          html+='<div id="rp_'+projId+'" class="recent-project" name="'+fname+'">'; //start div.recent-project
                           html+='<div class="lbl"><div class="num">'+(projIndex+1)+'</div><div class="check"></div></div>';
                           html+='<div class="pane">'; //start div.pane
                           html+='<div class="title" title="'+projPath+'">'; //start div.title
@@ -751,10 +751,47 @@ function reorderRecentProjects(scrollWrap, orderBy){
         });
       }else{
         //order by a specific set of rules, orderBy...
-        var filter_search;
+        var filter_search, order_by, asc_desc;
         if(orderBy.hasOwnProperty('filter_search')){
           filter_search=orderBy['filter_search']; filter_search=filter_search.trim();
           filter_search=filter_search.toLowerCase();
+        }
+        if(orderBy.hasOwnProperty('order_by')){
+          order_by=orderBy['order_by']; order_by=order_by.trim();
+        }
+        if(orderBy.hasOwnProperty('asc_desc')){
+          asc_desc=orderBy['asc_desc']; asc_desc=asc_desc.trim();
+        }
+        //if reordering
+        if(order_by!=undefined){
+          var box=scrollWrap.parents('.box:first');
+          var rpData=box[0]['recentProjectsData'];
+          //reorder the list depending on the in_order array
+          var inOrderReorder=function(keyName){
+            //loop the correct order for these ids
+            for(var c=0;c<rpData['in_order'][keyName].length;c++){
+              var id=rpData['in_order'][keyName][c];
+              var rp=scrollWrap.children('#rp_'+id+':first');
+              rp.find('.pane .data:first').attr('name',keyName);
+              //asc
+              if(asc_desc==='asc'){
+                scrollWrap.append(rp);
+              }else{
+                //desc
+                scrollWrap.prepend(rp);
+              }
+            }
+            recentProjDivs=scrollWrap.children('.recent-project');
+          };
+          switch(order_by){
+            case 'create': inOrderReorder('create'); break;
+            case 'modify': inOrderReorder('modify'); break;
+            case 'open': inOrderReorder('open'); break;
+            case 'open_time_hours':
+              //***
+              break;
+          }
+          //for each recent project div to reorder
         }
         //for each recent project div
         recentProjDivs.each(function(){
@@ -826,17 +863,32 @@ function reorderRecentProjects(scrollWrap, orderBy){
 function getFilterOrderElems(el){
   var recentW=el.parents('.box-col.recent-projects:first');
   var inp=recentW.find('.filter .search input.search-recent-project:first');
+  var orderBar=recentW.find('.filter .order .bar:first');
+  var orderIconBtn=orderBar.find('.order-btn .order-by-btn .order-icon:first');
+  var ascDescBtn=orderBar.children('.asc-desc-btn:last');
   var scrollW=recentW.children('.scroll:last');
   return {
     recentW:recentW,
     inp:inp,
-    scrollW:scrollW
+    scrollW:scrollW,
+    orderIconBtn:orderIconBtn,
+    ascDescBtn:ascDescBtn
   }
 }
 //function to create the recent project filter/order rules based on the element controls
 function getFilterOrderRules(j){
+  var activeOrderIcon=j.orderIconBtn.children('.icon.active:first');
+  var activeOrderName=activeOrderIcon.attr('name');
+  //asc/desc
+  var asc_desc='asc';
+  if(j.ascDescBtn.hasClass('desc')){
+    asc_desc='desc';
+  }
+  //return
   return {
-    filter_search:j.inp.val()
+    filter_search:j.inp.val(),
+    asc_desc:asc_desc,
+    order_by:activeOrderName
   };
 }
 //add the events to nav-bar, project file explorer, open button controls
@@ -1198,7 +1250,16 @@ function initProjectBrowseEvents(box,okButtonAction){
         selectedOrderIcons.children('.icon[name="open_time_hours"]:last').html(svgTime);
         //init events for the recent projects filter
         ascDescBtn.click(function(){
-          //***
+          var j=getFilterOrderElems(jQuery(this));
+          if(j.ascDescBtn.hasClass('asc')){
+            j.ascDescBtn.removeClass('asc');
+            j.ascDescBtn.addClass('desc');
+          }else{
+            j.ascDescBtn.addClass('asc');
+            j.ascDescBtn.removeClass('desc');
+          }
+          var orderRules=getFilterOrderRules(j);
+          reorderRecentProjects(j.scrollW, orderRules);
         });
         orderBtn.click(function(){
           //***
