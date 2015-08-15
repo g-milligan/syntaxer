@@ -790,6 +790,7 @@ function initProjectBrowseEvents(box,okButtonAction){
     box.addClass('evs');
     var navBarInput=browseWrap.find('.nav-bar input.path:first');
     var upDirBtn=browseWrap.find('.up-dir-btn:last');
+    var clearBtn=browseWrap.find('.nav-bar .reset-btn:last');
     var scrollWrap=browseWrap.find('.scroll:first');
     var openBtn=box.children('.box-btns:last').children('.box-btn.open:last');
     //function to get the next file li element to select when using the up/down arrow keys
@@ -844,6 +845,21 @@ function initProjectBrowseEvents(box,okButtonAction){
       }
       return nextLi;
     };
+    //reset esc input text
+    var resetNavBarInput=function(e){
+      e.preventDefault(); e.stopPropagation();
+      if(navBarInput[0].hasOwnProperty('currentBrowsePath')){
+        //reset to the current directory
+        var currentDirPath=navBarInput[0]['currentBrowsePath'];
+        navBarInput.val(currentDirPath);
+        navBarInput.removeClass('edit-path');
+        //deselect selected files and update the open button enable state
+        scrollWrap.find('ul.files li.selected').removeClass('selected');
+        toggleBrowseOpenButton();
+        navBarInput.focus();
+      }
+    };
+    //keydown event
     navBarInput.keydown(function(e){
       //depending on which key pressed
       switch(e.keyCode){
@@ -947,16 +963,7 @@ function initProjectBrowseEvents(box,okButtonAction){
           }
         break;
         case 27: //esc key
-          e.preventDefault(); e.stopPropagation();
-          if(jQuery(this)[0].hasOwnProperty('currentBrowsePath')){
-            //reset to the current directory
-            var currentDirPath=jQuery(this)[0]['currentBrowsePath'];
-            jQuery(this).val(currentDirPath);
-            jQuery(this).removeClass('edit-path');
-            //deselect selected files and update the open button enable state
-            scrollWrap.find('ul.files li.selected').removeClass('selected');
-            toggleBrowseOpenButton();
-          }
+          resetNavBarInput(e);
         break;
       }
     });
@@ -978,6 +985,9 @@ function initProjectBrowseEvents(box,okButtonAction){
       }
       //decide if the open button should be enabled or not
       toggleBrowseOpenButton();
+    });
+    clearBtn.click(function(e){
+      resetNavBarInput(e);
     });
     upDirBtn.click(function(e){
       var input=jQuery(this).parent().children('input.path:first');

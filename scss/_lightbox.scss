@@ -114,6 +114,20 @@ section#lightbox{
           @include borderbox();
           position:relative;
 
+          .reset-btn{
+            width:$h-lightbox-nav-bar;@include borderbox();position:absolute;right:0;top:0;bottom:0;height:100%;cursor:pointer;font-size:.8rem;background-color:#fff;border:solid 1px #ccc;border-right:none;border-left:none;
+
+            &:before{
+              content:"X";display:block;font-family:$f-code;line-height:$h-lightbox-nav-bar;text-align:center;color:#ccc;@include transition(color .3s linear);
+            }
+          }
+
+          .reset-btn:hover{
+            &:before{
+              color:#7f1171;
+            }
+          }
+
           .up-dir-btn{
             width:$h-lightbox-nav-bar;
             height:100%;
@@ -159,7 +173,7 @@ section#lightbox{
             font-size: .8rem;
             background-color: #fff;
             border: solid 1px #ccc;
-            border-right:none;
+            border-right: solid $h-lightbox-nav-bar #ccc;
             border-left: solid $h-lightbox-nav-bar #ccc;
             outline:none;
             color: #8C8C8C;
