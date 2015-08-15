@@ -326,7 +326,9 @@ function updateRecentProjectListing(){
                         });
                       });
                       //set initial order and unique project names, etc...
-                      reorderRecentProjects(scrollWrap);
+                      var j=getFilterOrderElems(scrollWrap);
+                      var orderRules=getFilterOrderRules(j);
+                      reorderRecentProjects(j.scrollW, orderRules);
                     }
                   }
                 }
@@ -709,6 +711,20 @@ function reorderRecentProjects(scrollWrap, orderBy){
       if(uniqueNames.indexOf(projName)!==-1){ recentProjDiv.addClass('duplicate-name'); }
       else{ uniqueNames.push(projName); }
     };
+    //function to set the correct sequence number
+    var divIndex=0, isAlt=false;
+    var updateNumber=function(recentProjDiv){
+      if(!recentProjDiv.hasClass('hide')){
+        if(isAlt){
+          isAlt=false; recentProjDiv.addClass('alt');
+        }else{
+          isAlt=true; recentProjDiv.removeClass('alt');
+        }
+        var numEl=recentProjDiv.find('.lbl .num:first');
+        numEl.text((divIndex+1)+'');
+        divIndex++;
+      }
+    };
     //if there are no recent projects
     var recentProjWrap=scrollWrap.parents('.box-col.recent-projects:first');
     var recentProjDivs=scrollWrap.children('.recent-project');
@@ -726,20 +742,44 @@ function reorderRecentProjects(scrollWrap, orderBy){
       else{ recentProjWrap.removeClass('show-filters'); }
       //if no args to set a specific order
       if(orderBy==undefined){
-        //make sure the numbering is correct for the existing order
-        var divIndex=0;
+        //for each recent project div
         recentProjDivs.each(function(){
-          var numEl=jQuery(this).find('.lbl .num:first');
-          numEl.text((divIndex+1)+'');
-          divIndex++;
+          //make sure the numbering is correct for the existing order
+          updateNumber(jQuery(this));
           //indicate duplicate name
           checkIfUniqueName(jQuery(this));
         });
       }else{
         //order by a specific set of rules, orderBy...
-        //***
+        var filter_search;
+        if(orderBy.hasOwnProperty('filter_search')){
+          filter_search=orderBy['filter_search']; filter_search=filter_search.trim();
+          filter_search=filter_search.toLowerCase();
+        }
+        //for each recent project div
+        recentProjDivs.each(function(){
+          //reset
+          jQuery(this).removeClass('hide');
+          //filter out projects that don't have the search string in their path
+          if(filter_search!=undefined){
+            if(filter_search.length>0){
+              var titleEl=jQuery(this).find('.pane .title:first');
+              var title=titleEl.attr('title'); title=title.trim(); title=title.toLowerCase();
+              if(title.indexOf(filter_search)===-1){
+                jQuery(this).addClass('hide');
+              }
+            }
+          }
+          //make sure the numbering is correct for the existing order
+          updateNumber(jQuery(this));
+          //indicate duplicate name
+          checkIfUniqueName(jQuery(this));
+        });
       }
     }
+    //add last class
+    scrollWrap.children('.recent-project.last').removeClass('last');
+    scrollWrap.children('.recent-project').not('.hide').filter(':last').addClass('last');
     //if there any projects with duplicate listed file names
     if(scrollWrap.children('.recent-project.duplicate-name').length>0){
       //use unique names instead of duplicate names, by showing more of the file path
@@ -782,6 +822,23 @@ function reorderRecentProjects(scrollWrap, orderBy){
     }
   }
 };
+//function to gather up the elements that decide how to filter/order recent projects
+function getFilterOrderElems(el){
+  var recentW=el.parents('.box-col.recent-projects:first');
+  var inp=recentW.find('.filter .search input.search-recent-project:first');
+  var scrollW=recentW.children('.scroll:last');
+  return {
+    recentW:recentW,
+    inp:inp,
+    scrollW:scrollW
+  }
+}
+//function to create the recent project filter/order rules based on the element controls
+function getFilterOrderRules(j){
+  return {
+    filter_search:j.inp.val()
+  };
+}
 //add the events to nav-bar, project file explorer, open button controls
 function initProjectBrowseEvents(box,okButtonAction){
   var browseWrap=box.find('.box-col.browse:first');
@@ -1110,7 +1167,9 @@ function initProjectBrowseEvents(box,okButtonAction){
                     //remove from recent projects from the ui
                     recentScrollWrap.children('.remove-this').remove();
                     //update the numbering
-                    reorderRecentProjects(recentScrollWrap);
+                    var j=getFilterOrderElems(recentScrollWrap);
+                    var orderRules=getFilterOrderRules(j);
+                    reorderRecentProjects(j.scrollW, orderRules);
                   }
                 });
               }
@@ -1143,10 +1202,16 @@ function initProjectBrowseEvents(box,okButtonAction){
           //***
         });
         searchClearBtn.click(function(){
-          //***
+          var j=getFilterOrderElems(jQuery(this));
+          j.inp.val(''); j.inp.focus();
+          var orderRules=getFilterOrderRules(j);
+          reorderRecentProjects(j.scrollW, orderRules);
         });
         searchBtn.click(function(){
-          //***
+          var j=getFilterOrderElems(jQuery(this));
+          j.inp.focus();
+          var orderRules=getFilterOrderRules(j);
+          reorderRecentProjects(j.scrollW, orderRules);
         });
         searchInput.keydown(function(e){
           switch(e.keyCode){

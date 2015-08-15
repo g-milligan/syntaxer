@@ -122,6 +122,10 @@ $h-recent-project-wrap: 4rem;
     .recent-project{
       position:relative;display:block;height:$h-recent-project-wrap;color:#929292;border:solid 1px #ccc;
 
+      &.hide{
+        display:none;
+      }
+
       .lbl{
         cursor:pointer;position:absolute;left:0;top:0;bottom:0;width:$w-recent-project-lbl;line-height:($h-recent-project-wrap / 2);@include borderbox();padding:5px;background-color:rgba(0,0,0,.05);text-align:center;border:solid 1px #9E9E9E;border-bottom:none;border-top:none;@include noselect();
 
@@ -211,10 +215,10 @@ $h-recent-project-wrap: 4rem;
         }
       }
     }
-    .recent-project:not(:last-child){
+    .recent-project:not(.last){
       border-bottom:none;
     }
-    .recent-project:nth-child(even){
+    .recent-project.alt{
       background-color:#EFEFEF;
     }
   }
