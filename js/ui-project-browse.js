@@ -1186,11 +1186,16 @@ function initProjectBrowseEvents(box,okButtonAction){
         var searchBtn=searchWrap.find('.bar .icon-btn:first');
         var orderIconBtn=orderWrap.find('.bar .icon-btn:first');
         var orderBtn=orderWrap.find('.bar .order-btn:first');
+        var selectedOrderIcons=orderBtn.find('.order-by-btn .order-icon:first');
         var ascDescBtn=orderWrap.find('.bar .asc-desc-btn:first');
         var ascBtn=ascDescBtn.children('.asc:first');
         var descBtn=ascDescBtn.children('.desc:first');
         //add some svg button images
         searchBtn.html(svgSearch); orderIconBtn.html(svgOrder); ascBtn.html(svgAscend); descBtn.html(svgDescend);
+        selectedOrderIcons.children('.icon[name="create"]:first').html(svgCreate);
+        selectedOrderIcons.children('.icon[name="modify"]:first').html(svgEdit);
+        selectedOrderIcons.children('.icon[name="open"]:last').html(svgOpen);
+        selectedOrderIcons.children('.icon[name="open_time_hours"]:last').html(svgTime);
         //init events for the recent projects filter
         ascDescBtn.click(function(){
           //***

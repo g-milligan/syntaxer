@@ -29,7 +29,7 @@
 - XXX write the tab edits when save
 
 - XXX shortcut key for pack project
-- XXX list shortuct keys next to menu item
+- XXX list shortcut keys next to menu item
 - XXX flash message to indicate packed project
 - XXX prevent closing without saving or packing the project
 
@@ -38,6 +38,14 @@
   - XXX update the number of hours spent on the project
   - XXX remove projects from list if they don't exist anymore (or indicate that they are missing)
   - recent projects search filtering and order by
+
+  in_order
+    create : create
+    modify : modify
+    open : last_open, opens
+  data
+    open_time_hours
+
 
 - Handle notifications that appear on top of each other. They should wait their turn so the first has time to fade out. (array of pending notes to show?)
 - Command+F text search
