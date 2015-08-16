@@ -859,6 +859,88 @@ function reorderRecentProjects(scrollWrap, orderBy){
     }
   }
 };
+//function to get the dynamic order items menu html
+function addOrderByMenu(wrap, evts){
+  var menu=wrap.children('.order-by-menu:last');
+  if(menu.length<1){
+    var recentW=wrap.parents('.box-col.recent-projects:first');
+    var orderBar=recentW.find('.filter .order .bar:first');
+    var orderIconBtn=orderBar.find('.order-btn .order-by-btn .order-icon:first');
+    if(orderIconBtn.length>0){
+      wrap.append('<div class="order-by-menu"><div class="close"></div></div>');
+      menu=wrap.children('.order-by-menu:last');
+      //close button
+      var closeBtn=menu.children('.close:first');
+      closeBtn.click(function(){
+        jQuery(this).parent().removeClass('open');
+        clearTimeout(jQuery(this).parent()[0]['fadeOutTimeout']);
+      });
+      //for each menu option
+      orderIconBtn.children('.icon').each(function(){
+        //create the option's html
+        var optionTitle=jQuery(this).attr('title'); if(optionTitle==undefined){optionTitle='';}
+        var optionSvg=jQuery(this).html();
+        var optionName=jQuery(this).attr('name');
+        var html='';
+        html+='<div class="option" name="'+optionName+'">'; //start option
+        html+='<div class="ic">'; //start icon
+        html+=optionSvg;
+        html+='</div>'; //end icon
+        html+='<div class="label">'; //start label
+        html+=optionTitle;
+        html+='</div>'; //end label
+        html+='</div>'; //end option
+        menu.append(html);
+        //add events to the menu option
+        var menuOption=menu.children('.option:last');
+        menuOption.click(function(){
+          jQuery(this).parent().children('.option.active').removeClass('active');
+          clearTimeout(jQuery(this).parent()[0]['fadeOutTimeout']);
+          var selName=jQuery(this).attr('name');
+          var icoWrap=jQuery(this).parents('.box-col.recent-projects:first').find('.filter .order .bar:first').find('.order-btn .order-by-btn .order-icon:first');
+          icoWrap.children('.icon.active').removeClass('active');
+          icoWrap.children('.icon[name="'+selName+'"]:first').addClass('active');
+          if(evts!=undefined){
+            if(evts.hasOwnProperty('option')){
+              if(evts['option'].hasOwnProperty('click')){
+                evts['option']['click'](jQuery(this));
+              }
+            }
+          }
+        });
+        if(evts!=undefined){
+          if(evts.hasOwnProperty('option')){
+            menuOption.hover(function(){
+              if(evts['option'].hasOwnProperty('hover_on')){
+                evts['option']['hover_on'](jQuery(this));
+              }
+            },function(){
+              if(evts['option'].hasOwnProperty('hover_off')){
+                evts['option']['hover_off'](jQuery(this));
+              }
+            });
+          }
+        }
+      });
+      //fade out after hover out for a certain amount of time
+      menu.hover(function(){
+        jQuery(this).addClass('hover');
+        clearTimeout(jQuery(this)[0]['fadeOutTimeout']);
+      },function(){
+        var thisMenu=jQuery(this);
+        thisMenu.removeClass('hover');
+        thisMenu[0]['fadeOutTimeout']=setTimeout(function(){
+          if(!thisMenu.hasClass('hover')){
+            thisMenu.removeClass('open');
+          }
+        },1000);
+      });
+    }else{
+      menu=undefined;
+    }
+  }
+  return menu;
+}
 //function to gather up the elements that decide how to filter/order recent projects
 function getFilterOrderElems(el){
   var recentW=el.parents('.box-col.recent-projects:first');
@@ -1262,7 +1344,12 @@ function initProjectBrowseEvents(box,okButtonAction){
           reorderRecentProjects(j.scrollW, orderRules);
         });
         orderBtn.click(function(){
-          //***
+          var orderMenu=addOrderByMenu(jQuery(this).find('.order-by-btn .order-icon:first'));
+          if(orderMenu.hasClass('open')){
+            orderMenu.removeClass('open');
+          }else{
+            orderMenu.addClass('open');
+          }
         });
         orderClearBtn.click(function(){
           //***

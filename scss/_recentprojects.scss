@@ -3,6 +3,30 @@ $h-recent-project-wrap: 4rem;
 
 .box-col.recent-projects{
 
+  .order-by-menu{
+    display:none;position:absolute;z-index:9999;background-color:#fff;font-size:0;@include borderbox();width:$h-recent-project-wrap;
+
+    .option{
+      display:inline-block;@include borderbox();font-size:1rem;padding:.5rem;width:($h-recent-project-wrap / 2);
+
+      .ic{
+        width:($h-recent-project-wrap / 2);height:($h-recent-project-wrap / 2);display:block;@include borderbox();
+
+        svg{
+          path{
+
+          }
+        }
+      }
+      .label{
+        @include borderbox();display:block;width:($h-recent-project-wrap / 2);
+      }
+    }
+  }
+  .order-by-menu.open{
+    display:block;
+  }
+
   .filter{
     display:none;height:$h-recent-project-wrap;font-size:.8rem;border-bottom:solid 1px #DCDCDC;@include borderbox();
 
@@ -36,7 +60,7 @@ $h-recent-project-wrap: 4rem;
           }
 
           .order-icon{
-            width:($h-recent-project-wrap / 2);
+            width:($h-recent-project-wrap / 2);position:relative;
 
             .icon{
               width:100%;height:100%;display:none;
