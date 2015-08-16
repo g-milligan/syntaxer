@@ -303,3 +303,26 @@ function getDateStr(date){
   var s=date.getSeconds()+'';
   return y+m+d+h+min+s;
 }
+function getDateFromStr(str){
+  var date;
+  if(str!=undefined){
+    if(typeof str==='string'){
+      if(str.length>0){
+        if(str.indexOf('.')!==-1){
+          var parts=str.split('.');
+          if(parts.length===6){
+            var y=parseInt(parts[0]); var m=parseInt(parts[1]); var d=parseInt(parts[2]);
+            var h=parseInt(parts[3]); var min=parseInt(parts[4]); var s=parseInt(parts[5]);
+            date=new Date(y, m, d, h, min, s, 0);
+          }
+        }
+      }
+    }
+  }
+  return date;
+}
+function getFormattedDate(date){
+  var str='';
+  
+  return str;
+}

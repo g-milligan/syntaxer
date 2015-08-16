@@ -254,7 +254,7 @@ $h-order-by-items: 1.6rem;
           position:absolute;left:0;top:0;width:100%;height:50%;cursor:pointer;white-space:nowrap;
 
           .unique-name{
-            @include borderbox();@include transition(color .3s linear);white-space:nowrap;width:100%;height:100%;line-height:($h-recent-project-wrap / 2);overflow:hidden;text-align:right;border-right:solid ($h-recent-project-wrap / 2) transparent;
+            @include borderbox();@include transition(color .3s linear);white-space:nowrap;width:100%;height:100%;line-height:($h-recent-project-wrap / 2);overflow:hidden;text-align:center;border-right:solid ($h-recent-project-wrap / 2) transparent;
           }
           .open-btn{
             width:($h-recent-project-wrap / 2);height:100%;position:absolute;right:0;top:0;text-align:right;
@@ -283,9 +283,34 @@ $h-order-by-items: 1.6rem;
           }
         }
         .data{
-          position:absolute;left:0;bottom:0;height:50%;
+          position:absolute;left:0;bottom:0;height:50%;width:100%;
 
+          .data-part{
+            display:none;@include borderbox();width:100%;height:100%;
 
+            .data-row{
+              height:50%;line-height:($h-recent-project-wrap / 4);position:relative;font-size:($h-recent-project-wrap / 5);text-align:center;
+
+              > *{
+                padding:0 ($h-recent-project-wrap / 5);
+              }
+
+              .lab{
+                position:absolute;left:0;top:0;width:50%;height:100%;@include borderbox();text-align:right;
+              }
+              .val{
+                position:absolute;right:0;top:0;width:50%;height:100%;@include borderbox();text-align:left;padding-left:0;
+              }
+            }
+          }
+          .data-part.one-row{
+            .data-row{
+              height:100%;line-height:($h-recent-project-wrap / 2);@include borderbox();
+            }
+          }
+          .data-part.active{
+            display:block;
+          }
         }
       }
     }

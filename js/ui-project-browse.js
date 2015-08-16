@@ -255,6 +255,47 @@ function updateRecentProjectListing(){
                     box[0]['recentProjectsData']=data['recent_projects'];
                     var temLi=getTemplateTabLi(); var currentProjPath=temLi.attr('path');
                     var html='', projIndex=0;
+                    //get data part html format
+                    var getDataDivPart=function(keyName, contentJson){
+                      var theHtml='';
+                      if(contentJson.length>0){
+                        var rowsClass='two-rows'
+                        if(contentJson.length===1){ rowsClass='one-row'; }
+                        theHtml+='<div class="data-part '+rowsClass+'" name="'+keyName+'">'; //start data part
+                        for(var r=0;r<contentJson.length;r++){
+                          if(r<2){
+                            theHtml+='<div class="data-row">';
+                            var rowData=contentJson[r];
+                            if(rowData.hasOwnProperty('row')){
+                              theHtml+=rowData['row'];
+                            }else{
+                              if(rowData.hasOwnProperty('label')){
+                                theHtml+='<div class="lab">';
+                                theHtml+=rowData['label'];
+                                theHtml+='</div>';
+                              }
+                              if(rowData.hasOwnProperty('value')){
+                                theHtml+='<div class="val">';
+                                if(typeof rowData['value']==='number'){
+                                  rowData['value']+='';
+                                }
+                                if(typeof rowData['value']!=='string'){
+                                  theHtml+=getFormattedDate(rowData['value']);
+                                }else{
+                                  theHtml+=rowData['value'];
+                                }
+                                theHtml+='</div>';
+                              }
+                            }
+                            theHtml+='</div>';
+                          }else{
+                            break;
+                          }
+                        }
+                        theHtml+='</div>'; //end data part
+                      }
+                      return theHtml;
+                    };
                     //for each recent project
                     for(projId in box[0]['recentProjectsData']['id']){
                       if(box[0]['recentProjectsData']['id'].hasOwnProperty(projId)){
@@ -275,7 +316,38 @@ function updateRecentProjectListing(){
                           html+='<div class="open-btn">'+svgOpen+'</div>';
                           html+='</div>'; //end div.title
                           html+='<div class="data">'; //start div.data
-                          //***
+                          if(box[0]['recentProjectsData']['data'].hasOwnProperty(projId)){
+                            var projData=box[0]['recentProjectsData']['data'][projId];
+                            html+=getDataDivPart('create',
+                              [{
+                                label:'created',
+                                value:getDateFromStr(projData['create'])
+                              }]
+                            );
+                            html+=getDataDivPart('modify',
+                              [{
+                                label:'modified',
+                                value:getDateFromStr(projData['modify'])
+                              }]
+                            );
+                            html+=getDataDivPart('open',
+                              [{
+                                label:'last open',
+                                value:getDateFromStr(projData['last_open'])
+                              },{
+                                label:'opens',
+                                value:projData['opens']
+                              }]
+                            );
+                            html+=getDataDivPart('open_time_hours',
+                              [{
+                                row:'<div class="time-bar"><div class="fill-bar"></div></div>'
+                              },{
+                                label:'open (hours)',
+                                value:projData['open_time_hours']
+                              }]
+                            );
+                          }
                           html+='</div>'; //end div.data
                           html+='</div>'; //end div.pane
                           html+='</div>'; //end div.recent-project
@@ -772,7 +844,10 @@ function reorderRecentProjects(scrollWrap, orderBy){
             for(var c=0;c<rpData['in_order'][keyName].length;c++){
               var id=rpData['in_order'][keyName][c];
               var rp=scrollWrap.children('#rp_'+id+':first');
-              rp.find('.pane .data:first').attr('name',keyName);
+              var dataPane=rp.find('.pane .data:first');
+              dataPane.attr('name',keyName);
+              dataPane.children('.data-part.active').removeClass('active');
+              dataPane.children('.data-part[name="'+keyName+'"]:first').addClass('active');
               //asc
               if(asc_desc==='asc'){
                 scrollWrap.append(rp);
@@ -905,10 +980,6 @@ function addOrderByMenu(wrap, evts){
             var icoWrap=rpW.find('.filter .order .bar:first').find('.order-btn .order-by-btn .order-icon:first');
             icoWrap.children('.icon.active').removeClass('active');
             icoWrap.children('.icon[name="'+selName+'"]:first').addClass('active');
-            //show this option's data on the elements in the list
-            rpW.find('.scroll .recent-project .pane .data').each(function(){
-              jQuery(this).attr('name',selName);
-            });
             //additional click callback
             if(evts!=undefined){
               if(evts.hasOwnProperty('option')){
@@ -917,6 +988,10 @@ function addOrderByMenu(wrap, evts){
                 }
               }
             }
+            //reorder the recent projects
+            var j=getFilterOrderElems(rpW.find('.scroll:first'));
+            var orderRules=getFilterOrderRules(j);
+            reorderRecentProjects(j.scrollW, orderRules);
           }
         });
         if(evts!=undefined){
