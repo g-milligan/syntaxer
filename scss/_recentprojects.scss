@@ -145,7 +145,7 @@ $h-order-by-items: 1.6rem;
           }
 
           .asc, .desc{
-            display:none;width:$w-recent-project-lbl;height:100%;
+            display:none;width:($h-recent-project-wrap / 2);height:100%;
           }
 
           &.asc{
@@ -254,7 +254,7 @@ $h-order-by-items: 1.6rem;
           position:absolute;left:0;top:0;width:100%;height:50%;cursor:pointer;white-space:nowrap;
 
           .unique-name{
-            @include borderbox();@include transition(color .3s linear);white-space:nowrap;width:100%;height:100%;line-height:($h-recent-project-wrap / 2);overflow:hidden;text-align:right;padding-left:($h-recent-project-wrap / 8);border-right:solid ($h-recent-project-wrap / 2) transparent;
+            @include borderbox();@include transition(color .3s linear);font-weight:bold;white-space:nowrap;width:100%;height:100%;line-height:($h-recent-project-wrap / 2);overflow:hidden;text-align:left;padding-left:($h-recent-project-wrap / 8);border-right:solid ($h-recent-project-wrap / 2) transparent;font-size:($h-recent-project-wrap / 5);
           }
           .open-btn{
             width:($h-recent-project-wrap / 2);height:100%;position:absolute;right:0;top:0;text-align:right;
@@ -292,14 +292,14 @@ $h-order-by-items: 1.6rem;
               height:50%;line-height:($h-recent-project-wrap / 8);position:relative;font-size:($h-recent-project-wrap / 5);text-align:center;
 
               > *{
-                padding:0 ($h-recent-project-wrap / 5);
+                padding:0 .5rem;
               }
 
               .lab{
-                position:absolute;left:0;top:0;width:50%;height:100%;@include borderbox();text-align:right;font-style:italic;
+                position:absolute;left:0;top:0;width:50%;height:100%;@include borderbox();text-align:left;font-style:italic;
               }
               .val{
-                position:absolute;right:0;top:0;width:50%;height:100%;@include borderbox();text-align:right;padding-left:0;
+                position:absolute;right:0;top:0;width:50%;height:100%;@include borderbox();text-align:left;padding-left:0;
               }
             }
           }

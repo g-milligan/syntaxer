@@ -321,8 +321,37 @@ function getDateFromStr(str){
   }
   return date;
 }
-function getFormattedDate(date){
+function getFormattedDate(date,args){
   var str='';
-  
+  if(date==undefined){ date=new Date(); }
+  //default format args
+  if(args==undefined){ args={}; }
+  if(!args.hasOwnProperty('date')){ args['date']=true; }
+  if(!args.hasOwnProperty('time')){ args['time']=true; }
+  if(!args.hasOwnProperty('format')){ args['format']='short'; }
+  //build the format
+  var currentDate=new Date();
+  switch(args['format']){
+    case 'short':
+      if(args['date']){
+        if(currentDate.getFullYear()!==date.getFullYear()){
+          str+=date.getFullYear()+'/';
+        }
+        str+=date.getMonth()+'/';
+        str+=date.getDate();
+      }
+      if(args['time']){
+        str+=' ';
+        var hours=date.getHours(); var pmAm=' AM';
+        if(hours>12){
+          hours-=12;
+          if(hours<24){ pmAm=' PM'; }
+        }
+        else if(hours===12){ pmAm=' PM'; }
+        var mins=date.getMinutes()+''; if(mins.length<2){ mins='0'+mins;}
+        str+=hours+':'+mins+pmAm;
+      }
+      break;
+  }
   return str;
 }

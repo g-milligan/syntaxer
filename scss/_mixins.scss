@@ -33,8 +33,14 @@ Usage:
   }
 
 */
-@mixin breakpoint($bp){
+@mixin wbreak($bp){
     @media screen and (max-width: $bp) {
+      @content;
+    }
+}
+
+@mixin hbreak($bp){
+    @media screen and (max-height: $bp) {
       @content;
     }
 }

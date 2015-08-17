@@ -26,12 +26,14 @@ section#lightbox{
     top:($h-hud+$h-tabs+$b-rad-lightbox);
     margin:auto;
     width:80%;
+    min-width:1200px;
     height:69%;
     background-color:#F4F4F4;
     box-shadow:0 0 1rem rgba(0,0,0,.6);
     border-radius:$b-rad-lightbox;
     border:$border-lightbox;
     display:none;
+    @include borderbox();
 
     &.open{
       display:block;
@@ -611,4 +613,20 @@ section#lightbox{
 
 body.lightbox-open section#lightbox{
   display:block;
+}
+
+@include wbreak(1500px){
+  section#lightbox div.box{width:95%;}
+}
+@include wbreak(1300px){
+  section#lightbox div.box{width:100%;}
+}
+@include hbreak(800px){
+  section#lightbox div.box{height:75%;}
+}
+@include hbreak(700px){
+  section#lightbox div.box{height:80%;top:($h-hud+$b-rad-lightbox);}
+}
+@include hbreak(600px){
+  section#lightbox div.box{height:100%;top:0;}
 }
