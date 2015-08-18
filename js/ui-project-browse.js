@@ -863,7 +863,48 @@ function reorderRecentProjects(scrollWrap, orderBy){
             case 'modify': inOrderReorder('modify'); break;
             case 'open': inOrderReorder('open'); break;
             case 'open_time_hours':
-              //***
+              //if the sorted order for open_time_hours has not already been established
+              if(!rpData['in_order'].hasOwnProperty('open_time_hours')){
+                //create the in_order list for open_time_hours
+                var ids=[], sortedVals=[], mostHours=-1;
+                recentProjDivs.each(function(){
+                  var id=jQuery(this).attr('id');
+                  id=id.substring(id.indexOf('_')+'_'.length);
+                  var hoursEl=jQuery(this).find('.pane .data .data-part[name="open_time_hours"]:first').find('.val:last');
+                  var fillBarEl=jQuery(this).find('.pane .data .data-part[name="open_time_hours"]:first').find('.time-bar .fill-bar:first');
+                  var hours=hoursEl.text(); hours=parseFloat(hours);
+                  fillBarEl.attr('name',hours+'');
+                  if(hours>mostHours){ mostHours=hours; }
+                  //insert the value into the sorted position
+                  if(sortedVals.length<1){ sortedVals.push(hours); ids.push(id); }
+                  else{
+                    for(var n=0;n<sortedVals.length;n++){
+                      if(hours<=sortedVals[n]){
+                        //found correct position for the insert
+                        sortedVals.splice(n, 0, hours);
+                        ids.splice(n, 0, id); break;
+                      }else if(n+1===sortedVals.length){
+                        //found correct position for the insert
+                        sortedVals.push(hours);
+                        ids.push(id); break;
+                      }
+                    }
+                  }
+                });
+                //set the sorted id's that match the correct open time
+                box[0]['recentProjectsData']['in_order']['open_time_hours']=ids;
+                if(mostHours>-1){
+                  //set the bar width percentages
+                  recentProjDivs.each(function(){
+                    var fillBarEl=jQuery(this).find('.pane .data .data-part[name="open_time_hours"]:first').find('.time-bar .fill-bar:first');
+                    var hours=fillBarEl.attr('name'); hours=parseFloat(hours);
+                    fillBarEl.removeAttr('name');
+                    var percent=hours/mostHours*100;
+                    fillBarEl.css('width',percent+'%');
+                  });
+                }
+              }
+              inOrderReorder('open_time_hours');
               break;
           }
           //for each recent project div to reorder

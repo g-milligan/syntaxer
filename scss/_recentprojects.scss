@@ -295,6 +295,14 @@ $h-order-by-items: 1.6rem;
                 padding:0 .5rem;
               }
 
+              .time-bar{
+                height:40%;display:block;padding:0 .5rem;@include borderbox();text-align:left;
+
+                .fill-bar{
+                  background-color:#7f1171;width:0;height:100%;display:inline-block;@include borderbox();
+                }
+              }
+
               .lab{
                 position:absolute;left:0;top:0;width:50%;height:100%;@include borderbox();text-align:left;font-style:italic;
               }
