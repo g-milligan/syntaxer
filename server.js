@@ -452,6 +452,17 @@ if(file!==undefined&&file.trim().length>0){
                             hoursSoFar=Math.round(hoursSoFar*10000)/10000;
                             //update the number of hours
                             json.data[projId]['open_time_hours']=hoursSoFar;
+                            //also update what filter/order rules are set for the recent projects list
+                            if(args.hasOwnProperty('ui_project_list')){
+                              if(!json.hasOwnProperty('ui_project_list')){
+                                json['ui_project_list']={};
+                              }
+                              for(var k in args['ui_project_list']){
+                                if(args['ui_project_list'].hasOwnProperty(k)){
+                                  json['ui_project_list'][k]=args['ui_project_list'][k];
+                                }
+                              }
+                            }
                             writeToFile=true;
                           }
                           break;
@@ -1229,7 +1240,22 @@ if(file!==undefined&&file.trim().length>0){
           var resJson={status:'error, no initial path provided'};
           if(req.body.hasOwnProperty('path')){
             if(req.body.hasOwnProperty('open_time')){
-              resJson['status']=updateRecentProjects(req.body['path'], {type:'update_open_time', open_time:req.body['open_time']});
+              var args={type:'update_open_time', open_time:req.body['open_time']};
+              //also save the state of the recent projects order and filtering
+              if(req.body.hasOwnProperty('ui_project_list')){
+                args['ui_project_list']={};
+                if(req.body['ui_project_list'].hasOwnProperty('filter_search')){
+                  args['ui_project_list']['filter_search']=req.body['ui_project_list']['filter_search'];
+                }
+                if(req.body['ui_project_list'].hasOwnProperty('order_by')){
+                  args['ui_project_list']['order_by']=req.body['ui_project_list']['order_by'];
+                }
+                if(req.body['ui_project_list'].hasOwnProperty('asc_desc')){
+                  args['ui_project_list']['asc_desc']=req.body['ui_project_list']['asc_desc'];
+                }
+              }
+              //update recent projects json file
+              resJson['status']=updateRecentProjects(req.body['path'], args);
             }else{
               resJson['status']='error, no start time, open_time, specified';
             }

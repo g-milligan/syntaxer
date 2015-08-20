@@ -36,6 +36,7 @@ function loadPreviewIFrame(callback){
           }
         }
       }
+      //send post
       xmlhttp.open("GET","/preview-index-exists",true);
       xmlhttp.send();
     }
@@ -73,8 +74,11 @@ function updateProjectTimeOpen(callback){
             oops(json['status']);
           }
         }
+        //save the current order/filter rule state for recent projects
+        var j=getFilterOrderElems(bodyElem.find('#lightbox #open-project .box-content .recent-projects .scroll:first'));
+        var orderRules=getFilterOrderRules(j);
         // send the collected data as JSON
-        var send={path:path ,open_time:open_time};
+        var send={path:path, open_time:open_time, ui_project_list:orderRules};
         xhr.send(JSON.stringify(send));
       }
     }
