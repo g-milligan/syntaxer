@@ -1,9 +1,9 @@
 $h-findtext-wrap:4rem;
-$w-findtext-btns:12rem;
+$w-findtext-btns:20rem;
 $w-findtext-row-border:.2rem;
 
 .findtext-wrap{
-  height:$h-findtext-wrap;padding:0 ($w-findtext-row-border * 2);display:block;position:absolute;bottom:0;left:0;right:0;width:100%;@include borderbox();box-shadow:inset 0 0 1rem rgba(0, 0, 0, 0.2);background-color:#CACACA;z-index:888;border-bottom:solid 2px #9C9C9C;
+  height:$h-findtext-wrap;padding:0 ($w-findtext-row-border * 2);display:none;position:absolute;bottom:0;left:0;right:0;width:100%;@include borderbox();box-shadow:inset 0 0 1rem rgba(0, 0, 0, 0.2);background-color:#CACACA;z-index:888;border-bottom:solid 2px #9C9C9C;
 
   .search-line{
     width:100%;height:50%;@include borderbox();position:relative;
@@ -12,15 +12,23 @@ $w-findtext-row-border:.2rem;
       display:inline-block;position:absolute;top:0;bottom:0;margin:auto;@include borderbox();border:solid $w-findtext-row-border transparent;
 
       > *{
-        line-height:(($h-findtext-wrap / 2) - ($w-findtext-row-border * 2));font-size:((($h-findtext-wrap / 2) - ($w-findtext-row-border * 2)) * .7);
+        line-height:(($h-findtext-wrap / 2) - ($w-findtext-row-border * 2));font-size:(($h-findtext-wrap / 2) - ($w-findtext-row-border * 5));
       }
     }
 
     .field-wrap{
-      left:0;right:$w-findtext-btns;
+      left:0;right:$w-findtext-btns;background-color:transparent;box-shadow:inset 0 2px 5px rgba(0, 0, 0, 0.9);
 
       > input{
-        border:none;border-right:solid 9rem transparent;@include borderbox();padding:0 ($w-findtext-row-border * 2);display:block;width:100%;height:100%;outline:none;
+        border:none;border-right:solid 9rem transparent;background-color:rgba(255,255,255,.5);color:#848484;@include borderbox();padding:0 ($w-findtext-row-border * 2);display:block;width:100%;height:100%;outline:none;
+      }
+
+      > input.default{
+        font-style:italic;color:#BFBFBF;
+      }
+
+      > input.focus{
+        background-color:rgba(255,255,80,.5);color:#000;
       }
 
       .count{
@@ -31,13 +39,42 @@ $w-findtext-row-border:.2rem;
       right:0;width:$w-findtext-btns;
 
       .main-btn{
-        > div{
-
-        }
+        float:left;width:30%;height:100%;@include borderbox();border-right:solid $w-findtext-row-border transparent;
       }
       .sub-btns{
+        float:right;width:70%;height:100%;@include borderbox();
 
+        > div{float:left;}
+      }
+
+      .main-btn,.sub-btns{
+        > div{
+          cursor:pointer;text-align:center;font-size:($h-findtext-wrap / 5);color:#8B8B8B;background-color:#DFDFDF;box-shadow:-0.1rem 0.1rem 0.1rem rgba(0, 0, 0, 0.4), inset 0 0 0.5rem rgba(0, 0, 0, 0.2);font-family:$f-code;text-shadow:-0.1rem 0.1rem 0.1rem rgba(255, 255, 255, 0.2);@include transition(background-color .3s linear);@include noselect();
+
+          &:hover{
+            background-color:#C3C3C3;color:#5C5C5C;
+          }
+        }
+      }
+
+      .sub-btns{
+        /* one item */
+        > div:first-child:nth-last-child(1) {width:100%;}
+
+        /* two items */
+        > div:first-child:nth-last-child(2),
+        > div:first-child:nth-last-child(2) ~ div {width:50%;}
+
+        /* three items */
+        > div:first-child:nth-last-child(3),
+        > div:first-child:nth-last-child(3) ~ div{width:33.3333%;}
+
+        /* four items */
+        > div:first-child:nth-last-child(4),
+        > div:first-child:nth-last-child(4) ~ div {width:25%;}
       }
     }
   }
 }
+
+body.findtext-open .findtext-wrap{display:block;}
