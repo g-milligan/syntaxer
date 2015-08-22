@@ -45,6 +45,10 @@ $w-findtext-row-border:.2rem;
         float:right;width:70%;height:100%;@include borderbox();
 
         > div{float:left;}
+
+        > div.toggle-on, > div.toggle-on:hover {
+          color:#fff;background-color:#7f1171;
+        }
       }
 
       .main-btn,.sub-btns{
