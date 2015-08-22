@@ -29,6 +29,7 @@
 <script type="text/javascript" src="js/ui-ajax.js"></script>
 <script type="text/javascript" src="js/ui-notifications.js"></script>
 <script type="text/javascript" src="js/ui-project-browse.js"></script>
+<script type="text/javascript" src="js/ui-findtext.js"></script>
 <script type="text/javascript">
 
   //create or open the content menu, eg: when you press Command+I
@@ -294,6 +295,11 @@
               packProject();
             }else{
               saveProject();
+            }
+            break;
+          case 'f':
+            if(showFindText()){
+              e.preventDefault(); ret=false;
             }
             break;
           case 'o':
