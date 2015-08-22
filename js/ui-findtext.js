@@ -83,7 +83,16 @@ function showFindText(){
           }
           //do stuff to the searchInput when the findText panel first opens
           var searchInput=findtextWrap.find('.search-line.l1 .field-wrap input.search-field:first');
-          
+          var cm=getCodeMirrorObj(editorDiv);
+          if(cm!=undefined){
+            //if anything is selected
+            var selection=cm.object.doc.getSelection(); if(selection==undefined){selection='';}
+            if(selection.length>0){
+              //load the selection into the find text field
+              searchInput.val(selection);
+            }
+          }
+          //set the cursor into the search field
           searchInput.focus();
           //indicate that the customer searchtext panel is now showing
           didShow=true;
