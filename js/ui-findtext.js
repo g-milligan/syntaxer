@@ -1,3 +1,8 @@
+function findTextInTab(findTxt){
+  if(findTxt.length>0){
+    //***
+  }
+}
 //hide the findtext panel
 function hideFindText(){
   jQuery('body:first').removeClass('findtext-open');
@@ -26,7 +31,7 @@ function showFindText(){
             var searchLine1=findtextWrap.children('.l1:first'); var searchLine2=findtextWrap.children('.l2:last');
             searchLine1.append('<div class="field-wrap"></div><div class="btns-wrap"></div>');
             var searchFieldWrap=searchLine1.children('.field-wrap:first'); var searchBtnsWrap=searchLine1.children('.btns-wrap:last');
-            searchBtnsWrap.append('<div class="main-btn"><div class="find-btn">Find</div></div><div class="sub-btns"><div title="use regex" class="regex-toggle">.*</div><div title="match case" class="match-case-toggle">Aa</div><div title="whole word" class="whole-word-toggle">[word]</div></div>');
+            searchBtnsWrap.append('<div class="main-btn"><div class="find-btn">Find</div></div><div class="sub-btns"><div name="regex" title="use regex" class="regex-toggle">.*</div><div name="case" title="match case" class="match-case-toggle">Aa</div><div name="word" title="whole word" class="whole-word-toggle">[word]</div></div>');
             var findBtn=searchBtnsWrap.find('.main-btn .find-btn:first');
             var regexBtn=searchBtnsWrap.find('.sub-btns .regex-toggle:first');
             var matchCaseBtn=searchBtnsWrap.find('.sub-btns .match-case-toggle:first');
@@ -92,20 +97,22 @@ function showFindText(){
               });
             };
             setStandardToggleBtnEvents(regexBtn); setStandardToggleBtnEvents(matchCaseBtn); setStandardToggleBtnEvents(wholeWordBtn);
-            //find button
+            //find text
             findBtn.click(function(){
+              var found=findTextInTab(searchInput.val());
               //***
-              jQuery(this).parents('.search-line:first').find('.field-wrap input:first').focus();
+              searchInput.focus();
             });
             //replace button
             replaceBtn.click(function(){
+
               //***
-              jQuery(this).parents('.search-line:first').find('.field-wrap input:first').focus();
+              replaceInput.focus();
             });
             //replace all button
             replaceAllBtn.click(function(){
               //***
-              jQuery(this).parents('.search-line:first').find('.field-wrap input:first').focus();
+              replaceInput.focus();
             });
           }
           //do stuff to the searchInput when the findText panel first opens
