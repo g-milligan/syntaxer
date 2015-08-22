@@ -40,10 +40,8 @@
   - XXX recent projects search filtering and order by
     - XXX clear button to reset to default order
     - XXX saved state to remember last filter?
+- XXX Handle notifications that appear on top of each other. They should wait their turn so the first has time to fade out. (array of pending notes to show?)
 
-
-
-- Handle notifications that appear on top of each other. They should wait their turn so the first has time to fade out. (array of pending notes to show?)
 - Command+F text search
 - Syntax detection _complete (don't end a parameter with a nested comma, eg: ",")
 - Project Stats in the project menu, created, modified, time open, etc...
@@ -77,6 +75,9 @@
 
 
 - Project templates for rapidly building out tabs, etc...
+@template:native/webgl/shader.txt
+
+/@template
 
 
 - allow rename the template.html file
