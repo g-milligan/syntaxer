@@ -1,7 +1,12 @@
-function findTextInTab(findTxt){
+function findTextInTab(findTxt, args){
+  var ret;
   if(findTxt.length>0){
+    if(args==undefined){ args={all_tabs:false, search_mode:'default'}; }
+    if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
+    if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
     //***
   }
+  return ret;
 }
 //hide the findtext panel
 function hideFindText(){
@@ -31,11 +36,12 @@ function showFindText(){
             var searchLine1=findtextWrap.children('.l1:first'); var searchLine2=findtextWrap.children('.l2:last');
             searchLine1.append('<div class="field-wrap"></div><div class="btns-wrap"></div>');
             var searchFieldWrap=searchLine1.children('.field-wrap:first'); var searchBtnsWrap=searchLine1.children('.btns-wrap:last');
-            searchBtnsWrap.append('<div class="main-btn"><div class="find-btn">Find</div></div><div class="sub-btns"><div name="regex" title="use regex" class="regex-toggle">.*</div><div name="case" title="match case" class="match-case-toggle">Aa</div><div name="word" title="whole word" class="whole-word-toggle">[word]</div></div>');
+            searchBtnsWrap.append('<div class="main-btn"><div class="find-btn">Find</div></div><div class="sub-btns"><div name="regex" title="use regex" class="regex-toggle toggle-group">.*</div><div name="case" title="match case" class="match-case-toggle toggle-group">Aa</div><div name="word" title="whole word" class="whole-word-toggle toggle-group">[word]</div><div name="all-tabs" title="search all tabs" class="all-files-toggle"></div></div>');
             var findBtn=searchBtnsWrap.find('.main-btn .find-btn:first');
             var regexBtn=searchBtnsWrap.find('.sub-btns .regex-toggle:first');
             var matchCaseBtn=searchBtnsWrap.find('.sub-btns .match-case-toggle:first');
             var wholeWordBtn=searchBtnsWrap.find('.sub-btns .whole-word-toggle:first');
+            var allFilesBtn=searchBtnsWrap.find('.sub-btns .all-files-toggle:first'); allFilesBtn.html(svgFiles);
             searchLine2.append('<div class="field-wrap"></div><div class="btns-wrap"></div>');
             var replaceFieldWrap=searchLine2.children('.field-wrap:first'); var replaceBtnsWrap=searchLine2.children('.btns-wrap:last');
             replaceBtnsWrap.append('<div class="main-btn"><div class="replace-btn">Replace</div></div><div class="sub-btns"><div class="replace-all-btn">Replace All</div></div>');
@@ -88,7 +94,9 @@ function showFindText(){
             var setStandardToggleBtnEvents=function(btn){
               btn.click(function(){
                 if(!jQuery(this).hasClass('toggle-on')){
-                  jQuery(this).parent().children('.toggle-on').removeClass('toggle-on');
+                  if(jQuery(this).hasClass('toggle-group')){
+                    jQuery(this).parent().children('.toggle-on.toggle-group').removeClass('toggle-on');
+                  }
                   jQuery(this).addClass('toggle-on');
                 }else{
                   jQuery(this).removeClass('toggle-on');
@@ -97,10 +105,26 @@ function showFindText(){
               });
             };
             setStandardToggleBtnEvents(regexBtn); setStandardToggleBtnEvents(matchCaseBtn); setStandardToggleBtnEvents(wholeWordBtn);
+            setStandardToggleBtnEvents(allFilesBtn);
             //find text
+            var getSearchtextArgs=function(){
+              //get search mode
+              var search_mode='default';
+              var search_modeEl=searchBtnsWrap.find('.sub-btns .toggle-on.toggle-group:first');
+              if(search_modeEl.length>0){ search_mode=search_modeEl.attr('name'); }
+              //get search all tabs?
+              var all_tabs=false;
+              if(allFilesBtn.hasClass('toggle-on')){ all_tabs=true; }
+              //args
+              var args={search_mode:search_mode, all_tabs:all_tabs}; return args;
+            };
             findBtn.click(function(){
-              var found=findTextInTab(searchInput.val());
-              //***
+              if(!searchInput.hasClass('default')){
+                //search based on the args
+                var args=getSearchtextArgs();
+                var found=findTextInTab(searchInput.val(), args);
+                //***
+              }
               searchInput.focus();
             });
             //replace button

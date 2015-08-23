@@ -341,6 +341,25 @@
       }else{
         //command/control key not held...
 
+        switch(e.keyCode){
+          case 27: //escape key
+            //check to see if dialog boxes are open
+            var noteWrap=jQuery('section#notifications.active:last');
+            var openLightBox=jQuery('section#lightbox:last').children('.box.open:first');
+            //if notification is open
+            if(noteWrap.length>0){
+              e.preventDefault(); e.stopPropagation(); ret=false;
+              hideNote(noteWrap.children('.notification.active:first'));
+            //if lightbox is open
+            }else if(openLightBox.length>0){
+              e.preventDefault(); e.stopPropagation(); ret=false;
+              openLightBox.find('h1 .box-btn.cancel:first').click();
+            //if findtext is open
+            }else if(jQuery('body:first').hasClass('findtext-open')){
+              hideFindText();
+            }
+            break;
+        }
       }
       return ret;
     });

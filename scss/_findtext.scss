@@ -1,5 +1,5 @@
 $h-findtext-wrap:4rem;
-$w-findtext-btns:20rem;
+$w-findtext-btns:24rem;
 $w-findtext-row-border:.2rem;
 
 .findtext-wrap{
@@ -48,16 +48,40 @@ $w-findtext-row-border:.2rem;
 
         > div.toggle-on, > div.toggle-on:hover {
           color:#fff;background-color:#7f1171;
+
+          svg{
+            path{
+              fill:#fff;
+            }
+          }
+
         }
       }
 
       .main-btn,.sub-btns{
         > div{
-          cursor:pointer;text-align:center;font-size:($h-findtext-wrap / 5);color:#8B8B8B;background-color:#DFDFDF;box-shadow:-0.1rem 0.1rem 0.1rem rgba(0, 0, 0, 0.4), inset 0 0 0.5rem rgba(0, 0, 0, 0.2);font-family:$f-code;text-shadow:-0.1rem 0.1rem 0.1rem rgba(255, 255, 255, 0.2);@include transition(background-color .3s linear);@include noselect();
+          cursor:pointer;text-align:center;font-size:($h-findtext-wrap / 5);height:100%;color:#8B8B8B;background-color:#DFDFDF;box-shadow:-0.1rem 0.1rem 0.1rem rgba(0, 0, 0, 0.4), inset 0 0 0.5rem rgba(0, 0, 0, 0.2);font-family:$f-code;text-shadow:-0.1rem 0.1rem 0.1rem rgba(255, 255, 255, 0.2);@include transition(background-color .3s linear);@include noselect();
 
           &:hover{
             background-color:#C3C3C3;color:#5C5C5C;
           }
+
+          svg{
+            max-width:100%;max-height:100%;display:block;
+
+            path{
+              fill:#8B8B8B;
+            }
+          }
+
+          &:hover{
+            svg{
+              path{
+                fill:#5C5C5C;
+              }
+            }
+          }
+
         }
       }
 
