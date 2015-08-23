@@ -32,7 +32,15 @@ $w-findtext-row-border:.2rem;
       }
 
       .count{
-        height:100%;width:9rem;position:absolute;right:0;top:0;bottom:0;
+        height:100%;width:9rem;position:absolute;right:0;top:0;bottom:0;color:#000;font-family:$f-code;font-size:80%;text-align:center;
+
+        > *{
+          display:none;color:inherit;
+        }
+
+        > .active{
+          display:block;
+        }
       }
     }
     .btns-wrap{

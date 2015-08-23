@@ -5,7 +5,7 @@ function findTextInTab(findTxt, args){
     if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
     if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
     //function to find all text matches in one tab
-    var setTabTextMatches=function(tab){
+    var setTabTextMatches=function(tab){ //*** use the cached search, if available, and dump the cache for any edited tab (in the change event)
       var tabPath=tab.attr('path');
       //if this tab has content
       var tabContent=getFileContent(tabPath);
@@ -89,6 +89,8 @@ function findTextInTab(findTxt, args){
             if(ret==undefined){ ret={}; }
             //put the found positions for this tabPath into the ret object
             ret[tabPath]=positions;
+            //cache the positions for this tabPath
+            //***
           }
         }
       }
@@ -152,8 +154,12 @@ function showFindText(){
             var replaceAllBtn=replaceBtnsWrap.find('.sub-btns .replace-all-btn:first');
             searchFieldWrap.append('<input type="text" class="search-field default" value="Find something:" /><div class="count"></div>');
             var searchInput=searchFieldWrap.children('.search-field:first');
+            var searchCount=searchFieldWrap.children('.count:last');
+            searchCount.append('<div class="found">Found <span></span></div>');
+            var searchFoundCount=searchCount.find('.found span:first');
             replaceFieldWrap.append('<input type="text" class="replace-field default" value="Replace something:" /><div class="count"></div>');
             var replaceInput=replaceFieldWrap.children('.replace-field:first');
+            var replaceCount=replaceFieldWrap.children('.count:last');
             //attach events for the search replace text
             var setStandardInputEvents=function(inp){
               var defaultTxt=inp.attr('value'); if(defaultTxt==undefined){defaultTxt='';}
@@ -170,6 +176,7 @@ function showFindText(){
                   i.val(i[0]['defaultHelpText']);
                   i.addClass('default');
                 }
+                i.parent().find('.count .active').removeClass('active');
               };
               inp.focus(function(e){ handleFocus(jQuery(this)); });
               //inp.click(function(e){ e.stopPropagation(); handleFocus(jQuery(this)); });
@@ -189,6 +196,11 @@ function showFindText(){
                       jQuery(this).val('');
                     }
                     break;
+                }
+              });
+              inp.keyup(function(e){
+                if(jQuery(this).val()!==jQuery(this)[0]['previousSubmittedTxt']){
+                  jQuery(this).parent().find('.count .active').removeClass('active');
                 }
               });
             };
@@ -226,7 +238,16 @@ function showFindText(){
                 //search based on the args
                 var args=getSearchtextArgs();
                 var found=findTextInTab(searchInput.val(), args);
-                //***
+                searchInput[0]['previousSubmittedTxt']=searchInput.val();
+                //set the number of positions found
+                searchFoundCount.html('nada');
+                searchFoundCount.parent().addClass('active');
+                if(found!=undefined){
+                  var path=getElemPath('.');
+                  if(found.hasOwnProperty(path)){
+                    searchFoundCount.html(found[path].length);
+                  }
+                }
               }
               searchInput.focus();
             });
@@ -244,6 +265,8 @@ function showFindText(){
           }
           //do stuff to the searchInput when the findText panel first opens
           var searchInput=findtextWrap.find('.search-line.l1 .field-wrap input.search-field:first');
+          //set the cursor into the search field
+          searchInput.focus();
           var cm=getCodeMirrorObj(editorDiv);
           if(cm!=undefined){
             //if anything is selected
@@ -251,10 +274,10 @@ function showFindText(){
             if(selection.length>0){
               //load the selection into the find text field
               searchInput.val(selection);
+              //immediate search
+              findtextWrap.find('.search-line.l1 .btns-wrap .main-btn .find-btn:first').click();
             }
           }
-          //set the cursor into the search field
-          searchInput.focus();
           //indicate that the customer searchtext panel is now showing
           didShow=true;
         }
