@@ -4,7 +4,110 @@ function findTextInTab(findTxt, args){
     if(args==undefined){ args={all_tabs:false, search_mode:'default'}; }
     if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
     if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
-    //***
+    //function to find all text matches in one tab
+    var setTabTextMatches=function(tab){
+      var tabPath=tab.attr('path');
+      //if this tab has content
+      var tabContent=getFileContent(tabPath);
+      if(tabContent!=undefined){
+        //depending on the search_mode
+        if(tabContent.length>0){
+          //loop find next lineIndex of text
+          var lineIndex=0, positions=[];
+          var findNextLinePositions=function(){
+            var nextIndex=tabContent.indexOf(findTxt);
+            if(nextIndex>-1){
+              var position={line:-1,start:-1,end:-1};
+              //get the lineIndex where this search text is found
+              var ls=tabContent.substring(0, nextIndex+findTxt.length);
+              ls=ls.trimRight();
+              var lastLine=ls; if(lastLine.indexOf('\n')!==-1){ lastLine=lastLine.substring(lastLine.lastIndexOf('\n')+1); }
+              lastLine=lastLine.substring(0, lastLine.indexOf(findTxt)); //characters in the last line, before the findTxt
+              ls=ls.split('\n'); lineIndex+=(ls.length-1);
+              position['line']=lineIndex; //set the line index
+              tabContent=tabContent.substring(nextIndex+findTxt.length); //remove the parsed string up to this line, and including findTxt
+              //get the character index where this search text is found
+              position['start']=lastLine.length;
+              position['end']=position['start']+findTxt.length;
+              positions.push(position);
+              //get the remaining instances of findTxt, in this line, if any
+              var remainingLine=tabContent; var indexOfNl=remainingLine.indexOf('\n');
+              if(indexOfNl!==-1){
+                remainingLine=remainingLine.substring(0, indexOfNl);
+              }
+              //if there more instances of findTxt in this same line
+              var nextStartIndex=remainingLine.indexOf(findTxt);
+              if(nextStartIndex!==-1){
+                var start=position['start'];
+                while(nextStartIndex!==-1){
+                  //get the next position in the same line
+                  start+=nextStartIndex+findTxt.length;
+                  var pos={line:position['line'], start:start, end:start+findTxt.length};
+                  positions.push(pos);
+                  //consume the found text in the line
+                  remainingLine=remainingLine.substring(nextStartIndex+findTxt.length);
+                  //get the next index, if there is another instance within this same line
+                  nextStartIndex=remainingLine.indexOf(findTxt);
+                }
+              }
+              //remove remainingLine from tabContent
+              if(indexOfNl!==-1){
+                tabContent=tabContent.substring(indexOfNl+1);
+                lineIndex++; //next line counting
+              }else{
+                //no more lines
+                tabContent='';
+              }
+            }
+            return nextIndex;
+          };
+          //depending on the search_mode
+          switch(args['search_mode']){
+            case 'regex':
+              //***
+              break;
+            case 'word':
+              //***
+              break;
+            case 'case':
+              //find all positions of the search text, within this tab
+              var ni=-3; while(ni!==-1 && ni!=undefined){
+                ni=findNextLinePositions();
+              }
+              break;
+            default:
+              //case insensitive
+              findTxt=findTxt.toLowerCase(); tabContent=tabContent.toLowerCase();
+              //find all positions of the search text, within this tab
+              var ni=-3; while(ni!==-1 && ni!=undefined){
+                ni=findNextLinePositions();
+              }
+              break;
+          }
+          //if this tab contained any findTxt instances
+          if(positions.length>0){
+            if(ret==undefined){ ret={}; }
+            //put the found positions for this tabPath into the ret object
+            ret[tabPath]=positions;
+          }
+        }
+      }
+    };
+    //if searching all tabs
+    if(args['all_tabs']){
+      //for each tab
+      jQuery('#tabs:first').children('ul:first').children('li[path]').each(function(){
+        //set found text in this tab
+        setTabTextMatches(jQuery(this));
+      });
+    }else{
+      //only search the current active tab
+      var activeTabLi=getActiveTabLi();
+      if(activeTabLi.length>0){
+        //set found text in the active tab
+        setTabTextMatches(activeTabLi);
+      }
+    }
   }
   return ret;
 }
