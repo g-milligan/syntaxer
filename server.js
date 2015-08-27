@@ -1256,6 +1256,8 @@ if(file!==undefined&&file.trim().length>0){
               }
               //update recent projects json file
               resJson['status']=updateRecentProjects(req.body['path'], args);
+              //set a new open time (now) since the time, up-to now, has been updated
+              resJson['open_time']=getDateStr();
             }else{
               resJson['status']='error, no start time, open_time, specified';
             }

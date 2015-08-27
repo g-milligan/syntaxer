@@ -60,10 +60,10 @@ function updateProjectTimeOpen(callback){
           //if the server responded with ok status
           var res=JSON.parse(this.responseText);
           if(res.status==='ok'){
-            if(json.hasOwnProperty('open_time')){
+            if(res.hasOwnProperty('open_time')){
               //set the updated open time
               var bodyElem=jQuery('body:first');
-              bodyElem.attr('open_time', json['open_time']);
+              bodyElem.attr('open_time', res['open_time']);
               //callback, if any
               if(callback!=undefined){
                 callback(res);
@@ -71,7 +71,7 @@ function updateProjectTimeOpen(callback){
             }
           }else{
             //returned errors... show error message
-            oops(json['status']);
+            oops(res['status']);
           }
         }
         //save the current order/filter rule state for recent projects
