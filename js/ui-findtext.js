@@ -340,6 +340,8 @@ function showFindText(){
                 searchInput[0]['previousSubmittedTxt']=searchInput.val();
                 //set default number of positions found
                 searchFoundCount.html('nada');
+                //show the found count number
+                searchFoundCount.parent().addClass('active');
                 //if any found
                 if(found!=undefined){
                   //if any found for the current tab file
@@ -351,8 +353,6 @@ function showFindText(){
                     //get the current search position numbering in the cycle
                     var thisNum=getNextFindTextNth(searchInput.val(), path);
                     if(thisNum===0){
-                      //show the found count number
-                      searchFoundCount.parent().addClass('active');
                       //reset the current count
                       cycleThroughEl.children('.nth:first').html('0');
                       cycleThroughEl.removeClass('active');
