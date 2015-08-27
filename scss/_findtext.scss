@@ -38,6 +38,12 @@ $w-findtext-row-border:.2rem;
           display:none;color:inherit;
         }
 
+        > .cycle-through{
+          .nth:after{
+            content:" / ";
+          }
+        }
+
         > .active{
           display:block;
         }

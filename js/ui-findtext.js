@@ -1,3 +1,85 @@
+//get the cached found-positions, if they are already cached, clear the cached positions for this tab when edits are made to the tab content
+function getTxtTabFindTextData(findTxt, tabPath){
+  var data;
+  if(document.hasOwnProperty('cachedFindTextPositions')){
+    if(document['cachedFindTextPositions'].hasOwnProperty(tabPath)){
+      if(document['cachedFindTextPositions'][tabPath].hasOwnProperty(findTxt)){
+        data=document['cachedFindTextPositions'][tabPath][findTxt];
+      }
+    }
+  } return data;
+}
+function getCachedFindText(findTxt, tabPath){
+  var cachedPositions;
+  var data=getTxtTabFindTextData(findTxt, tabPath);
+  if(data!=undefined){
+    cachedPositions=data['pos'];
+  } return cachedPositions;
+}
+//get the next number to cycle to
+function getNextFindTextNth(findTxt, tabPath){
+  var next;
+  var data=getTxtTabFindTextData(findTxt, tabPath);
+  if(data!=undefined){
+    //if starting over with a new findTxt, or on a new tab
+    if(isNewSearchTextCycle(findTxt, tabPath)){
+      data['nth']=0;
+    }
+    next=data['nth'];
+  } return next;
+}
+//searching a new findTxt? Or searching in a new tab? (used to tell if to start the cycle-through number over)
+function isNewSearchTextCycle(findTxt, tabPath, updateSearchCycle){
+  var newSearchCycle=true;
+  if(updateSearchCycle==undefined){ updateSearchCycle=true; }
+  //if this tab/search-text combo exists
+  var data=getTxtTabFindTextData(findTxt, tabPath);
+  if(data!=undefined){
+    //if doesn't already have the current_cycle_through property
+    if(!document['cachedFindTextPositions'].hasOwnProperty('current_cycle_through')){
+      document['cachedFindTextPositions']['current_cycle_through']={findTxt:'', tabPath:''};
+    }else{
+      //already has the current_cycle_through property...
+
+      //if the current tab/search-text combo is the same as the current search cycle
+      if(document['cachedFindTextPositions']['current_cycle_through']['findTxt']===findTxt){
+        if(document['cachedFindTextPositions']['current_cycle_through']['tabPath']===tabPath){
+          newSearchCycle=false;
+        }
+      }
+    }
+    //if updating
+    if(updateSearchCycle){
+      document['cachedFindTextPositions']['current_cycle_through']['findTxt']=findTxt;
+      document['cachedFindTextPositions']['current_cycle_through']['tabPath']=tabPath;
+    }
+  }
+  return newSearchCycle;
+}
+//set the next number within the cycle-through instances of the findTxt, for this tabPath
+function setNextFindTextNth(findTxt, tabPath){
+  var next;
+  var data=getTxtTabFindTextData(findTxt, tabPath);
+  if(data!=undefined){
+    //go to the next number in sequence
+    next=data['nth'];
+    if(next+1<=data['pos'].length){ next++; }
+    else{ next=0; }
+    //set the updated cycle number
+    data['nth']=next;
+  } return next;
+}
+//clear the cached found text for a specific tab
+function clearCachedFindText(tabPath){
+  var didClear=false;
+  if(document.hasOwnProperty('cachedFindTextPositions')){
+    if(document['cachedFindTextPositions'].hasOwnProperty(tabPath)){
+      delete document['cachedFindTextPositions'][tabPath];
+      didClear=true;
+    }
+  } return didClear;
+}
+//get the positions of search text within one tab or all tabs
 function findTextInTab(findTxt, args){
   var ret;
   if(findTxt.length>0){
@@ -5,94 +87,107 @@ function findTextInTab(findTxt, args){
     if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
     if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
     //function to find all text matches in one tab
-    var setTabTextMatches=function(tab){ //*** use the cached search, if available, and dump the cache for any edited tab (in the change event)
+    var setTabTextMatches=function(tab){
       var tabPath=tab.attr('path');
-      //if this tab has content
-      var tabContent=getFileContent(tabPath);
-      if(tabContent!=undefined){
-        //depending on the search_mode
-        if(tabContent.length>0){
-          //loop find next lineIndex of text
-          var lineIndex=0, positions=[];
-          var findNextLinePositions=function(){
-            var nextIndex=tabContent.indexOf(findTxt);
-            if(nextIndex>-1){
-              var position={line:-1,start:-1,end:-1};
-              //get the lineIndex where this search text is found
-              var ls=tabContent.substring(0, nextIndex+findTxt.length);
-              ls=ls.trimRight();
-              var lastLine=ls; if(lastLine.indexOf('\n')!==-1){ lastLine=lastLine.substring(lastLine.lastIndexOf('\n')+1); }
-              lastLine=lastLine.substring(0, lastLine.indexOf(findTxt)); //characters in the last line, before the findTxt
-              ls=ls.split('\n'); lineIndex+=(ls.length-1);
-              position['line']=lineIndex; //set the line index
-              tabContent=tabContent.substring(nextIndex+findTxt.length); //remove the parsed string up to this line, and including findTxt
-              //get the character index where this search text is found
-              position['start']=lastLine.length;
-              position['end']=position['start']+findTxt.length;
-              positions.push(position);
-              //get the remaining instances of findTxt, in this line, if any
-              var remainingLine=tabContent; var indexOfNl=remainingLine.indexOf('\n');
-              if(indexOfNl!==-1){
-                remainingLine=remainingLine.substring(0, indexOfNl);
-              }
-              //if there more instances of findTxt in this same line
-              var nextStartIndex=remainingLine.indexOf(findTxt);
-              if(nextStartIndex!==-1){
-                var start=position['start'];
-                while(nextStartIndex!==-1){
-                  //get the next position in the same line
-                  start+=nextStartIndex+findTxt.length;
-                  var pos={line:position['line'], start:start, end:start+findTxt.length};
-                  positions.push(pos);
-                  //consume the found text in the line
-                  remainingLine=remainingLine.substring(nextStartIndex+findTxt.length);
-                  //get the next index, if there is another instance within this same line
-                  nextStartIndex=remainingLine.indexOf(findTxt);
+      //get the cached found-positions, if they are already cached
+      var cachedPos=getCachedFindText(findTxt, tabPath);
+      if(cachedPos==undefined){
+        //if this tab has content
+        var tabContent=getFileContent(tabPath);
+        if(tabContent!=undefined){
+          //depending on the search_mode
+          if(tabContent.length>0){
+            //loop find next lineIndex of text
+            var lineIndex=0, positions=[];
+            var findNextLinePositions=function(){
+              var nextIndex=tabContent.indexOf(findTxt);
+              if(nextIndex>-1){
+                var position={line:-1,start:-1,end:-1};
+                //get the lineIndex where this search text is found
+                var ls=tabContent.substring(0, nextIndex+findTxt.length);
+                ls=ls.trimRight();
+                var lastLine=ls; if(lastLine.indexOf('\n')!==-1){ lastLine=lastLine.substring(lastLine.lastIndexOf('\n')+1); }
+                lastLine=lastLine.substring(0, lastLine.indexOf(findTxt)); //characters in the last line, before the findTxt
+                ls=ls.split('\n'); lineIndex+=(ls.length-1);
+                position['line']=lineIndex; //set the line index
+                tabContent=tabContent.substring(nextIndex+findTxt.length); //remove the parsed string up to this line, and including findTxt
+                //get the character index where this search text is found
+                position['start']=lastLine.length;
+                position['end']=position['start']+findTxt.length;
+                positions.push(position);
+                //get the remaining instances of findTxt, in this line, if any
+                var remainingLine=tabContent; var indexOfNl=remainingLine.indexOf('\n');
+                if(indexOfNl!==-1){
+                  remainingLine=remainingLine.substring(0, indexOfNl);
+                }
+                //if there more instances of findTxt in this same line
+                var nextStartIndex=remainingLine.indexOf(findTxt);
+                if(nextStartIndex!==-1){
+                  var start=position['start'];
+                  while(nextStartIndex!==-1){
+                    //get the next position in the same line
+                    start+=nextStartIndex+findTxt.length;
+                    var pos={line:position['line'], start:start, end:start+findTxt.length};
+                    positions.push(pos);
+                    //consume the found text in the line
+                    remainingLine=remainingLine.substring(nextStartIndex+findTxt.length);
+                    //get the next index, if there is another instance within this same line
+                    nextStartIndex=remainingLine.indexOf(findTxt);
+                  }
+                }
+                //remove remainingLine from tabContent
+                if(indexOfNl!==-1){
+                  tabContent=tabContent.substring(indexOfNl+1);
+                  lineIndex++; //next line counting
+                }else{
+                  //no more lines
+                  tabContent='';
                 }
               }
-              //remove remainingLine from tabContent
-              if(indexOfNl!==-1){
-                tabContent=tabContent.substring(indexOfNl+1);
-                lineIndex++; //next line counting
-              }else{
-                //no more lines
-                tabContent='';
-              }
+              return nextIndex;
+            };
+            //depending on the search_mode
+            switch(args['search_mode']){
+              case 'regex':
+                //***
+                break;
+              case 'word':
+                //***
+                break;
+              case 'case':
+                //find all positions of the search text, within this tab
+                var ni=-3; while(ni!==-1 && ni!=undefined){
+                  ni=findNextLinePositions();
+                }
+                break;
+              default:
+                //case insensitive
+                findTxt=findTxt.toLowerCase(); tabContent=tabContent.toLowerCase();
+                //find all positions of the search text, within this tab
+                var ni=-3; while(ni!==-1 && ni!=undefined){
+                  ni=findNextLinePositions();
+                }
+                break;
             }
-            return nextIndex;
-          };
-          //depending on the search_mode
-          switch(args['search_mode']){
-            case 'regex':
-              //***
-              break;
-            case 'word':
-              //***
-              break;
-            case 'case':
-              //find all positions of the search text, within this tab
-              var ni=-3; while(ni!==-1 && ni!=undefined){
-                ni=findNextLinePositions();
-              }
-              break;
-            default:
-              //case insensitive
-              findTxt=findTxt.toLowerCase(); tabContent=tabContent.toLowerCase();
-              //find all positions of the search text, within this tab
-              var ni=-3; while(ni!==-1 && ni!=undefined){
-                ni=findNextLinePositions();
-              }
-              break;
-          }
-          //if this tab contained any findTxt instances
-          if(positions.length>0){
-            if(ret==undefined){ ret={}; }
-            //put the found positions for this tabPath into the ret object
-            ret[tabPath]=positions;
-            //cache the positions for this tabPath
-            //***
+            //if this tab contained any findTxt instances
+            if(positions.length>0){
+              if(ret==undefined){ ret={}; }
+              //put the found positions for this tabPath into the ret object
+              ret[tabPath]=positions;
+              //cache the positions for this tabPath
+              if(!document.hasOwnProperty('cachedFindTextPositions')){ document['cachedFindTextPositions']={}; }
+              if(!document['cachedFindTextPositions'].hasOwnProperty(tabPath)){ document['cachedFindTextPositions'][tabPath]={}; }
+              if(!document['cachedFindTextPositions'][tabPath].hasOwnProperty(findTxt)){ document['cachedFindTextPositions'][tabPath][findTxt]={nth:0}; }
+              document['cachedFindTextPositions'][tabPath][findTxt]['pos']=positions;
+            }
           }
         }
+      }else{
+        //set cached data to return
+        if(ret==undefined){ ret={}; }
+        if(!ret.hasOwnProperty('cachedTabs')){ ret['cachedTabs']=[]; }
+        ret[tabPath]=cachedPos;
+        ret['cachedTabs'].push(tabPath);
       }
     };
     //if searching all tabs
@@ -156,7 +251,9 @@ function showFindText(){
             var searchInput=searchFieldWrap.children('.search-field:first');
             var searchCount=searchFieldWrap.children('.count:last');
             searchCount.append('<div class="found">Found <span></span></div>');
+            searchCount.append('<div class="cycle-through"><span class="nth"></span><span class="total"></span></div>');
             var searchFoundCount=searchCount.find('.found span:first');
+            var cycleThroughEl=searchCount.children('.cycle-through:first');
             replaceFieldWrap.append('<input type="text" class="replace-field default" value="Replace something:" /><div class="count"></div>');
             var replaceInput=replaceFieldWrap.children('.replace-field:first');
             var replaceCount=replaceFieldWrap.children('.count:last');
@@ -177,6 +274,7 @@ function showFindText(){
                   i.addClass('default');
                 }
                 i.parent().find('.count .active').removeClass('active');
+                i.parent().find('.cycle-through.active').removeClass('active');
               };
               inp.focus(function(e){ handleFocus(jQuery(this)); });
               //inp.click(function(e){ e.stopPropagation(); handleFocus(jQuery(this)); });
@@ -201,6 +299,7 @@ function showFindText(){
               inp.keyup(function(e){
                 if(jQuery(this).val()!==jQuery(this)[0]['previousSubmittedTxt']){
                   jQuery(this).parent().find('.count .active').removeClass('active');
+                  jQuery(this).parent().find('.cycle-through.active').removeClass('active');
                 }
               });
             };
@@ -239,13 +338,35 @@ function showFindText(){
                 var args=getSearchtextArgs();
                 var found=findTextInTab(searchInput.val(), args);
                 searchInput[0]['previousSubmittedTxt']=searchInput.val();
-                //set the number of positions found
+                //set default number of positions found
                 searchFoundCount.html('nada');
-                searchFoundCount.parent().addClass('active');
+                //if any found
                 if(found!=undefined){
+                  //if any found for the current tab file
                   var path=getElemPath('.');
                   if(found.hasOwnProperty(path)){
+                    //set the real found count number
                     searchFoundCount.html(found[path].length);
+                    cycleThroughEl.children('.total:last').html(found[path].length);
+                    //get the current search position numbering in the cycle
+                    var thisNum=getNextFindTextNth(searchInput.val(), path);
+                    if(thisNum===0){
+                      //show the found count number
+                      searchFoundCount.parent().addClass('active');
+                      //reset the current count
+                      cycleThroughEl.children('.nth:first').html('0');
+                      cycleThroughEl.removeClass('active');
+                    }else{
+                      //cycle through to next found text
+                      cycleThroughEl.addClass('active');
+                      searchFoundCount.parent().removeClass('active');
+                      var nth=cycleThroughEl.children('.nth:first');
+                      //set the number within the cycle-through
+                      nth.html(thisNum+'');
+                      //*** select the appropriate text
+                    }
+                    //increment to the next number
+                    setNextFindTextNth(searchInput.val(), path);
                   }
                 }
               }
