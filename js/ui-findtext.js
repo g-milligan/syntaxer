@@ -47,6 +47,11 @@ function isNewSearchTextCycle(findTxt, tabPath, updateSearchCycle){
           newSearchCycle=false;
         }
       }
+      //if this is a new search text
+      if(newSearchCycle){
+        //deselect the previous findTxt highlights
+        deselectFindText(tabPath);
+      }
     }
     //if updating
     if(updateSearchCycle){
@@ -74,7 +79,10 @@ function clearCachedFindText(tabPath){
   var didClear=false;
   if(document.hasOwnProperty('cachedFindTextPositions')){
     if(document['cachedFindTextPositions'].hasOwnProperty(tabPath)){
+      //clear the cached positions
       delete document['cachedFindTextPositions'][tabPath];
+      //deselect the highlights, if any
+      deselectFindText(tabPath);
       didClear=true;
     }
   } return didClear;
@@ -211,6 +219,63 @@ function findTextInTab(findTxt, args){
 //hide the findtext panel
 function hideFindText(){
   jQuery('body:first').removeClass('findtext-open');
+  //deselect all highlight markers
+  jQuery('#tabs:first').children('ul:first').children('li[path]').each(function(){
+    deselectFindText(jQuery(this));
+  });
+}
+//deselect the found text strings for a single tab
+function deselectFindText(which){
+  //if the codemirror object for this tab exists
+  var cm=getCodeMirrorObj(which);
+  if(cm!=undefined){
+    //clear all of the highlight markers (if any)
+    if(cm.hasOwnProperty('searchFocusMarkers')){
+      if(cm['searchFocusMarkers']!=undefined){
+        for(var f=0;f<cm['searchFocusMarkers'].length;f++){
+          cm['searchFocusMarkers'][f].clear();
+        }
+        delete cm['searchFocusMarkers'];
+      }
+    }
+  }
+}
+//select the found text strings for a single tab
+function selectFindText(findTxt, tabPath){
+  if(findTxt!=undefined && findTxt.length>0){
+    if(tabPath==undefined){ tabPath=getElemPath('.'); }
+    if(tabPath!=undefined){
+      //if there is a codemirror object for this tab path (should be)
+      var cm=getCodeMirrorObj(tabPath);
+      if(cm!=undefined){
+        //if the search markers are not already in place
+        if(!cm.hasOwnProperty('searchFocusMarkers')){
+          //if there are any cached positions for this tabPath
+          var posData=getCachedFindText(findTxt, tabPath);
+          if(posData!=undefined){
+            //function to set the marker style on the searched text
+            var markFoundText=function(lineIndex, charStartIndex, charEndIndex){
+              //highlight marker for the tab name
+              var marker=cm['object'].markText(
+                CodeMirror.Pos(lineIndex, charStartIndex),
+                CodeMirror.Pos(lineIndex, charEndIndex),
+                { className:'cm-searching', clearWhenEmpty:true }
+              );
+              //push this marker into an array so it can be cleared
+              if(!cm.hasOwnProperty('searchFocusMarkers') || cm['searchFocusMarkers']==undefined){ cm['searchFocusMarkers']=[]; }
+              cm['searchFocusMarkers'].push(marker);
+            };
+            //for each position that contains the searched text
+            for(var p=0;p<posData.length;p++){
+              var pos=posData[p];
+              //mark this position
+              markFoundText(pos['line'], pos['start'], pos['end']);
+            }
+          }
+        }
+      }
+    }
+  }
 }
 //init/show the findtext panel
 function showFindText(){
@@ -300,6 +365,8 @@ function showFindText(){
                 if(jQuery(this).val()!==jQuery(this)[0]['previousSubmittedTxt']){
                   jQuery(this).parent().find('.count .active').removeClass('active');
                   jQuery(this).parent().find('.cycle-through.active').removeClass('active');
+                  //deselect previous highlights, if any
+                  deselectFindText('.');
                 }
               });
             };
@@ -363,8 +430,9 @@ function showFindText(){
                       var nth=cycleThroughEl.children('.nth:first');
                       //set the number within the cycle-through
                       nth.html(thisNum+'');
-                      //*** select the appropriate text
                     }
+                    //select/highlight the appropriate text
+                    selectFindText(searchInput.val(), path);
                     //increment to the next number
                     setNextFindTextNth(searchInput.val(), path);
                   }
