@@ -241,7 +241,7 @@ function deselectFindText(which){
   }
 }
 //select the found text strings for a single tab
-function selectFindText(findTxt, tabPath){
+function selectFindText(findTxt, tabPath, focusPos){
   if(findTxt!=undefined && findTxt.length>0){
     if(tabPath==undefined){ tabPath=getElemPath('.'); }
     if(tabPath!=undefined){
@@ -272,6 +272,15 @@ function selectFindText(findTxt, tabPath){
               markFoundText(pos['line'], pos['start'], pos['end']);
             }
           }
+        }
+        //deselect everything
+        cm['object'].undoSelection();
+        //if there is a focus position to highlight
+        if(focusPos!=undefined){
+          cm['object'].setSelection(
+            CodeMirror.Pos(focusPos['line'], focusPos['start']),
+            CodeMirror.Pos(focusPos['line'], focusPos['end'])
+          );
         }
       }
     }
@@ -414,6 +423,7 @@ function showFindText(){
                   //if any found for the current tab file
                   var path=getElemPath('.');
                   if(found.hasOwnProperty(path)){
+                    var focusPos;
                     //set the real found count number
                     searchFoundCount.html(found[path].length);
                     cycleThroughEl.children('.total:last').html(found[path].length);
@@ -430,9 +440,11 @@ function showFindText(){
                       var nth=cycleThroughEl.children('.nth:first');
                       //set the number within the cycle-through
                       nth.html(thisNum+'');
+                      //focus on one of the found text positions
+                      focusPos=found[path][thisNum-1];
                     }
                     //select/highlight the appropriate text
-                    selectFindText(searchInput.val(), path);
+                    selectFindText(searchInput.val(), path, focusPos);
                     //increment to the next number
                     setNextFindTextNth(searchInput.val(), path);
                   }
