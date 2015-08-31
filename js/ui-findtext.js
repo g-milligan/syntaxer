@@ -36,14 +36,14 @@ function isNewSearchTextCycle(findTxt, tabPath, updateSearchCycle){
   var data=getTxtTabFindTextData(findTxt, tabPath);
   if(data!=undefined){
     //if doesn't already have the current_cycle_through property
-    if(!document['cachedFindTextPositions'].hasOwnProperty('current_cycle_through')){
-      document['cachedFindTextPositions']['current_cycle_through']={findTxt:'', tabPath:''};
+    if(!document['cachedFindTextPositions'].hasOwnProperty('@current_cycle_through')){
+      document['cachedFindTextPositions']['@current_cycle_through']={findTxt:'', tabPath:''};
     }else{
       //already has the current_cycle_through property...
 
       //if the current tab/search-text combo is the same as the current search cycle
-      if(document['cachedFindTextPositions']['current_cycle_through']['findTxt']===findTxt){
-        if(document['cachedFindTextPositions']['current_cycle_through']['tabPath']===tabPath){
+      if(document['cachedFindTextPositions']['@current_cycle_through']['findTxt']===findTxt){
+        if(document['cachedFindTextPositions']['@current_cycle_through']['tabPath']===tabPath){
           newSearchCycle=false;
         }
       }
@@ -55,8 +55,8 @@ function isNewSearchTextCycle(findTxt, tabPath, updateSearchCycle){
     }
     //if updating
     if(updateSearchCycle){
-      document['cachedFindTextPositions']['current_cycle_through']['findTxt']=findTxt;
-      document['cachedFindTextPositions']['current_cycle_through']['tabPath']=tabPath;
+      document['cachedFindTextPositions']['@current_cycle_through']['findTxt']=findTxt;
+      document['cachedFindTextPositions']['@current_cycle_through']['tabPath']=tabPath;
     }
   }
   return newSearchCycle;
@@ -79,13 +79,85 @@ function clearCachedFindText(tabPath){
   var didClear=false;
   if(document.hasOwnProperty('cachedFindTextPositions')){
     if(document['cachedFindTextPositions'].hasOwnProperty(tabPath)){
-      //clear the cached positions
-      delete document['cachedFindTextPositions'][tabPath];
-      //deselect the highlights, if any
-      deselectFindText(tabPath);
-      didClear=true;
+      //replace one of the found text positions?
+      var stopClearCache=false;
+      if(document['cachedFindTextPositions'][tabPath].hasOwnProperty('@stop_clear_cache')){
+        stopClearCache=true;
+        delete document['cachedFindTextPositions'][tabPath]['@stop_clear_cache'];
+      }
+      //if not replacing a single cached position
+      if(!stopClearCache){
+        //clear the cached positions
+        delete document['cachedFindTextPositions'][tabPath];
+        //deselect the highlights, if any
+        deselectFindText(tabPath);
+        didClear=true;
+      }
     }
   } return didClear;
+}
+//don't completely clear the cached found text positions for a tab, even though the content will be changed
+function stopClearCachedFindText(forTabPath){
+  if(document.hasOwnProperty('cachedFindTextPositions')){
+    if(document['cachedFindTextPositions'].hasOwnProperty(forTabPath)){
+      document['cachedFindTextPositions'][forTabPath]['@stop_clear_cache']=1;
+    }
+  }
+}
+//replace one of the found text positions
+function replaceTextInTab(searchTextVal, replaceTextVal, path, replacePos){
+  var didReplace=false;
+  //if replacing (not just normal search/find)
+  if(replaceTextVal!=undefined){
+    //if there is a string that is selected as the focus position
+    if(replacePos!=undefined){
+      var cm=getCodeMirrorObj(path);
+      if(cm!=undefined){
+        //if trying to clear cache while cycling through found text in the current tab
+        if(document['cachedFindTextPositions']['@current_cycle_through']['tabPath']===path){
+          //prevent clearing the cached found text positions
+          stopClearCachedFindText(path);
+          //perform the replace of the selected code
+          cm['object'].replaceRange(replaceTextVal,
+            CodeMirror.Pos(replacePos['line'], replacePos['start']),
+            CodeMirror.Pos(replacePos['line'], replacePos['end'])
+          );
+          //get the search data
+          var searchData=document['cachedFindTextPositions'][path][searchTextVal];
+          if(searchData['nth']>0){
+            //get the length difference, which will shift the positions after this one
+            var lenDiff=replaceTextVal.length - searchTextVal.length;
+            //if a position shift is needed
+            if(lenDiff!==0){
+              //get the position of the string that was replaced
+              var currentPos=searchData['pos'][searchData['nth']-1];
+              //for each position after the replaced position
+              for(var a=searchData['nth'];a<searchData['pos'].length;a++){
+                //if this is on the same line
+                if(searchData['pos'][a]['line']===currentPos['line']){
+                  //shift this position
+                  searchData['pos'][a]['start']+=lenDiff;
+                  searchData['pos'][a]['end']+=lenDiff;
+                }else{
+                  break; //no need to shift positions on different lines
+                }
+              }
+            }
+            //remove the replaced position
+            searchData['pos'].splice(searchData['nth']-1, 1);
+            didReplace=true;
+            //if there are remaining search positions
+            if(searchData['pos'].length>0){
+              //select the next search position
+              var nextPos=searchData['pos'][searchData['nth']-1];
+              selectFindText(searchTextVal, path, nextPos);
+            }
+          }
+        }
+      }
+    }
+  }
+  return didReplace;
 }
 //get the positions of search text within one tab or all tabs
 function findTextInTab(findTxt, args){
@@ -273,8 +345,6 @@ function selectFindText(findTxt, tabPath, focusPos){
             }
           }
         }
-        //deselect everything
-        cm['object'].undoSelection();
         //if there is a focus position to highlight
         if(focusPos!=undefined){
           cm['object'].setSelection(
@@ -374,8 +444,11 @@ function showFindText(){
                 if(jQuery(this).val()!==jQuery(this)[0]['previousSubmittedTxt']){
                   jQuery(this).parent().find('.count .active').removeClass('active');
                   jQuery(this).parent().find('.cycle-through.active').removeClass('active');
-                  //deselect previous highlights, if any
-                  deselectFindText('.');
+                  //if this is the find text input
+                  if(jQuery(this).hasClass('search-field')){
+                    //deselect previous highlights, if any
+                    deselectFindText('.');
+                  }
                 }
               });
             };
@@ -408,54 +481,77 @@ function showFindText(){
               //args
               var args={search_mode:search_mode, all_tabs:all_tabs}; return args;
             };
-            findBtn.click(function(){
-              if(!searchInput.hasClass('default')){
-                //search based on the args
-                var args=getSearchtextArgs();
-                var found=findTextInTab(searchInput.val(), args);
-                searchInput[0]['previousSubmittedTxt']=searchInput.val();
-                //set default number of positions found
-                searchFoundCount.html('nada');
-                //show the found count number
-                searchFoundCount.parent().addClass('active');
-                //if any found
-                if(found!=undefined){
-                  //if any found for the current tab file
-                  var path=getElemPath('.');
-                  if(found.hasOwnProperty(path)){
-                    var focusPos;
-                    //set the real found count number
-                    searchFoundCount.html(found[path].length);
-                    cycleThroughEl.children('.total:last').html(found[path].length);
-                    //get the current search position numbering in the cycle
-                    var thisNum=getNextFindTextNth(searchInput.val(), path);
-                    if(thisNum===0){
-                      //reset the current count
-                      cycleThroughEl.children('.nth:first').html('0');
-                      cycleThroughEl.removeClass('active');
-                    }else{
-                      //cycle through to next found text
-                      cycleThroughEl.addClass('active');
-                      searchFoundCount.parent().removeClass('active');
-                      var nth=cycleThroughEl.children('.nth:first');
-                      //set the number within the cycle-through
-                      nth.html(thisNum+'');
-                      //focus on one of the found text positions
-                      focusPos=found[path][thisNum-1];
-                    }
+            //cycle through each found search value
+            var cycleSearch=function(searchTextVal, replaceTextVal){
+              //search based on the args
+              var args=getSearchtextArgs();
+              var found=findTextInTab(searchTextVal, args);
+              searchInput[0]['previousSubmittedTxt']=searchTextVal;
+              //set default number of positions found
+              var nada='nada';
+              searchFoundCount.html(nada);
+              //show the found count number
+              searchFoundCount.parent().addClass('active');
+              //if any found
+              if(found!=undefined){
+                //if any found for the current tab file
+                var path=getElemPath('.');
+                if(found.hasOwnProperty(path)){
+                  var focusPos;
+                  //set the real found count number
+                  searchFoundCount.html(found[path].length);
+                  cycleThroughEl.children('.total:last').html(found[path].length);
+                  //get the current search position numbering in the cycle
+                  var thisNum=getNextFindTextNth(searchTextVal, path);
+                  if(thisNum===0){
+                    //reset the current count
+                    cycleThroughEl.children('.nth:first').html('0');
+                    cycleThroughEl.removeClass('active');
+                  }else{
+                    //cycle through to next found text
+                    cycleThroughEl.addClass('active');
+                    searchFoundCount.parent().removeClass('active');
+                    var nth=cycleThroughEl.children('.nth:first');
+                    //set the number within the cycle-through
+                    nth.html(thisNum+'');
+                    //focus on one of the found text positions
+                    focusPos=found[path][thisNum-1];
+                  }
+                  //replace this found text, if replacing
+                  if(!replaceTextInTab(searchTextVal, replaceTextVal, path, focusPos)){
                     //select/highlight the appropriate text
-                    selectFindText(searchInput.val(), path, focusPos);
+                    selectFindText(searchTextVal, path, focusPos);
                     //increment to the next number
-                    setNextFindTextNth(searchInput.val(), path);
+                    setNextFindTextNth(searchTextVal, path);
+                  }else{
+                    //replace did happen... update the found text number
+                    var newTotal=found[path].length; cycleThroughEl.children('.total:last').html(newTotal+'');
+                    if(newTotal<1){
+                      //all removed
+                      searchFoundCount.html(nada);
+                      cycleThroughEl.removeClass('active');
+                      searchFoundCount.parent().addClass('active');
+                    }
                   }
                 }
+              }
+            };
+            //find action
+            findBtn.click(function(){
+              if(!searchInput.hasClass('default')){
+                cycleSearch(searchInput.val());
               }
               searchInput.focus();
             });
             //replace button
             replaceBtn.click(function(){
-
-              //***
+              if(!searchInput.hasClass('default')){
+                if(!replaceInput.hasClass('default')){
+                  cycleSearch(searchInput.val(), replaceInput.val());
+                }else{
+                  cycleSearch(searchInput.val(), '');
+                }
+              }
               replaceInput.focus();
             });
             //replace all button
