@@ -1,3 +1,84 @@
+
+function getTabSearchData(which){
+  var path=getElemPath(which);
+  var li, cm, tabContent;
+  if(path!=undefined){
+    li=getTabLi(path);
+    cm=getCodeMirrorObj(path);
+    tabContent=getFileContent(path);
+  } return { path: path, li: li, cm:cm, content:tabContent };
+}
+//find and highlight searchtext
+function findTextInTab(findTxt, args){
+  if(findTxt.length>0){
+    if(args==undefined){ args={all_tabs:false, search_mode:'default'}; }
+    if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
+    if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
+    //active tab elements, objects, and strings
+    var activeTab=getTabSearchData('.');
+    if(activeTab['content']!=undefined){
+      if(activeTab['cm']!=undefined){
+        //get the last index of something that follows regex pattern
+        var lastRegexIndexOf=function(needle, stack, re){
+          var li=stack.search(re); var searchon=true;
+          while(li!==-1 && searchon){
+            stack=stack.substring(li+needle.length);
+            var next=stack.search(re);
+            if(next!==-1){ li+=next+needle.length; }
+            else{ searchon=false; }
+          } return li;
+        };
+        //define the strpos function based on the search_mode
+        var strpos; switch(args['search_mode']) {
+          //use regex
+          case 'regex': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1;
+            if(fl==undefined){ fl='first'; } switch(fl){
+              case 'first':  break;
+              case 'last':  break;
+            }
+          return nextIndex; }; break;
+          //match whole word, within word boundaries, not a part of another word
+          case 'word': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1;
+            var reg=new RegExp('\\b'+searchFor+'\\b');
+            if(fl==undefined){ fl='first'; } switch(fl){
+              case 'first':
+                nextIndex=inWhat.search(reg);
+              break;
+              case 'last':
+                nextIndex=lastRegexIndexOf(searchFor, inWhat, reg);
+              break;
+            }
+          return nextIndex; }; break;
+          //match casing
+          case 'case': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1;
+            if(fl==undefined){ fl='first'; } switch(fl){
+              case 'first': nextIndex=inWhat.indexOf(searchFor); break;
+              case 'last': nextIndex=inWhat.lastIndexOf(searchFor); break;
+            }
+          return nextIndex; }; break;
+          //default ignore casing
+          default: strpos=function(searchFor, inWhat, fl){ var nextIndex=-1;
+            if(fl==undefined){ fl='first'; } switch(fl){
+              case 'first': nextIndex=inWhat.toLowerCase().indexOf(searchFor.toLowerCase()); break;
+              case 'last': nextIndex=inWhat.toLowerCase().lastIndexOf(searchFor.toLowerCase()); break;
+            }
+          return nextIndex; }; break;
+        }
+        //select all of the found text
+        var tabContent=activeTab['content'];
+        //***
+        var firstIndex=strpos("foo", "I went foo to the foobar and ordered foo. foobar");
+        var lastIndex=strpos("foo", "I went foo to the foobar and ordered foo. foobar", 'last');
+        var test='';
+        //***
+      }
+    }
+    //if searching all tabs
+    if(args['all_tabs']){
+
+    }
+  }
+}
 //hide the findtext panel
 function hideFindText(){
   jQuery('body:first').removeClass('findtext-open');
@@ -15,6 +96,7 @@ function showFindText(){
       if(!bodyElem.hasClass('lightbox-open')){
         //if a notification isn't showing
         if(!jQuery('#notifications:last').hasClass('active')){
+          //open the dialog
           bodyElem.addClass('findtext-open');
           //if doesn't have findtext html yet
           var fileContentWrap=editorDiv.parent();
@@ -131,7 +213,7 @@ function showFindText(){
             var cycleSearch=function(searchTextVal, replaceTextVal){
               //search based on the args
               var args=getSearchtextArgs();
-              //---var found=findTextInTab(searchTextVal, args);
+              var found=findTextInTab(searchTextVal, args);
               searchInput[0]['previousSubmittedTxt']=searchTextVal;
               //***
             };
@@ -163,6 +245,7 @@ function showFindText(){
           var searchInput=findtextWrap.find('.search-line.l1 .field-wrap input.search-field:first');
           //set the cursor into the search field
           searchInput.focus();
+          //get the codemirror object
           var cm=getCodeMirrorObj(editorDiv);
           if(cm!=undefined){
             //if anything is selected
