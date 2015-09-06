@@ -19,57 +19,96 @@ function findTextInTab(findTxt, args){
     if(activeTab['content']!=undefined){
       if(activeTab['cm']!=undefined){
         //get the last index of something that follows regex pattern
-        var lastRegexIndexOf=function(needle, stack, re){
-          var li=stack.search(re); var searchon=true;
+        var lastRegexIndexOf=function(needle, stack, re, li){
+          if(li==undefined){ li=stack.search(re); } var searchon=true; var next=li;
           while(li!==-1 && searchon){
-            stack=stack.substring(li+needle.length);
-            var next=stack.search(re);
-            if(next!==-1){ li+=next+needle.length; }
-            else{ searchon=false; }
+            stack=stack.substring(next+needle.length); next=stack.search(re);
+            if(next!==-1){ li+=next+needle.length; }else{
+              searchon=false; }
           } return li;
         };
         //define the strpos function based on the search_mode
         var strpos; switch(args['search_mode']) {
           //use regex
-          case 'regex': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1;
+          case 'regex': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat='';
+            //searchFor=regexEscape(searchFor);
+            var reg=new RegExp(searchFor);
             if(fl==undefined){ fl='first'; } switch(fl){
-              case 'first':  break;
-              case 'last':  break;
+              case 'first': nextIndex=inWhat.search(reg); break;
+              case 'last':
+                var matches=inWhat.match(reg);
+                if(matches!=undefined){ if(matches.length>0){
+                    searchWhat=matches[0];
+                    nextIndex=lastRegexIndexOf(matches[0], inWhat, reg, matches['index']);
+                } }
+              break;
             }
-          return nextIndex; }; break;
+          return {txt:searchWhat, index:nextIndex}; }; break;
           //match whole word, within word boundaries, not a part of another word
-          case 'word': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1;
+          case 'word': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat=searchFor;
             var reg=new RegExp('\\b'+searchFor+'\\b');
             if(fl==undefined){ fl='first'; } switch(fl){
-              case 'first':
-                nextIndex=inWhat.search(reg);
-              break;
-              case 'last':
-                nextIndex=lastRegexIndexOf(searchFor, inWhat, reg);
-              break;
+              case 'first': nextIndex=inWhat.search(reg); break;
+              case 'last': nextIndex=lastRegexIndexOf(searchFor, inWhat, reg); break;
             }
-          return nextIndex; }; break;
+          return {txt:searchWhat, index:nextIndex}; }; break;
           //match casing
-          case 'case': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1;
+          case 'case': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat=searchFor;
             if(fl==undefined){ fl='first'; } switch(fl){
               case 'first': nextIndex=inWhat.indexOf(searchFor); break;
               case 'last': nextIndex=inWhat.lastIndexOf(searchFor); break;
             }
-          return nextIndex; }; break;
+          return {txt:searchWhat, index:nextIndex}; }; break;
           //default ignore casing
-          default: strpos=function(searchFor, inWhat, fl){ var nextIndex=-1;
+          default: strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat=searchFor;
             if(fl==undefined){ fl='first'; } switch(fl){
               case 'first': nextIndex=inWhat.toLowerCase().indexOf(searchFor.toLowerCase()); break;
               case 'last': nextIndex=inWhat.toLowerCase().lastIndexOf(searchFor.toLowerCase()); break;
             }
-          return nextIndex; }; break;
+          return {txt:searchWhat, index:nextIndex}; }; break;
         }
-        //select all of the found text
+        //get the tab content to begin trimming it away in order to find all of the search text positions
         var tabContent=activeTab['content'];
+        //find all of the search text positions
+        var got=strpos(findTxt, tabContent);
+        if(got['index']!==-1){
+          var currentLineIndex=0, currentCharIndex=0;
+          //while there is a next position
+          while(got['index']!==-1){
+            //get the string before the got position
+            var beforeGot=tabContent.substring(0, got['index']); var lastLineBeforeGot=beforeGot;
+            //if there are any newlines before this position
+            if(beforeGot.indexOf('\n')!==-1){
+              //reset the char index count (for this line)
+              currentCharIndex=0;
+              //count the number of lines before this position
+              var beforeLines=beforeGot.split('\n');
+              currentLineIndex+=beforeLines.length-1;
+              lastLineBeforeGot=beforeLines[beforeLines.length-1];
+            }
+            //count the next set of characters on this line
+            currentCharIndex+=lastLineBeforeGot.length;
+            //count the number of characters that appear before the got position, on the same line
+            var start=currentCharIndex; var end=start+got['txt'].length;
+            //highlight this found position
+            var marker=activeTab['cm']['object'].markText(
+              CodeMirror.Pos(currentLineIndex, start),
+              CodeMirror.Pos(currentLineIndex, end),
+              { className:'cm-searching', clearWhenEmpty:true }
+            );
+            //remove the text up to this point
+            tabContent=tabContent.substring(got['index']+got['txt'].length);
+            //count those removed characters
+            currentCharIndex+=got['txt'].length;
+            //get the next index position, if exists
+            got=strpos(findTxt, tabContent);
+          }
+        }
+
         //***
-        var firstIndex=strpos("foo", "I went foo to the foobar and ordered foo. foobar");
+        /*var firstIndex=strpos("\bfoo\b", "I went foo to the foobar and ordered foo. foobar");
         var lastIndex=strpos("foo", "I went foo to the foobar and ordered foo. foobar", 'last');
-        var test='';
+        var test='';*/
         //***
       }
     }
@@ -108,12 +147,12 @@ function showFindText(){
             var searchLine1=findtextWrap.children('.l1:first'); var searchLine2=findtextWrap.children('.l2:last');
             searchLine1.append('<div class="field-wrap"></div><div class="btns-wrap"></div>');
             var searchFieldWrap=searchLine1.children('.field-wrap:first'); var searchBtnsWrap=searchLine1.children('.btns-wrap:last');
-            searchBtnsWrap.append('<div class="main-btn"><div class="find-btn">Find</div></div><div class="sub-btns"><div name="regex" title="use regex" class="regex-toggle toggle-group">.*</div><div name="case" title="match case" class="match-case-toggle toggle-group">Aa</div><div name="word" title="whole word" class="whole-word-toggle toggle-group">[word]</div><div name="all-tabs" title="search all tabs" class="all-files-toggle"></div></div>');
+            searchBtnsWrap.append('<div class="main-btn"><div class="find-btn">Find</div></div><div class="sub-btns"><div name="regex" title="use regex" class="regex-toggle toggle-group">.*</div><div name="case" title="match case" class="match-case-toggle toggle-group">Aa</div><div name="word" title="whole word" class="whole-word-toggle toggle-group">[word]</div></div>');
             var findBtn=searchBtnsWrap.find('.main-btn .find-btn:first');
             var regexBtn=searchBtnsWrap.find('.sub-btns .regex-toggle:first');
             var matchCaseBtn=searchBtnsWrap.find('.sub-btns .match-case-toggle:first');
             var wholeWordBtn=searchBtnsWrap.find('.sub-btns .whole-word-toggle:first');
-            var allFilesBtn=searchBtnsWrap.find('.sub-btns .all-files-toggle:first'); allFilesBtn.html(svgFiles);
+            //var allFilesBtn=searchBtnsWrap.find('.sub-btns .all-files-toggle:first'); allFilesBtn.html(svgFiles);
             searchLine2.append('<div class="field-wrap"></div><div class="btns-wrap"></div>');
             var replaceFieldWrap=searchLine2.children('.field-wrap:first'); var replaceBtnsWrap=searchLine2.children('.btns-wrap:last');
             replaceBtnsWrap.append('<div class="main-btn"><div class="replace-btn">Replace</div></div><div class="sub-btns"><div class="replace-all-btn">Replace All</div></div>');
@@ -196,7 +235,7 @@ function showFindText(){
               });
             };
             setStandardToggleBtnEvents(regexBtn); setStandardToggleBtnEvents(matchCaseBtn); setStandardToggleBtnEvents(wholeWordBtn);
-            setStandardToggleBtnEvents(allFilesBtn);
+            //setStandardToggleBtnEvents(allFilesBtn);
             //find text
             var getSearchtextArgs=function(){
               //get search mode
@@ -205,7 +244,7 @@ function showFindText(){
               if(search_modeEl.length>0){ search_mode=search_modeEl.attr('name'); }
               //get search all tabs?
               var all_tabs=false;
-              if(allFilesBtn.hasClass('toggle-on')){ all_tabs=true; }
+              //if(allFilesBtn.hasClass('toggle-on')){ all_tabs=true; }
               //args
               var args={search_mode:search_mode, all_tabs:all_tabs}; return args;
             };
