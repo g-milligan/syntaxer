@@ -10,14 +10,17 @@ function getTabSearchData(which){
 }
 //find and highlight searchtext
 function findTextInTab(findTxt, args){
+  var activeTab;
   if(findTxt.length>0){
     if(args==undefined){ args={all_tabs:false, search_mode:'default'}; }
     if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
     if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
     //active tab elements, objects, and strings
-    var activeTab=getTabSearchData('.');
+    activeTab=getTabSearchData('.');
     if(activeTab['content']!=undefined){
       if(activeTab['cm']!=undefined){
+        if(!activeTab['cm'].hasOwnProperty('foundMatchPositionInfo')){ activeTab['cm']['foundMatchPositionInfo']={pos:[],nth:0}; }
+        else{ activeTab['cm']['foundMatchPositionInfo']['pos']=[]; }
         //get the last index of something that follows regex pattern
         var lastRegexIndexOf=function(needle, stack, re, li){
           if(li==undefined){ li=stack.search(re); } var searchon=true; var next=li;
@@ -96,6 +99,13 @@ function findTextInTab(findTxt, args){
               CodeMirror.Pos(currentLineIndex, end),
               { className:'cm-searching', clearWhenEmpty:true }
             );
+            //show a tick mark on the scrollbar for this found text position
+            var scrollMatch=setMatchOnScrollbar(activeTab['cm'], currentLineIndex);
+            //add this item as data related to the selected position
+            activeTab['cm']['foundMatchPositionInfo']['pos'].push({
+              line:currentLineIndex, start:start, end:end,
+              marker:marker, scrollmark:scrollMatch
+            });
             //remove the text up to this point
             tabContent=tabContent.substring(got['index']+got['txt'].length);
             //count those removed characters
@@ -104,19 +114,55 @@ function findTextInTab(findTxt, args){
             got=strpos(findTxt, tabContent);
           }
         }
-
-        //***
-        /*var firstIndex=strpos("\bfoo\b", "I went foo to the foobar and ordered foo. foobar");
-        var lastIndex=strpos("foo", "I went foo to the foobar and ordered foo. foobar", 'last');
-        var test='';*/
-        //***
       }
     }
-    //if searching all tabs
-    if(args['all_tabs']){
-
+  } return activeTab;
+}
+//move the found text position on scrollbar
+function moveMatchOnScrollbar(cm, fromLine, toLine){
+  //get the scrollbar element
+  var wrap=cm['object'].getWrapperElement(); wrap=jQuery(wrap);
+  var matchesWrap=wrap.children('.search-matches:last');
+  if(matchesWrap.length<0){
+    scrollMatch=matchesWrap.children('.search-match[line="'+fromLine+'"]:first');
+    if(scrollMatch.length>0){
+      if(toLine==undefined){ toLine=fromLine; }
+      //get the number of lines
+      var numLines=cm['object']['doc'].lineCount();
+      //get percent position of the match
+      var linePercent=toLine/numLines*100;
+      //update the match position
+      scrollMatch.css('top',linePercent+'%'); scrollMatch.attr('line', toLine);
+      //update width of matches
+      var width=wrap.find('.CodeMirror-vscrollbar:first').outerWidth();
+      if(width<10){ width=10; } matchesWrap.children('.search-match').css('width', width+'px');
     }
   }
+}
+//show the found text position on scrollbar
+function setMatchOnScrollbar(cm, line){
+  var scrollMatch;
+  //get the scrollbar element
+  var wrap=cm['object'].getWrapperElement(); wrap=jQuery(wrap);
+  var matchesWrap=wrap.children('.search-matches:last');
+  if(matchesWrap.length<1){
+    wrap.append('<div class="search-matches"></div>');
+    matchesWrap=wrap.children('.search-matches:last');
+  }
+  //if this line isn't already matched on the scrollbar
+  scrollMatch=matchesWrap.children('.search-match[line="'+line+'"]:first');
+  if(scrollMatch.length<1){
+    //get the number of lines
+    var numLines=cm['object']['doc'].lineCount();
+    //get percent position of the match
+    var linePercent=line/numLines*100;
+    matchesWrap.append('<div style="top:'+linePercent+'%;" class="search-match" line="'+line+'"></div>');
+    scrollMatch=matchesWrap.children('.search-match[line="'+line+'"]:last');
+    //update width of matches
+    var width=wrap.find('.CodeMirror-vscrollbar:first').outerWidth();
+    if(width<10){ width=10; } matchesWrap.children('.search-match').css('width', width+'px');
+  }
+  return scrollMatch;
 }
 //hide the findtext panel
 function hideFindText(){

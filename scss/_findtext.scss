@@ -120,3 +120,11 @@ $w-findtext-row-border:.2rem;
 }
 
 body.findtext-open .findtext-wrap{display:block;}
+
+.search-matches{
+  position:absolute;right:0;top:0;height:100%;width:0px;z-index:999;
+
+  .search-match{
+    position:absolute;width:100%;height:2px;background-color:red;box-shadow:0 0 10px rgba(255,0,0,.5);right:0;display:block;z-index:999;
+  }
+}
