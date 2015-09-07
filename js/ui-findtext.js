@@ -1,120 +1,249 @@
-
-function getTabSearchData(which){
-  var path=getElemPath(which);
-  var li, cm, tabContent;
-  if(path!=undefined){
-    li=getTabLi(path);
-    cm=getCodeMirrorObj(path);
-    tabContent=getFileContent(path);
-  } return { path: path, li: li, cm:cm, content:tabContent };
+function initTabSearchData(path, findTxt){
+  var ret=getCachedSearchData(path, findTxt);
+  if(ret==undefined){
+	  var li, cm, tabContent;
+	  if(path!=undefined){
+	    li=getTabLi(path);
+	    cm=getCodeMirrorObj(path);
+	    cm['foundMatchPositionInfo']={pos:[],nth:0,searched:findTxt};
+	    tabContent=getFileContent(path);
+	    ret={ path: path, li: li, cm:cm, content:tabContent };
+	    //make sure the data is cached on the document object
+	    if(!document.hasOwnProperty('foundMatchPositionInfo')){ document['foundMatchPositionInfo']={}; }
+	    if(!document['foundMatchPositionInfo'].hasOwnProperty(path)){ document['foundMatchPositionInfo'][path]={}; }
+	    document['foundMatchPositionInfo'][path][findTxt]=ret;
+	  }
+  } return ret;
+}
+function getCachedSearchData(path, findTxt){
+	var cached;
+	if(document.hasOwnProperty('foundMatchPositionInfo')){
+		if(document['foundMatchPositionInfo'].hasOwnProperty(path)){
+			if(findTxt==undefined){
+				cached=document['foundMatchPositionInfo'][path];
+			}else{
+				if(document['foundMatchPositionInfo'][path].hasOwnProperty(findTxt)){
+					cached=document['foundMatchPositionInfo'][path][findTxt];
+				}
+			}
+		}
+	} return cached;
+}
+function clearCachedSearchData(path, findTxt){
+	var didClear=false;
+	var cached=getCachedSearchData(path, findTxt);
+	if(cached!=undefined){
+		delete cached;
+		didClear=true;
+	} return didClear;
+}
+function updateSearchTextCount(nth, total){
+	var fieldWrap=jQuery('#file-content .findtext-wrap .search-line .field-wrap:first');
+	if(fieldWrap.length>0){
+		var searchInput=fieldWrap.children('input.search-field:first');
+		var countWrap=fieldWrap.children('.count:last');
+		var totalFoundWrap=countWrap.children('.found:first');
+		var totalFoundSpan=totalFoundWrap.children('span:last');
+		var cycleWrap=countWrap.children('.cycle-through:last');
+		var nthEl=cycleWrap.children('.nth:first');
+		var totalEl=cycleWrap.children('.total:last');
+		//get the cached nth and total if they were not passed as args
+		if(nth==undefined || total==undefined){
+			var currentTabPath=getElemPath('.');
+			var cachedData=getCachedSearchData(currentTabPath, searchInput.val());
+			if(cachedData!=undefined){
+				//set cached values
+				nth=cachedData['cm']['foundMatchPositionInfo']['nth'];
+				total=cachedData['cm']['foundMatchPositionInfo']['pos'].length;
+			}
+		}
+		//if there is any cycle through data
+		if(nth!=undefined){
+			//set UI values
+			nthEl.html(nth+''); totalEl.html(total+''); 
+			var totalTxt=total; if(totalTxt===0){ totalTxt='nada'; }
+			totalFoundSpan.html(totalTxt+'');
+			//if at the first nth
+			if(nth===0){
+				totalFoundWrap.addClass('active'); cycleWrap.removeClass('active');
+			}else{
+				//not at the first nth
+				totalFoundWrap.removeClass('active'); cycleWrap.addClass('active');
+			}
+		}else{
+			//no current cycle through data... hide the count 
+			totalFoundWrap.removeClass('active'); cycleWrap.removeClass('active');
+		}
+	}
 }
 //find and highlight searchtext
-function findTextInTab(findTxt, args){
+function searchTextInTab(findTxt, args){
   var activeTab;
   if(findTxt.length>0){
-    if(args==undefined){ args={all_tabs:false, search_mode:'default'}; }
-    if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
-    if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
-    //active tab elements, objects, and strings
-    activeTab=getTabSearchData('.');
-    if(activeTab['content']!=undefined){
-      if(activeTab['cm']!=undefined){
-        if(!activeTab['cm'].hasOwnProperty('foundMatchPositionInfo')){ activeTab['cm']['foundMatchPositionInfo']={pos:[],nth:0}; }
-        else{ activeTab['cm']['foundMatchPositionInfo']['pos']=[]; }
-        //get the last index of something that follows regex pattern
-        var lastRegexIndexOf=function(needle, stack, re, li){
-          if(li==undefined){ li=stack.search(re); } var searchon=true; var next=li;
-          while(li!==-1 && searchon){
-            stack=stack.substring(next+needle.length); next=stack.search(re);
-            if(next!==-1){ li+=next+needle.length; }else{
-              searchon=false; }
-          } return li;
-        };
-        //define the strpos function based on the search_mode
-        var strpos; switch(args['search_mode']) {
-          //use regex
-          case 'regex': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat='';
-            //searchFor=regexEscape(searchFor);
-            var reg=new RegExp(searchFor);
-            if(fl==undefined){ fl='first'; } switch(fl){
-              case 'first': nextIndex=inWhat.search(reg); break;
-              case 'last':
-                var matches=inWhat.match(reg);
-                if(matches!=undefined){ if(matches.length>0){
-                    searchWhat=matches[0];
-                    nextIndex=lastRegexIndexOf(matches[0], inWhat, reg, matches['index']);
-                } }
-              break;
-            }
-          return {txt:searchWhat, index:nextIndex}; }; break;
-          //match whole word, within word boundaries, not a part of another word
-          case 'word': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat=searchFor;
-            var reg=new RegExp('\\b'+searchFor+'\\b');
-            if(fl==undefined){ fl='first'; } switch(fl){
-              case 'first': nextIndex=inWhat.search(reg); break;
-              case 'last': nextIndex=lastRegexIndexOf(searchFor, inWhat, reg); break;
-            }
-          return {txt:searchWhat, index:nextIndex}; }; break;
-          //match casing
-          case 'case': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat=searchFor;
-            if(fl==undefined){ fl='first'; } switch(fl){
-              case 'first': nextIndex=inWhat.indexOf(searchFor); break;
-              case 'last': nextIndex=inWhat.lastIndexOf(searchFor); break;
-            }
-          return {txt:searchWhat, index:nextIndex}; }; break;
-          //default ignore casing
-          default: strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat=searchFor;
-            if(fl==undefined){ fl='first'; } switch(fl){
-              case 'first': nextIndex=inWhat.toLowerCase().indexOf(searchFor.toLowerCase()); break;
-              case 'last': nextIndex=inWhat.toLowerCase().lastIndexOf(searchFor.toLowerCase()); break;
-            }
-          return {txt:searchWhat, index:nextIndex}; }; break;
-        }
-        //get the tab content to begin trimming it away in order to find all of the search text positions
-        var tabContent=activeTab['content'];
-        //find all of the search text positions
-        var got=strpos(findTxt, tabContent);
-        if(got['index']!==-1){
-          var currentLineIndex=0, currentCharIndex=0;
-          //while there is a next position
-          while(got['index']!==-1){
-            //get the string before the got position
-            var beforeGot=tabContent.substring(0, got['index']); var lastLineBeforeGot=beforeGot;
-            //if there are any newlines before this position
-            if(beforeGot.indexOf('\n')!==-1){
-              //reset the char index count (for this line)
-              currentCharIndex=0;
-              //count the number of lines before this position
-              var beforeLines=beforeGot.split('\n');
-              currentLineIndex+=beforeLines.length-1;
-              lastLineBeforeGot=beforeLines[beforeLines.length-1];
-            }
-            //count the next set of characters on this line
-            currentCharIndex+=lastLineBeforeGot.length;
-            //count the number of characters that appear before the got position, on the same line
-            var start=currentCharIndex; var end=start+got['txt'].length;
-            //highlight this found position
-            var marker=activeTab['cm']['object'].markText(
-              CodeMirror.Pos(currentLineIndex, start),
-              CodeMirror.Pos(currentLineIndex, end),
-              { className:'cm-searching', clearWhenEmpty:true }
-            );
-            //show a tick mark on the scrollbar for this found text position
-            var scrollMatch=setMatchOnScrollbar(activeTab['cm'], currentLineIndex);
-            //add this item as data related to the selected position
-            activeTab['cm']['foundMatchPositionInfo']['pos'].push({
-              line:currentLineIndex, start:start, end:end,
-              marker:marker, scrollmark:scrollMatch
-            });
-            //remove the text up to this point
-            tabContent=tabContent.substring(got['index']+got['txt'].length);
-            //count those removed characters
-            currentCharIndex+=got['txt'].length;
-            //get the next index position, if exists
-            got=strpos(findTxt, tabContent);
-          }
-        }
-      }
+  	var cycleNextNthPos=function(theNth, cur, startIndex, lineIndex){
+		//is this position is BEFORE the current cursor location
+        if(cur.line>=lineIndex){
+        		if(cur.line===lineIndex){
+        			//if before the cursor on the same line
+        			if(cur.ch>=startIndex){
+        				//cycle position forward
+    					theNth++; }
+        		}else{
+        			//cycle position forward
+    				theNth++; }
+        } return theNth;
+  	};
+  	var currentTabPath=getElemPath('.');
+  	activeTab=getCachedSearchData(currentTabPath, findTxt);
+  	if(activeTab==undefined){
+    		if(args==undefined){ args={all_tabs:false, search_mode:'default'}; }
+    		if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
+    		if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
+    		//active tab elements, objects, and strings
+	    activeTab=initTabSearchData(currentTabPath, findTxt);
+	    if(activeTab['content']!=undefined){
+	      if(activeTab['cm']!=undefined){
+	        //get the last index of something that follows regex pattern
+	        var lastRegexIndexOf=function(needle, stack, re, li){
+	          if(li==undefined){ li=stack.search(re); } var searchon=true; var next=li;
+	          while(li!==-1 && searchon){
+	            stack=stack.substring(next+needle.length); next=stack.search(re);
+	            if(next!==-1){ li+=next+needle.length; }else{
+	              searchon=false; }
+	          } return li;
+	        };
+	        //define the strpos function based on the search_mode
+	        var strpos; switch(args['search_mode']) {
+	          //use regex
+	          case 'regex': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat='';
+	            //searchFor=regexEscape(searchFor);
+	            var reg=new RegExp(searchFor);
+	            if(fl==undefined){ fl='first'; } switch(fl){
+	              case 'first': nextIndex=inWhat.search(reg); break;
+	              case 'last':
+	                var matches=inWhat.match(reg);
+	                if(matches!=undefined){ if(matches.length>0){
+	                    searchWhat=matches[0];
+	                    nextIndex=lastRegexIndexOf(matches[0], inWhat, reg, matches['index']);
+	                } }
+	              break;
+	            }
+	          return {txt:searchWhat, index:nextIndex}; }; break;
+	          //match whole word, within word boundaries, not a part of another word
+	          case 'word': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat=searchFor;
+	            var reg=new RegExp('\\b'+searchFor+'\\b');
+	            if(fl==undefined){ fl='first'; } switch(fl){
+	              case 'first': nextIndex=inWhat.search(reg); break;
+	              case 'last': nextIndex=lastRegexIndexOf(searchFor, inWhat, reg); break;
+	            }
+	          return {txt:searchWhat, index:nextIndex}; }; break;
+	          //match casing
+	          case 'case': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat=searchFor;
+	            if(fl==undefined){ fl='first'; } switch(fl){
+	              case 'first': nextIndex=inWhat.indexOf(searchFor); break;
+	              case 'last': nextIndex=inWhat.lastIndexOf(searchFor); break;
+	            }
+	          return {txt:searchWhat, index:nextIndex}; }; break;
+	          //default ignore casing
+	          default: strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat=searchFor;
+	            if(fl==undefined){ fl='first'; } switch(fl){
+	              case 'first': nextIndex=inWhat.toLowerCase().indexOf(searchFor.toLowerCase()); break;
+	              case 'last': nextIndex=inWhat.toLowerCase().lastIndexOf(searchFor.toLowerCase()); break;
+	            }
+	          return {txt:searchWhat, index:nextIndex}; }; break;
+	        }
+	        //get the tab content to begin trimming it away in order to find all of the search text positions
+	        var tabContent=activeTab['content'];
+	        //find all of the search text positions
+	        var got=strpos(findTxt, tabContent);
+	        if(got['index']!==-1){
+	          var currentLineIndex=0, currentCharIndex=0, currentNth=1;
+	          var cursorPos=activeTab['cm']['object'].getCursor();
+	          //while there is a next position
+	          while(got['index']!==-1){
+	            //get the string before the got position
+	            var beforeGot=tabContent.substring(0, got['index']); var lastLineBeforeGot=beforeGot;
+	            //if there are any newlines before this position
+	            if(beforeGot.indexOf('\n')!==-1){
+	              //reset the char index count (for this line)
+	              currentCharIndex=0;
+	              //count the number of lines before this position
+	              var beforeLines=beforeGot.split('\n');
+	              currentLineIndex+=beforeLines.length-1;
+	              lastLineBeforeGot=beforeLines[beforeLines.length-1];
+	            }
+	            //count the next set of characters on this line
+	            currentCharIndex+=lastLineBeforeGot.length;
+	            //count the number of characters that appear before the got position, on the same line
+	            var start=currentCharIndex; var end=start+got['txt'].length;
+	            //highlight this found position
+	            var marker=activeTab['cm']['object'].markText(
+	              CodeMirror.Pos(currentLineIndex, start),
+	              CodeMirror.Pos(currentLineIndex, end),
+	              { className:'cm-searching', clearWhenEmpty:true }
+	            );
+	            //show a tick mark on the scrollbar for this found text position
+	            var scrollMatch=setMatchOnScrollbar(activeTab['cm'], currentLineIndex);
+	            //add this item as data related to the selected position
+	            activeTab['cm']['foundMatchPositionInfo']['pos'].push({
+	              line:currentLineIndex, start:start, end:end,
+	              marker:marker, scrollmark:scrollMatch
+	            });
+	            //update the nth position number if this line/ch is still before the current cursor line/ch
+	            currentNth=cycleNextNthPos(currentNth, cursorPos, start, currentLineIndex);
+	            //remove the text up to this point
+	            tabContent=tabContent.substring(got['index']+got['txt'].length);
+	            //count those removed characters
+	            currentCharIndex+=got['txt'].length;
+	            //get the next index position, if exists
+	            got=strpos(findTxt, tabContent);
+	          }
+	          //set the current nth position in the cycle
+	          activeTab['cm']['foundMatchPositionInfo']['nth']=currentNth;
+	        }
+	      }
+	    }
+    }else{
+    		//search data is already cached... cycle to the next position depending on cursor position
+    		
+    		var origNth=activeTab['cm']['foundMatchPositionInfo']['nth'];
+    		var positions=activeTab['cm']['foundMatchPositionInfo']['pos'];
+    		if(positions.length>0){
+	    		var nth=1; var prevNth=nth;
+	    		var cursorPos=activeTab['cm']['object'].getCursor();
+			for(var p=0;p<positions.length;p++){
+				var pos=positions[p];
+	            //update the nth position number if this line/ch is still before the current cursor line/ch
+	            nth=cycleNextNthPos(nth, cursorPos, pos['start'], pos['line']);
+	            if(nth===prevNth){ break; }
+	            else{ prevNth=nth; }
+			}
+			//this line causes the first found string to be highlighted twice
+			if(origNth===0 && nth===2){ nth--; }
+			//set the new nth position 
+			if(nth>positions.length){ nth=0; }
+			activeTab['cm']['foundMatchPositionInfo']['nth']=nth;
+		}else{
+			//no found matches
+			activeTab['cm']['foundMatchPositionInfo']['nth']=0;
+		}
+    }
+    //select one of the positions in the search list
+    var positions=activeTab['cm']['foundMatchPositionInfo']['pos'];
+    if(positions.length>0){
+    		var nth=activeTab['cm']['foundMatchPositionInfo']['nth']; var nthIndex=nth;
+    		if(nthIndex!==0){ nthIndex--; }
+    		var pos=positions[nthIndex];
+    		//select the position
+    		activeTab['cm']['object'].setSelection(
+    			CodeMirror.Pos(pos['line'], pos['start']),
+    			CodeMirror.Pos(pos['line'], pos['end'])
+    		);
+    		//update the Nth / Total count in the UI
+    		updateSearchTextCount(nth, positions.length);
+    }else{
+    		//nothing found in the search
+    		updateSearchTextCount(0, 0);
     }
   } return activeTab;
 }
@@ -298,7 +427,7 @@ function showFindText(){
             var cycleSearch=function(searchTextVal, replaceTextVal){
               //search based on the args
               var args=getSearchtextArgs();
-              var found=findTextInTab(searchTextVal, args);
+              var searchData=searchTextInTab(searchTextVal, args);
               searchInput[0]['previousSubmittedTxt']=searchTextVal;
               //***
             };
