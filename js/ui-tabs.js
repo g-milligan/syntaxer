@@ -490,6 +490,8 @@ function setCodemirrorContent(fpath,textarea,callback){
     var thepath=jQuery(instance.display.lineDiv).parents('div.content-wrap:first').attr('path');
     var tabLi=jQuery('nav#tabs').children('ul:first').children('li[path="'+thepath+'"]:first');
     tabLi.addClass('has-changes');
+    //clear the search text highlights, if any
+    clearCachedSearchData(tabLi.attr('path'));
     //if this is the template tab li
     if(tabLi.hasClass('template')){
       //if not delete (already considered in the beforeChange event)
