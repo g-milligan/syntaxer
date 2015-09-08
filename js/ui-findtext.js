@@ -341,17 +341,18 @@ function searchTextInTab(findTxt, args, replaceTxt){
     //select one of the positions in the search list
     if(positions.length>0){
     		var nthIndex=nth;
+        //make sure the nthIndex is within the range of indexes
     		if(nthIndex!==0){ nthIndex--; }
+        if(nthIndex>=positions.length){ nthIndex=positions.length-1; }
+        //get the position for this index
     		var pos=positions[nthIndex];
-    		//---if(pos!=undefined){
 	    		//select the position
 	    		activeTab['cm']['object'].setSelection(
 	    			CodeMirror.Pos(pos['line'], pos['start']),
 	    			CodeMirror.Pos(pos['line'], pos['end'])
 	    		);
 	    		//update the Nth / Total count in the UI
-	    		updateSearchTextCount(nth, positions.length);
-	    	//---}
+	    		updateSearchTextCount(nthIndex+1, positions.length);
     }else{
     		//nothing found in the search
     		updateSearchTextCount(0, 0);
