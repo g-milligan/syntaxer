@@ -64,6 +64,7 @@ function preventSearchDataClear(path, findTxt){
 //deselect search AND delete the cached data
 function clearCachedSearchData(path, findTxt){
 	var didClear=false;
+  if(path==='.'){ path=getElemPath(path); }
 	var cached=getCachedSearchData(path, findTxt);
 	if(cached!=undefined){
 		var preventClear=false;
@@ -73,7 +74,11 @@ function clearCachedSearchData(path, findTxt){
 			//deselection
 			deselectSearched(path, findTxt);
 			//delete the data
-			delete cached;
+			if(findTxt==undefined){
+        delete document['foundMatchPositionInfo'][path];
+      }else{
+        delete document['foundMatchPositionInfo'][path][findTxt];
+      }
 			didClear=true;
 		}else{
 			//prevent the prevent_clear again
@@ -104,7 +109,7 @@ function updateSearchTextCount(nth, total){
 		//if there is any cycle through data
 		if(nth!=undefined){
 			//set UI values
-			nthEl.html(nth+''); totalEl.html(total+''); 
+			nthEl.html(nth+''); totalEl.html(total+'');
 			var totalTxt=total; if(totalTxt===0){ totalTxt='nada'; }
 			totalFoundSpan.html(totalTxt+'');
 			//if at the first nth
@@ -115,7 +120,7 @@ function updateSearchTextCount(nth, total){
 				totalFoundWrap.removeClass('active'); cycleWrap.addClass('active');
 			}
 		}else{
-			//no current cycle through data... hide the count 
+			//no current cycle through data... hide the count
 			totalFoundWrap.removeClass('active'); cycleWrap.removeClass('active');
 		}
 	}
@@ -160,18 +165,13 @@ function searchTextInTab(findTxt, args, replaceTxt){
 	        var strpos; switch(args['search_mode']) {
 	          //use regex
 	          case 'regex': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat='';
-	            //searchFor=regexEscape(searchFor);
 	            var reg=new RegExp(searchFor);
+              var matches=inWhat.match(reg);
+              if(matches!=undefined){ if(matches.length>0){ searchWhat=matches[0];
 	            if(fl==undefined){ fl='first'; } switch(fl){
-	              case 'first': nextIndex=inWhat.search(reg); break;
-	              case 'last':
-	                var matches=inWhat.match(reg);
-	                if(matches!=undefined){ if(matches.length>0){
-	                    searchWhat=matches[0];
-	                    nextIndex=lastRegexIndexOf(matches[0], inWhat, reg, matches['index']);
-	                } }
-	              break;
-	            }
+	              case 'first': nextIndex=matches['index']; break;
+	              case 'last': nextIndex=lastRegexIndexOf(searchWhat, inWhat, reg, matches['index']); break;
+	            } } }
 	          return {txt:searchWhat, index:nextIndex}; }; break;
 	          //match whole word, within word boundaries, not a part of another word
 	          case 'word': strpos=function(searchFor, inWhat, fl){ var nextIndex=-1, searchWhat=searchFor;
@@ -250,7 +250,7 @@ function searchTextInTab(findTxt, args, replaceTxt){
 	    }
     }else{
     		//search data is already cached... cycle to the next position depending on cursor position
-    		
+
     		var thisNth=activeTab['cm']['foundMatchPositionInfo']['nth'];
     		var positions=activeTab['cm']['foundMatchPositionInfo']['pos'];
     		if(positions.length>0){
@@ -286,7 +286,7 @@ function searchTextInTab(findTxt, args, replaceTxt){
 			}
 			//this line causes the first found string to be highlighted twice
 			if(thisNth===0 && nth===2){ nth--; }
-			//set the new nth position 
+			//set the new nth position
 			if(nth>positions.length){ nth=0; }
 			activeTab['cm']['foundMatchPositionInfo']['nth']=nth;
 		}else{
@@ -321,7 +321,7 @@ function searchTextInTab(findTxt, args, replaceTxt){
 				);
 				var replaceLine=replacePos['line'];
 				//remove this position from the list
-				positions.splice(nthIndex, 1); 
+				positions.splice(nthIndex, 1);
 				//if there are any positions AFTER the replaced position
 				if(nth<=positions.length){
 					var charDiff=replaceTxt.length-findTxt.length;
@@ -343,7 +343,7 @@ function searchTextInTab(findTxt, args, replaceTxt){
     		var nthIndex=nth;
     		if(nthIndex!==0){ nthIndex--; }
     		var pos=positions[nthIndex];
-    		if(pos!=undefined){
+    		//---if(pos!=undefined){
 	    		//select the position
 	    		activeTab['cm']['object'].setSelection(
 	    			CodeMirror.Pos(pos['line'], pos['start']),
@@ -351,7 +351,7 @@ function searchTextInTab(findTxt, args, replaceTxt){
 	    		);
 	    		//update the Nth / Total count in the UI
 	    		updateSearchTextCount(nth, positions.length);
-	    	}
+	    	//---}
     }else{
     		//nothing found in the search
     		updateSearchTextCount(0, 0);
@@ -520,6 +520,8 @@ function showFindText(){
                   jQuery(this).removeClass('toggle-on');
                 }
                 jQuery(this).parents('.search-line:first').find('.field-wrap input:first').focus();
+                //clear the search cache so that new search rules can replace the old
+                clearCachedSearchData('.', searchInput[0]['previousSubmittedTxt']);
               });
             };
             setStandardToggleBtnEvents(regexBtn); setStandardToggleBtnEvents(matchCaseBtn); setStandardToggleBtnEvents(wholeWordBtn);
