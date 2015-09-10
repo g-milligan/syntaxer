@@ -1,11 +1,11 @@
 function initTabSearchData(path, findTxt){
   var ret=getCachedSearchData(path);
-  if(ret==undefined){
-	  var li, cm, tabContent;
+  if(ret==undefined || !ret.hasOwnProperty('searches') || !ret['searches'].hasOwnProperty(findTxt)){
 	  if(path!=undefined){
 	    //make sure the data is cached on the document object
 	    if(!document.hasOwnProperty('syntaxerSearchCache')){ document['syntaxerSearchCache']={}; }
 	    if(!document['syntaxerSearchCache'].hasOwnProperty(path)){
+        var li, cm, tabContent;
         li=getTabLi(path);
         cm=getCodeMirrorObj(path);
         tabContent=getFileContent(path);
@@ -71,11 +71,10 @@ function clearCachedSearchData(path, findTxt){
     //check if the clear is prevented for one time
     var ifPreventClear=function(obj){
       var prevent=false;
-      if(obj.hasOwnPropery('prevent_clear')){
+      if(obj.hasOwnProperty('prevent_clear')){
         prevent=obj['prevent_clear'];
         obj['prevent_clear']=false; //only prevent once
-      }
-      return prevent;
+      } return prevent;
     };
 		//delete the data
 		if(findTxt==undefined){
@@ -159,7 +158,8 @@ function searchTextInTab(findTxt, args, replaceTxt){
   	};
   	var currentTabPath=getElemPath('.'); var thisNth=0;
   	cached=getCachedSearchData(currentTabPath);
-  	if(cached==undefined){ //***
+    //if this search term is NOT already cached for this path
+  	if(cached==undefined || !cached['searches'].hasOwnProperty(findTxt)){
     		if(args==undefined){ args={all_tabs:false, search_mode:'default'}; }
     		if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
     		if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
