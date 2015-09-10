@@ -81,3 +81,28 @@
 
 
 - allow rename the template.html file
+
+
+
+
+
+
+
+
+
+
+
+document
+  syntaxerSearchCache
+    {path/to/file} *** cached
+      li
+      cm
+      content
+      current_search --> previousSubmittedTxt
+      prevent_clear
+      searches
+        {searched-text}
+          prevent_clear
+          pos
+            {position items}
+          nth

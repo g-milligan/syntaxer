@@ -1,89 +1,101 @@
 function initTabSearchData(path, findTxt){
-  var ret=getCachedSearchData(path, findTxt);
+  var ret=getCachedSearchData(path);
   if(ret==undefined){
 	  var li, cm, tabContent;
 	  if(path!=undefined){
-	    li=getTabLi(path);
-	    cm=getCodeMirrorObj(path);
-	    cm['foundMatchPositionInfo']={pos:[],nth:0,searched:findTxt};
-	    tabContent=getFileContent(path);
-	    ret={ path: path, li: li, cm:cm, content:tabContent };
 	    //make sure the data is cached on the document object
-	    if(!document.hasOwnProperty('foundMatchPositionInfo')){ document['foundMatchPositionInfo']={}; }
-	    if(!document['foundMatchPositionInfo'].hasOwnProperty(path)){ document['foundMatchPositionInfo'][path]={}; }
-	    document['foundMatchPositionInfo'][path][findTxt]=ret;
+	    if(!document.hasOwnProperty('syntaxerSearchCache')){ document['syntaxerSearchCache']={}; }
+	    if(!document['syntaxerSearchCache'].hasOwnProperty(path)){
+        li=getTabLi(path);
+        cm=getCodeMirrorObj(path);
+        tabContent=getFileContent(path);
+        document['syntaxerSearchCache'][path]={li: li, cm:cm, content:tabContent};
+      }
+      document['syntaxerSearchCache'][path]['current_search']=findTxt;
+      if(!document['syntaxerSearchCache'][path].hasOwnProperty('searches')){ document['syntaxerSearchCache'][path]['searches']={}; }
+      document['syntaxerSearchCache'][path]['searches'][findTxt]={ pos:[], nth:0 };
+      ret=document['syntaxerSearchCache'][path];
 	  }
   } return ret;
 }
-function getCachedSearchData(path, findTxt){
+function getCachedSearchData(path){
 	var cached;
 	if(path==='.'){ path=getElemPath(path); }
-	if(document.hasOwnProperty('foundMatchPositionInfo')){
-		if(document['foundMatchPositionInfo'].hasOwnProperty(path)){
-			if(findTxt==undefined){
-				cached=document['foundMatchPositionInfo'][path];
-			}else{
-				if(document['foundMatchPositionInfo'][path].hasOwnProperty(findTxt)){
-					cached=document['foundMatchPositionInfo'][path][findTxt];
-				}
-			}
+	if(document.hasOwnProperty('syntaxerSearchCache')){
+		if(document['syntaxerSearchCache'].hasOwnProperty(path)){
+      cached=document['syntaxerSearchCache'][path];
 		}
 	} return cached;
 }
 //deselect search without deleting the cache
-function deselectSearched(path, findTxt){
-	if(findTxt==undefined){
-		var searchInput=jQuery('#file-content .findtext-wrap .search-line .field-wrap input.search-field:first');
-		findTxt=searchInput[0]['previousSubmittedTxt'];
-	}
-	var cached=getCachedSearchData(path, findTxt);
+function deselectSearched(path){
+	var cached=getCachedSearchData(path);
 	if(cached!=undefined){
-		if(cached.hasOwnProperty('cm')){
-			if(cached['cm'].hasOwnProperty('foundMatchPositionInfo')){
-				var positions=cached['cm']['foundMatchPositionInfo']['pos'];
-				for(var p=0;p<positions.length;p++){
-					var pos=positions[p];
-					//clear the highlight marker
-					pos['marker'].clear();
-					//clear the scrollbar marker
-					pos['scrollmark'].remove();
-					//indicate deselected
-					pos['selected']=false;
-				}
-			}
-		}
+    var searchTxt=cached['current_search'];
+    if(cached['searches'].hasOwnProperty(searchTxt)){
+  	  var positions=cached['searches'][searchTxt]['pos'];
+    	for(var p=0;p<positions.length;p++){
+    		var pos=positions[p];
+    		//clear the highlight marker
+    		pos['marker'].clear();
+    		//clear the scrollbar marker
+    		pos['scrollmark'].remove();
+    		//indicate deselected
+    		pos['selected']=false;
+    	}
+      cached['current_search']='';
+    }
 	}
 }
 //prevent once: deselect/clear of the cached search
 function preventSearchDataClear(path, findTxt){
-	var cached=getCachedSearchData(path, findTxt);
+	var cached=getCachedSearchData(path);
 	if(cached!=undefined){
-		cached['prevent_clear']=true;
+    if(findTxt==undefined){
+      cached['prevent_clear']=true;
+    }else{
+      if(cached['searches'].hasOwnProperty(findTxt)){
+        cached['searches'][findTxt]['prevent_clear']=true;
+      }
+    }
 	}
 }
 //deselect search AND delete the cached data
 function clearCachedSearchData(path, findTxt){
 	var didClear=false;
   if(path==='.'){ path=getElemPath(path); }
-	var cached=getCachedSearchData(path, findTxt);
+	var cached=getCachedSearchData(path);
 	if(cached!=undefined){
-		var preventClear=false;
-		if(cached.hasOwnProperty('prevent_clear')){ preventClear=cached['prevent_clear']; }
-		//if allow clear
-		if(!preventClear){
-			//deselection
-			deselectSearched(path, findTxt);
-			//delete the data
-			if(findTxt==undefined){
-        delete document['foundMatchPositionInfo'][path];
-      }else{
-        delete document['foundMatchPositionInfo'][path][findTxt];
+		//deselection
+		deselectSearched(path);
+    //check if the clear is prevented for one time
+    var ifPreventClear=function(obj){
+      var prevent=false;
+      if(obj.hasOwnPropery('prevent_clear')){
+        prevent=obj['prevent_clear'];
+        obj['prevent_clear']=false; //only prevent once
       }
-			didClear=true;
-		}else{
-			//prevent the prevent_clear again
-			cached['prevent_clear']=false;
-		}
+      return prevent;
+    };
+		//delete the data
+		if(findTxt==undefined){
+      //if not preventing clearing the cache
+      if(!ifPreventClear(cached)){
+        //clear the entire data set for the path
+        delete document['syntaxerSearchCache'][path];
+        didClear=true;
+      }
+    }else{
+      //if this search term is cached
+      if(cached['searches'].hasOwnProperty(findTxt)){
+        //if not preventing clearing the cache
+        if(!ifPreventClear(cached['searches'][findTxt])){
+          //clear the dataset, for a specific search term
+          delete document['syntaxerSearchCache'][path]['searches'][findTxt];
+          didClear=true;
+        }
+      }
+    }
 	} return didClear;
 }
 function updateSearchTextCount(nth, total){
@@ -99,11 +111,14 @@ function updateSearchTextCount(nth, total){
 		//get the cached nth and total if they were not passed as args
 		if(nth==undefined || total==undefined){
 			var currentTabPath=getElemPath('.');
-			var cachedData=getCachedSearchData(currentTabPath, searchInput.val());
-			if(cachedData!=undefined){
-				//set cached values
-				nth=cachedData['cm']['foundMatchPositionInfo']['nth'];
-				total=cachedData['cm']['foundMatchPositionInfo']['pos'].length;
+			var cached=getCachedSearchData(currentTabPath);
+			if(cached!=undefined){
+        var searchTxt=cached['current_search'];
+        if(cached['searches'].hasOwnProperty(searchTxt)){
+  				//set cached values
+  				nth=cached['searches'][searchTxt]['nth'];
+  				total=cached['searches'][searchTxt]['pos'].length;
+        }
 			}
 		}
 		//if there is any cycle through data
@@ -127,7 +142,7 @@ function updateSearchTextCount(nth, total){
 }
 //find and highlight searchtext
 function searchTextInTab(findTxt, args, replaceTxt){
-  var activeTab;
+  var cached;
   if(findTxt.length>0){
   	var cycleNextNthPos=function(theNth, cur, startIndex, lineIndex){
 		//is this position is BEFORE the current cursor location
@@ -143,15 +158,15 @@ function searchTextInTab(findTxt, args, replaceTxt){
         } return theNth;
   	};
   	var currentTabPath=getElemPath('.'); var thisNth=0;
-  	activeTab=getCachedSearchData(currentTabPath, findTxt);
-  	if(activeTab==undefined){
+  	cached=getCachedSearchData(currentTabPath);
+  	if(cached==undefined){ //***
     		if(args==undefined){ args={all_tabs:false, search_mode:'default'}; }
     		if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
     		if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
     		//active tab elements, objects, and strings
-	    activeTab=initTabSearchData(currentTabPath, findTxt);
-	    if(activeTab['content']!=undefined){
-	      if(activeTab['cm']!=undefined){
+	    cached=initTabSearchData(currentTabPath, findTxt);
+	    if(cached['content']!=undefined){
+	      if(cached['cm']!=undefined){
 	        //get the last index of something that follows regex pattern
 	        var lastRegexIndexOf=function(needle, stack, re, li){
 	          if(li==undefined){ li=stack.search(re); } var searchon=true; var next=li;
@@ -197,12 +212,12 @@ function searchTextInTab(findTxt, args, replaceTxt){
 	          return {txt:searchWhat, index:nextIndex}; }; break;
 	        }
 	        //get the tab content to begin trimming it away in order to find all of the search text positions
-	        var tabContent=activeTab['content'];
+	        var tabContent=cached['content'];
 	        //find all of the search text positions
 	        var got=strpos(findTxt, tabContent);
 	        if(got['index']!==-1){
 	          var currentLineIndex=0, currentCharIndex=0, currentNth=1;
-	          var cursorPos=activeTab['cm']['object'].getCursor();
+	          var cursorPos=cached['cm']['object'].getCursor();
 	          //while there is a next position
 	          while(got['index']!==-1){
 	            //get the string before the got position
@@ -221,16 +236,16 @@ function searchTextInTab(findTxt, args, replaceTxt){
 	            //count the number of characters that appear before the got position, on the same line
 	            var start=currentCharIndex; var end=start+got['txt'].length;
 	            //highlight this found position
-	            var marker=activeTab['cm']['object'].markText(
+	            var marker=cached['cm']['object'].markText(
 	              CodeMirror.Pos(currentLineIndex, start),
 	              CodeMirror.Pos(currentLineIndex, end),
 	              { className:'cm-searching', clearWhenEmpty:true }
 	            );
 	            //show a tick mark on the scrollbar for this found text position
-	            var scrollMatchData=setMatchOnScrollbar(activeTab['cm'], currentLineIndex);
+	            var scrollMatchData=setMatchOnScrollbar(cached['cm'], currentLineIndex);
 	            var scrollMatch=scrollMatchData['scrollMatch'];
 	            //add this item as data related to the selected position
-	            activeTab['cm']['foundMatchPositionInfo']['pos'].push({
+	            cached['searches'][findTxt]['pos'].push({
 	              line:currentLineIndex, start:start, end:end,
 	              marker:marker, scrollmark:scrollMatch, selected:true
 	            });
@@ -244,18 +259,18 @@ function searchTextInTab(findTxt, args, replaceTxt){
 	            got=strpos(findTxt, tabContent);
 	          }
 	          //set the current nth position in the cycle
-	          activeTab['cm']['foundMatchPositionInfo']['nth']=currentNth;
+	          cached['searches'][findTxt]['nth']=currentNth;
 	        }
 	      }
 	    }
     }else{
     		//search data is already cached... cycle to the next position depending on cursor position
 
-    		var thisNth=activeTab['cm']['foundMatchPositionInfo']['nth'];
-    		var positions=activeTab['cm']['foundMatchPositionInfo']['pos'];
+    		var thisNth=cached['searches'][findTxt]['nth'];
+    		var positions=cached['searches'][findTxt]['pos'];
     		if(positions.length>0){
 	    		var nth=1; var prevNth=nth;
-	    		var cursorPos=activeTab['cm']['object'].getCursor(); var continueNextNth=true;
+	    		var cursorPos=cached['cm']['object'].getCursor(); var continueNextNth=true;
 			for(var p=0;p<positions.length;p++){
 				var pos=positions[p];
 				//if still not cycled past the cursor position
@@ -269,10 +284,10 @@ function searchTextInTab(findTxt, args, replaceTxt){
 		        if(!pos['selected']){
 		        		pos['selected']=true;
 		        		//re-mark the scrollbar
-		        		var scrollMatchData=setMatchOnScrollbar(activeTab['cm'], pos['line']);
+		        		var scrollMatchData=setMatchOnScrollbar(cached['cm'], pos['line']);
 		        		pos['scrollmark']=scrollMatchData['scrollMatch'];
 		            //re-highlight this position
-		            pos['marker']=activeTab['cm']['object'].markText(
+		            pos['marker']=cached['cm']['object'].markText(
 		              CodeMirror.Pos(pos['line'], pos['start']),
 		              CodeMirror.Pos(pos['line'], pos['end']),
 		              { className:'cm-searching', clearWhenEmpty:true }
@@ -288,23 +303,23 @@ function searchTextInTab(findTxt, args, replaceTxt){
 			if(thisNth===0 && nth===2){ nth--; }
 			//set the new nth position
 			if(nth>positions.length){ nth=0; }
-			activeTab['cm']['foundMatchPositionInfo']['nth']=nth;
+			cached['searches'][findTxt]['nth']=nth;
 		}else{
 			//no found matches
-			activeTab['cm']['foundMatchPositionInfo']['nth']=0;
+			cached['searches'][findTxt]['nth']=0;
 		}
     }
     //get the positions list
-    var positions=activeTab['cm']['foundMatchPositionInfo']['pos'];
-    var nth=activeTab['cm']['foundMatchPositionInfo']['nth'];
+    var positions=cached['searches'][findTxt]['pos'];
+    var nth=cached['searches'][findTxt]['nth'];
     //if replacing one of the text positions
     if(replaceTxt!=undefined){
     		if(replaceTxt!==findTxt){
 			//if the current selected text is what's being searched (wait until it's selected before doing the replace)
-			if(findTxt===activeTab['cm']['object'].getSelection()){
+			if(findTxt===cached['cm']['object'].getSelection()){
 				//subtract one nth counted item number
 				nth--; if(nth<0){ nth=0; }
-				activeTab['cm']['foundMatchPositionInfo']['nth']=nth;
+				cached['searches'][findTxt]['nth']=nth;
 				//get the position to replace
 				var nthIndex=thisNth-1; if(nthIndex<0){ nthIndex=0; }
 				var replacePos=positions[nthIndex];
@@ -315,7 +330,7 @@ function searchTextInTab(findTxt, args, replaceTxt){
 				//prevent the cached search data clear from being triggered by the change event
 				preventSearchDataClear(currentTabPath);
 				//perform the replace of the position
-				activeTab['cm']['object'].replaceRange(replaceTxt,
+				cached['cm']['object'].replaceRange(replaceTxt,
 					CodeMirror.Pos(replacePos['line'], replacePos['start']),
 					CodeMirror.Pos(replacePos['line'], replacePos['end'])
 				);
@@ -347,7 +362,7 @@ function searchTextInTab(findTxt, args, replaceTxt){
         //get the position for this index
     		var pos=positions[nthIndex];
 	    		//select the position
-	    		activeTab['cm']['object'].setSelection(
+	    		cached['cm']['object'].setSelection(
 	    			CodeMirror.Pos(pos['line'], pos['start']),
 	    			CodeMirror.Pos(pos['line'], pos['end'])
 	    		);
@@ -359,7 +374,7 @@ function searchTextInTab(findTxt, args, replaceTxt){
     		//clear the cached structure
     		clearCachedSearchData(currentTabPath, findTxt);
     }
-  } return activeTab;
+  } return cached;
 }
 //move the found text position on scrollbar
 function moveMatchOnScrollbar(cm, fromLine, toLine){
@@ -503,7 +518,7 @@ function showFindText(){
                   //if this is the find text input
                   if(jQuery(this).hasClass('search-field')){
                     //deselect previous highlights, if any
-                    deselectSearched('.', jQuery(this)[0]['previousSubmittedTxt']);
+                    deselectSearched('.');
                   }
                 }
               });
