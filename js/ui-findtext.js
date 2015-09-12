@@ -144,26 +144,30 @@ function searchTextInTab(findTxt, args, replaceTxt){
   var cached;
   if(findTxt.length>0){
   	var cycleNextNthPos=function(theNth, cur, startIndex, lineIndex){
-		//is this position is BEFORE the current cursor location
-        if(cur.line>=lineIndex){
-        		if(cur.line===lineIndex){
-        			//if before the cursor on the same line
-        			if(cur.ch>=startIndex){
-        				//cycle position forward
-    					theNth++; }
-        		}else{
-        			//cycle position forward
-    				theNth++; }
-        } return theNth;
-  	};
+      //is this position is BEFORE the current cursor location
+      if(cur.line>=lineIndex){
+        //if on the same line as the cursor
+        if(cur.line===lineIndex){
+          //if before the cursor on the same line
+          if(cur.ch>=startIndex){
+            //cycle position forward
+            theNth++;
+          }
+        }else{
+          //before the cursor line... cycle position forward
+          theNth++;
+        }
+      } return theNth;
+    };
+    //get the cached data OR init a new cache
   	var currentTabPath=getElemPath('.'); var thisNth=0;
   	cached=getCachedSearchData(currentTabPath);
     //if this search term is NOT already cached for this path
   	if(cached==undefined || !cached['searches'].hasOwnProperty(findTxt)){
-    		if(args==undefined){ args={all_tabs:false, search_mode:'default'}; }
-    		if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
-    		if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
-    		//active tab elements, objects, and strings
+      if(args==undefined){ args={all_tabs:false, search_mode:'default'}; }
+      if(!args.hasOwnProperty('all_tabs')){ args['all_tabs']=false; }
+      if(!args.hasOwnProperty('search_mode')){ args['search_mode']='default'; }
+      //active tab elements, objects, and strings
 	    cached=initTabSearchData(currentTabPath, findTxt);
 	    if(cached['content']!=undefined){
 	      if(cached['cm']!=undefined){
@@ -172,8 +176,8 @@ function searchTextInTab(findTxt, args, replaceTxt){
 	          if(li==undefined){ li=stack.search(re); } var searchon=true; var next=li;
 	          while(li!==-1 && searchon){
 	            stack=stack.substring(next+needle.length); next=stack.search(re);
-	            if(next!==-1){ li+=next+needle.length; }else{
-	              searchon=false; }
+	            if(next!==-1){ li+=next+needle.length; }
+              else{ searchon=false; }
 	          } return li;
 	        };
 	        //define the strpos function based on the search_mode
@@ -264,115 +268,115 @@ function searchTextInTab(findTxt, args, replaceTxt){
 	      }
 	    }
     }else{
-    		//search data is already cached... cycle to the next position depending on cursor position
+      //search data is already cached... cycle to the next position depending on cursor position
 
-    		var thisNth=cached['searches'][findTxt]['nth'];
-    		var positions=cached['searches'][findTxt]['pos'];
-    		if(positions.length>0){
-	    		var nth=1; var prevNth=nth;
-	    		var cursorPos=cached['cm']['object'].getCursor(); var continueNextNth=true;
-			for(var p=0;p<positions.length;p++){
-				var pos=positions[p];
-				//if still not cycled past the cursor position
-				if(continueNextNth){
-		            //update the nth position number if this line/ch is still before the current cursor line/ch
-		            nth=cycleNextNthPos(nth, cursorPos, pos['start'], pos['line']);
-		            if(nth===prevNth){ continueNextNth=false; }
-		            else{ prevNth=nth; }
-		        }
-		        //make sure this position is marked and has the scrollbar mark
-		        if(!pos['selected']){
-		        		pos['selected']=true;
-		        		//re-mark the scrollbar
-		        		var scrollMatchData=setMatchOnScrollbar(cached['cm'], pos['line']);
-		        		pos['scrollmark']=scrollMatchData['scrollMatch'];
-		            //re-highlight this position
-		            pos['marker']=cached['cm']['object'].markText(
-		              CodeMirror.Pos(pos['line'], pos['start']),
-		              CodeMirror.Pos(pos['line'], pos['end']),
-		              { className:'cm-searching', clearWhenEmpty:true }
-		            );
-		        }else{
-		        		//if no next nth number to increment AND the correct text is selected
-		        		if(!continueNextNth){
-		        			break; //no need to continue looping through the positions
-		        		}
-		        }
-			}
-			//this line causes the first found string to be highlighted twice
-			if(thisNth===0 && nth===2){ nth--; }
-			//set the new nth position
-			if(nth>positions.length){ nth=0; }
-			cached['searches'][findTxt]['nth']=nth;
-		}else{
-			//no found matches
-			cached['searches'][findTxt]['nth']=0;
-		}
+      var thisNth=cached['searches'][findTxt]['nth'];
+      var positions=cached['searches'][findTxt]['pos'];
+      if(positions.length>0){
+        var nth=1; var prevNth=nth;
+        var cursorPos=cached['cm']['object'].getCursor(); var continueNextNth=true;
+        for(var p=0;p<positions.length;p++){
+          var pos=positions[p];
+          //if still not cycled past the cursor position
+          if(continueNextNth){
+            //update the nth position number if this line/ch is still before the current cursor line/ch
+            nth=cycleNextNthPos(nth, cursorPos, pos['start'], pos['line']);
+            if(nth===prevNth){ continueNextNth=false; }
+            else{ prevNth=nth; }
+          }
+          //make sure this position is marked and has the scrollbar mark
+          if(!pos['selected']){
+            pos['selected']=true;
+            //re-mark the scrollbar
+            var scrollMatchData=setMatchOnScrollbar(cached['cm'], pos['line']);
+            pos['scrollmark']=scrollMatchData['scrollMatch'];
+            //re-highlight this position
+            pos['marker']=cached['cm']['object'].markText(
+              CodeMirror.Pos(pos['line'], pos['start']),
+              CodeMirror.Pos(pos['line'], pos['end']),
+              { className:'cm-searching', clearWhenEmpty:true }
+            );
+          }else{
+            //if no next nth number to increment AND the correct text is selected
+            if(!continueNextNth){
+              break; //no need to continue looping through the positions
+            }
+          }
+        }
+        //this line causes the first found string to be highlighted twice
+        if(thisNth===0 && nth===2){ nth--; }
+        //set the new nth position
+        if(nth>positions.length){ nth=0; }
+        cached['searches'][findTxt]['nth']=nth;
+      }else{
+        //no found matches
+        cached['searches'][findTxt]['nth']=0;
+      }
     }
     //get the positions list
     var positions=cached['searches'][findTxt]['pos'];
     var nth=cached['searches'][findTxt]['nth'];
     //if replacing one of the text positions
     if(replaceTxt!=undefined){
-    		if(replaceTxt!==findTxt){
-			//if the current selected text is what's being searched (wait until it's selected before doing the replace)
-			if(findTxt===cached['cm']['object'].getSelection()){
-				//subtract one nth counted item number
-				nth--; if(nth<0){ nth=0; }
-				cached['searches'][findTxt]['nth']=nth;
-				//get the position to replace
-				var nthIndex=thisNth-1; if(nthIndex<0){ nthIndex=0; }
-				var replacePos=positions[nthIndex];
-				//clear the highlight marker
-				replacePos['marker'].clear();
-				//clear the scrollbar marker
-				replacePos['scrollmark'].remove();
-				//prevent the cached search data clear from being triggered by the change event
-				preventSearchDataClear(currentTabPath);
-				//perform the replace of the position
-				cached['cm']['object'].replaceRange(replaceTxt,
-					CodeMirror.Pos(replacePos['line'], replacePos['start']),
-					CodeMirror.Pos(replacePos['line'], replacePos['end'])
-				);
-				var replaceLine=replacePos['line'];
-				//remove this position from the list
-				positions.splice(nthIndex, 1);
-				//if there are any positions AFTER the replaced position
-				if(nth<=positions.length){
-					var charDiff=replaceTxt.length-findTxt.length;
-					if(charDiff!==0){
-						//loop through and adjust the character position of highlighted text on the same line
-						for(var a=nthIndex;a<positions.length;a++){
-							//if this is on the same line of the replace
-							if(positions[a]['line']===replaceLine){
-								positions[a]['start']+=charDiff; positions[a]['end']+=charDiff;
-							}else{ break; }
-						}
-					}
-				}
-			}
-		}
+      if(replaceTxt!==findTxt){
+        //if the current selected text is what's being searched (wait until it's selected before doing the replace)
+        if(findTxt===cached['cm']['object'].getSelection()){
+          //subtract one nth counted item number
+          nth--; if(nth<0){ nth=0; }
+          cached['searches'][findTxt]['nth']=nth;
+          //get the position to replace
+          var nthIndex=thisNth-1; if(nthIndex<0){ nthIndex=0; }
+          var replacePos=positions[nthIndex];
+          //clear the highlight marker
+          replacePos['marker'].clear();
+          //clear the scrollbar marker
+          replacePos['scrollmark'].remove();
+          //prevent the cached search data clear from being triggered by the change event
+          preventSearchDataClear(currentTabPath);
+          //perform the replace of the position
+          cached['cm']['object'].replaceRange(replaceTxt,
+            CodeMirror.Pos(replacePos['line'], replacePos['start']),
+            CodeMirror.Pos(replacePos['line'], replacePos['end'])
+          );
+          var replaceLine=replacePos['line'];
+          //remove this position from the list
+          positions.splice(nthIndex, 1);
+          //if there are any positions AFTER the replaced position
+  				if(nth<=positions.length){
+  					var charDiff=replaceTxt.length-findTxt.length;
+    				if(charDiff!==0){
+  						//loop through and adjust the character position of highlighted text on the same line
+  						for(var a=nthIndex;a<positions.length;a++){
+                //if this is on the same line of the replace
+                if(positions[a]['line']===replaceLine){
+                  positions[a]['start']+=charDiff; positions[a]['end']+=charDiff;
+                }else{ break; }
+  						}
+  					}
+          }
+        }
+      }
     }
     //select one of the positions in the search list
     if(positions.length>0){
-    		var nthIndex=nth;
-        //make sure the nthIndex is within the range of indexes
-    		if(nthIndex!==0){ nthIndex--; }
-        if(nthIndex>=positions.length){ nthIndex=positions.length-1; }
-        //get the position for this index
-    		var pos=positions[nthIndex];
-	    		//select the position
-	    		cached['cm']['object'].setSelection(
-	    			CodeMirror.Pos(pos['line'], pos['start']),
-	    			CodeMirror.Pos(pos['line'], pos['end'])
-	    		);
-	    		//update the Nth / Total count in the UI
-	    		updateSearchTextCount(nthIndex+1, positions.length);
+      var nthIndex=nth;
+      //make sure the nthIndex is within the range of indexes
+      if(nthIndex!==0){ nthIndex--; }
+      if(nthIndex>=positions.length){ nthIndex=positions.length-1; }
+      //get the position for this index
+      var pos=positions[nthIndex];
+      //select the position
+      cached['cm']['object'].setSelection(
+        CodeMirror.Pos(pos['line'], pos['start']),
+        CodeMirror.Pos(pos['line'], pos['end'])
+      );
+      //update the Nth / Total count in the UI
+      updateSearchTextCount(nthIndex+1, positions.length);
     }else{
-    		//nothing found in the search
-    		updateSearchTextCount(0, 0);
-    		//clear the cached structure
-    		clearCachedSearchData(currentTabPath, findTxt);
+      //nothing found in the search
+      updateSearchTextCount(0, 0);
+      //clear the cached structure
+      clearCachedSearchData(currentTabPath, findTxt);
     }
   } return cached;
 }
