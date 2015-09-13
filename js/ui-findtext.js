@@ -1,22 +1,42 @@
 function initTabSearchData(path, findTxt){
-  var ret=getCachedSearchData(path);
-  if(ret==undefined || !ret.hasOwnProperty('searches') || !ret['searches'].hasOwnProperty(findTxt)){
-	  if(path!=undefined){
-	    //make sure the data is cached on the document object
-	    if(!document.hasOwnProperty('syntaxerSearchCache')){ document['syntaxerSearchCache']={}; }
-	    if(!document['syntaxerSearchCache'].hasOwnProperty(path)){
+  var ret;
+  if(path!=undefined){
+    ret=getCachedSearchData(path);
+    //if not already cached (must init)
+    if(ret==undefined || !ret.hasOwnProperty('searches') || !ret['searches'].hasOwnProperty(findTxt)){
+      //make sure the data is cached on the document object
+      if(!document.hasOwnProperty('syntaxerSearchCache')){ document['syntaxerSearchCache']={}; }
+      if(!document['syntaxerSearchCache'].hasOwnProperty(path)){
         var li, cm, tabContent;
         li=getTabLi(path);
         cm=getCodeMirrorObj(path);
         tabContent=getFileContent(path);
-        document['syntaxerSearchCache'][path]={li: li, cm:cm, content:tabContent};
+        document['syntaxerSearchCache'][path]={li: li, cm:cm, content:tabContent, previous_search:'', current_search:findTxt};
       }
-      document['syntaxerSearchCache'][path]['current_search']=findTxt;
       if(!document['syntaxerSearchCache'][path].hasOwnProperty('searches')){ document['syntaxerSearchCache'][path]['searches']={}; }
       document['syntaxerSearchCache'][path]['searches'][findTxt]={ pos:[], nth:0 };
       ret=document['syntaxerSearchCache'][path];
-	  }
-  } return ret;
+    }
+    //indicate if the search term changed from last time
+    setNewCurrentSearch(path, findTxt);
+  }
+  return ret;
+}
+function setNewCurrentSearch(path, findTxt){
+  //if the search has changed from the previous searched text
+  if(document['syntaxerSearchCache'][path]['current_search']!==findTxt){
+    //make sure the previous selection is deselected
+    deselectSearched(path, document['syntaxerSearchCache'][path], findTxt);
+    //set the current search
+    document['syntaxerSearchCache'][path]['current_search']=findTxt;
+  }
+}
+function setNewPreviousSearch(path){
+  //if the search has changed from the previous searched text
+  if(document['syntaxerSearchCache'][path]['previous_search']!==document['syntaxerSearchCache'][path]['current_search']){
+    //set the previous search
+    document['syntaxerSearchCache'][path]['previous_search']=document['syntaxerSearchCache'][path]['current_search'];
+  }
 }
 function getCachedSearchData(path){
 	var cached;
@@ -28,10 +48,27 @@ function getCachedSearchData(path){
 	} return cached;
 }
 //deselect search without deleting the cache
-function deselectSearched(path){
-	var cached=getCachedSearchData(path);
+function deselectSearched(path, cached, searchTxt){
+	if(cached==undefined){ cached=getCachedSearchData(path); }
 	if(cached!=undefined){
-    var searchTxt=cached['current_search'];
+    if(searchTxt==undefined){ searchTxt=cached['current_search']; }
+    if(searchTxt===''){
+      //if any text is search highlighted (shouldn't be, but make sure)
+      var marks=cached['cm']['object'].getAllMarks();
+      if(marks.length>0){
+        for(var m=0;m<marks.length;m++){
+          var mark=marks[m];
+          //if this is a current_search highlight
+          if(mark['className']==='cm-searching'){
+            var range=mark.find();
+            //aha! there is text that is highlighted as a found search match!
+            searchTxt=cached['cm']['object'].getRange(range.from, range.to);
+            break;
+          }
+        }
+      }
+    }
+    //if there is a highlighted search range
     if(cached['searches'].hasOwnProperty(searchTxt)){
   	  var positions=cached['searches'][searchTxt]['pos'];
     	for(var p=0;p<positions.length;p++){
@@ -127,7 +164,7 @@ function updateSearchTextCount(nth, total){
 			var totalTxt=total; if(totalTxt===0){ totalTxt='nada'; }
 			totalFoundSpan.html(totalTxt+'');
 			//if at the first nth
-			if(nth===0){
+			if(nth<2){
 				totalFoundWrap.addClass('active'); cycleWrap.removeClass('active');
 			}else{
 				//not at the first nth
@@ -270,6 +307,9 @@ function searchTextInTab(findTxt, args, replaceTxt){
     }else{
       //search data is already cached... cycle to the next position depending on cursor position
 
+      //update the current/previous path for the cached search that already exists
+      setNewCurrentSearch(currentTabPath, findTxt);
+
       var thisNth=cached['searches'][findTxt]['nth'];
       var positions=cached['searches'][findTxt]['pos'];
       if(positions.length>0){
@@ -304,13 +344,30 @@ function searchTextInTab(findTxt, args, replaceTxt){
           }
         }
         //this line causes the first found string to be highlighted twice
-        if(thisNth===0 && nth===2){ nth--; }
+        //if(thisNth===0 && nth===2){ nth--; }
         //set the new nth position
         if(nth>positions.length){ nth=0; }
         cached['searches'][findTxt]['nth']=nth;
       }else{
         //no found matches
         cached['searches'][findTxt]['nth']=0;
+      }
+    }
+    //if switched to a new search term, different from last search
+    if(cached['previous_search']!==cached['current_search']){
+      //if the search text is selected
+      if(findTxt===cached['cm']['object'].getSelection()){
+        //get a decreased nth for the first-selected position (maybe)
+        var newNth=cached['searches'][findTxt]['nth'];
+        newNth--; if(newNth<0){ newNth=0; }
+        var newIndex=newNth-1; if(newIndex<0){ newIndex=0; }
+        var pos=cached['searches'][findTxt]['pos'][newIndex];
+        //if this position is what's already selected
+        var cursor=cached.cm.object.getCursor();
+        if(cursor['line']===pos['line'] && cursor['ch']===pos['end']){
+          //decrease the nth so that the selection does not progress to the next found (for the first search)
+          cached['searches'][findTxt]['nth']=newNth;
+        }
       }
     }
     //get the positions list
@@ -359,6 +416,7 @@ function searchTextInTab(findTxt, args, replaceTxt){
     }
     //select one of the positions in the search list
     if(positions.length>0){
+      //get the current highlighted search index
       var nthIndex=nth;
       //make sure the nthIndex is within the range of indexes
       if(nthIndex!==0){ nthIndex--; }
@@ -378,6 +436,8 @@ function searchTextInTab(findTxt, args, replaceTxt){
       //clear the cached structure
       clearCachedSearchData(currentTabPath, findTxt);
     }
+    //update previous search text
+    setNewPreviousSearch(currentTabPath);
   } return cached;
 }
 //move the found text position on scrollbar
@@ -428,6 +488,7 @@ function setMatchOnScrollbar(cm, line){
 }
 //hide the findtext panel
 function hideFindText(){
+  deselectSearched('.');
   jQuery('body:first').removeClass('findtext-open');
 }
 //init/show the findtext panel
@@ -602,6 +663,8 @@ function showFindText(){
             if(selection.length>0){
               //load the selection into the find text field
               searchInput.val(selection);
+              //deselect existing search (if any)
+              deselectSearched('.');
               //immediate search
               findtextWrap.find('.search-line.l1 .btns-wrap .main-btn .find-btn:first').click();
             }
