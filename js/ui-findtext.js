@@ -725,7 +725,6 @@ function showFindText(){
           var searchInput=findtextWrap.find('.search-line.l1 .field-wrap input.search-field:first');
           //set the cursor into the search field
           searchInput.focus();
-          searchInput.select();
           //get the codemirror object
           var cm=getCodeMirrorObj(editorDiv);
           if(cm!=undefined){
@@ -740,6 +739,7 @@ function showFindText(){
               findtextWrap.find('.search-line.l1 .btns-wrap .main-btn .find-btn:first').click();
             }
           }
+          searchInput.select();
           //indicate that the customer searchtext panel is now showing
           didShow=true;
         }
