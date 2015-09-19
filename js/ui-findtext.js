@@ -105,38 +105,31 @@ function clearCachedSearchData(path, findTxt){
 	if(cached!=undefined){
 		//deselection
 		deselectSearched(path);
-    //check if the clear is prevented for one time
-    var ifPreventClear=function(obj){
-      var prevent=false;
-      if(obj.hasOwnProperty('prevent_clear')){
-        prevent=obj['prevent_clear'];
-        obj['prevent_clear']=false; //only prevent once
-      } return prevent;
-    };
-		//delete the data
-		if(findTxt==undefined){
-      //if not preventing clearing the cache
-      if(!ifPreventClear(cached)){
-        //clear the entire data set for the path
-        delete document['syntaxerSearchCache'][path];
-        didClear=true;
-      }
-    }else{
-      //if this search term is cached
-      if(cached['searches'].hasOwnProperty(findTxt)){
-        //if not preventing clearing the cache
-        if(!ifPreventClear(cached['searches'][findTxt])){
-          //clear the dataset, for a specific search term
-          delete document['syntaxerSearchCache'][path]['searches'][findTxt];
+    //function to clear one search term
+    var clearOneSearchTerm=function(searchTerm){
+      if(cached['searches'].hasOwnProperty(searchTerm)){
+        //if prevent clear of this search term
+        if(cached['searches'][searchTerm]['prevent_clear']){
+          cached['searches'][searchTerm]['prevent_clear']=false; //only prevent clear once
+        }else{ //allow clear of this search term
+          delete document['syntaxerSearchCache'][path]['searches'][searchTerm];
           didClear=true;
         }
       }
+    };
+    //if delete entire search cache for this path
+    if(findTxt==undefined){
+      //for each cached search term
+      for(term in cached['searches']){
+        if(cached['searches'].hasOwnProperty(term)){
+          clearOneSearchTerm(term);
+        }
+      }
+    }else{ //just delete one cached search term
+      clearOneSearchTerm(findTxt);
     }
-    //if clear prevented (probably because of a replace operation)
-    if(!didClear){
-      //updated the changed cached content
-      cached['content']=cached['cm']['object'].getValue();
-    }
+    //update the changed cached content
+    cached['content']=cached['cm']['object'].getValue();
 	} return didClear;
 }
 function updateSearchTextCount(nth, total){
@@ -219,8 +212,34 @@ function getRelPositionsNearCursor(cached, currentTabPath, findTxt, replaceTxt){
           { className:'cm-searching', clearWhenEmpty:true }
         );
       }
-      //make sure the start, end, and lines are listed correctly (should be, but make sure)
+      //get the range of the current position
       var range=pos['marker'].find();
+      //if a replace happened before this position
+      if(replaceIndex!=undefined){
+        //if replace happened all on one line
+        if(replaceRange['from']['line']===replaceRange['to']['line']){
+          //if this position is on the same line where the replace happened
+          if(range['from']['line']===replaceRange['from']['line']){
+            //if the replace text is a different length then the previous text
+            if(findTxt.length!==replaceTxt.length){
+              //scootch over the selected text
+              var lenDiff=replaceTxt.length-findTxt.length;
+              var theLine=range['from']['line']; var newStart=range['from']['ch']+lenDiff; var newEnd=newStart+findTxt.length;
+              //clear the old highlight marker
+              pos['marker'].clear();
+              //re-highlight this position
+              pos['marker']=cached['cm']['object'].markText(
+                CodeMirror.Pos(theLine, newStart),
+                CodeMirror.Pos(theLine, newEnd),
+                { className:'cm-searching', clearWhenEmpty:true }
+              );
+              //update the range
+              range=pos['marker'].find();
+            }
+          }
+        }
+      }
+      //make sure the start, end, and lines are listed correctly (should be, but make sure)
       pos['line']=range['from']['line'];
       pos['start']=range['from']['ch'];
       pos['end']=range['to']['ch'];
@@ -242,7 +261,7 @@ function getRelPositionsNearCursor(cached, currentTabPath, findTxt, replaceTxt){
                   //clear the scrollbar marker
                   pos['scrollmark'].remove();
                   //prevent the cached search data clear from being triggered by the change event
-                  preventSearchDataClear(currentTabPath);
+                  preventSearchDataClear(currentTabPath, findTxt);
                   //perform the replace of the position
                   cached['cm']['object'].replaceRange(replaceTxt,
                     CodeMirror.Pos(replaceRange['from']['line'], replaceRange['from']['ch']),
@@ -657,6 +676,9 @@ function showFindText(){
                     deselectSearched('.');
                   }
                 }
+              });
+              inp.parent().children('.count:last').click(function(){
+                jQuery(this).parent().children('input:first').focus();
               });
             };
             setStandardInputEvents(searchInput); setStandardInputEvents(replaceInput);
