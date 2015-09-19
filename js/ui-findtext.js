@@ -721,10 +721,11 @@ function showFindText(){
               replaceInput.focus();
             });
           }
-          //do stuff to the searchInput when the findText panel first opens
+          //do stuff to the searchInput when (command + f) is pressed
           var searchInput=findtextWrap.find('.search-line.l1 .field-wrap input.search-field:first');
           //set the cursor into the search field
           searchInput.focus();
+          searchInput.select();
           //get the codemirror object
           var cm=getCodeMirrorObj(editorDiv);
           if(cm!=undefined){
