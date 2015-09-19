@@ -330,6 +330,10 @@ function getRelPositionsNearCursor(cached, currentTabPath, findTxt, replaceTxt){
     if(replaceIndex!=undefined){
       //remove this position from the list
       positions.splice(replaceIndex, 1);
+      //if there are no more positions left
+      if(positions.length<1){
+        relIndexes=undefined;
+      }
     }else{ //no position was replaced...
       //if no text is selected
       if(selectedTxt==undefined || selectedTxt.length<1){
@@ -692,7 +696,6 @@ function showFindText(){
               var args=getSearchtextArgs();
               var searchData=searchTextInTab(searchTextVal, args, replaceTextVal);
               searchInput[0]['previousSubmittedTxt']=searchTextVal;
-              //***
             };
             //find action
             findBtn.click(function(){
