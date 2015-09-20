@@ -70,21 +70,34 @@ function deselectSearched(path, cached, searchTxt){
     }
     //if there is a highlighted search range
     if(cached['searches'].hasOwnProperty(searchTxt)){
-  	  var positions=cached['searches'][searchTxt]['pos'];
-    	for(var p=0;p<positions.length;p++){
-    		var pos=positions[p];
-    		//clear the highlight marker
-    		pos['marker'].clear();
-    		//clear the scrollbar marker
-    		pos['scrollmark'].remove();
-    		//indicate deselected
-    		pos['selected']=false;
-    	}
-      cached['current_search']='';
+      if(!cached['searches'][searchTxt].hasOwnProperty('prevent_deselect') && !cached['searches'][searchTxt]['prevent_deselect']){
+    	  var positions=cached['searches'][searchTxt]['pos'];
+      	for(var p=0;p<positions.length;p++){
+      		var pos=positions[p];
+      		//clear the highlight marker
+      		pos['marker'].clear();
+      		//clear the scrollbar marker
+      		pos['scrollmark'].remove();
+      		//indicate deselected
+      		pos['selected']=false;
+      	}
+        cached['current_search']='';
+      }else{
+        cached['searches'][searchTxt]['prevent_deselect']=false;
+      }
     }
 	}
 }
-//prevent once: deselect/clear of the cached search
+//prevent once: deselect of the cached search
+function preventDeselectSearch(path, findTxt){
+	var cached=getCachedSearchData(path);
+	if(cached!=undefined){
+    if(cached['searches'].hasOwnProperty(findTxt)){
+      cached['searches'][findTxt]['prevent_deselect']=true;
+    }
+	}
+}
+//prevent once: clear of the cached search
 function preventSearchDataClear(path, findTxt){
 	var cached=getCachedSearchData(path);
 	if(cached!=undefined){
@@ -104,7 +117,7 @@ function clearCachedSearchData(path, findTxt){
 	var cached=getCachedSearchData(path);
 	if(cached!=undefined){
 		//deselection
-		deselectSearched(path);
+		deselectSearched(path, cached, findTxt);
     //function to clear one search term
     var clearOneSearchTerm=function(searchTerm){
       if(cached['searches'].hasOwnProperty(searchTerm)){
@@ -173,6 +186,20 @@ function updateSearchTextCount(nth, total){
 			totalFoundWrap.removeClass('active'); cycleWrap.removeClass('active');
 		}
 	}
+}
+//replace one of the found search matches
+function replaceSearchRange(cached, pos, currentTabPath, findTxt, replaceTxt){
+  var replaceRange=pos['marker'].find();
+  //clear the highlight marker
+  pos['marker'].clear();
+  //clear the scrollbar marker
+  pos['scrollmark'].remove();
+  //prevent the cached search data clear from being triggered by the change event
+  preventSearchDataClear(currentTabPath, findTxt);
+  //perform the replace of the position
+  cached['cm']['object'].replaceRange(replaceTxt,
+    replaceRange['from'], replaceRange['to']
+  );
 }
 //replace a position, if needed, cycle through each position relative to the cursor, select one of the positions
 function getRelPositionsNearCursor(cached, currentTabPath, findTxt, replaceTxt){
@@ -256,17 +283,8 @@ function getRelPositionsNearCursor(cached, currentTabPath, findTxt, replaceTxt){
                 if(replaceRange['to']['ch']===pos['end']){
                   //set the replace index
                   replaceIndex=p; isReplace=true;
-                  //clear the highlight marker
-                  pos['marker'].clear();
-                  //clear the scrollbar marker
-                  pos['scrollmark'].remove();
-                  //prevent the cached search data clear from being triggered by the change event
-                  preventSearchDataClear(currentTabPath, findTxt);
-                  //perform the replace of the position
-                  cached['cm']['object'].replaceRange(replaceTxt,
-                    CodeMirror.Pos(replaceRange['from']['line'], replaceRange['from']['ch']),
-                    CodeMirror.Pos(replaceRange['to']['line'], replaceRange['to']['ch'])
-                  );
+                  //replace one of the positions
+                  replaceSearchRange(cached, pos, currentTabPath, findTxt, replaceTxt);
                 }
               }
             }
@@ -370,6 +388,34 @@ function getRelPositionsNearCursor(cached, currentTabPath, findTxt, replaceTxt){
     }
   }
   return relIndexes;
+}
+//replace all found matches
+function replaceAllTextInTab(findTxt, args, replaceTxt){
+  var didReplace=false;
+  //get the cached data
+  var currentTabPath=getElemPath('.');
+  cached=getCachedSearchData(currentTabPath);
+  //if this search term is already cached
+  if(cached!=undefined && cached['searches'].hasOwnProperty(findTxt)){
+    //if there are any cached positions for this search term
+    var positions=cached['searches'][findTxt]['pos'];
+    if(positions.length>0){
+      didReplace=true;
+      //for each position to replace
+      for(var p=positions.length-1;p>-1;p--){
+        var pos=positions[p];
+        //prevent deselection of search terms (until they are all gone)
+        preventDeselectSearch(currentTabPath, findTxt);
+        //replace one of the positions
+        replaceSearchRange(cached, pos, currentTabPath, findTxt, replaceTxt);
+      }
+      //make sure, clear the search cache for this tab
+      clearCachedSearchData(currentTabPath);
+      //update the found count
+      updateSearchTextCount(0,0);
+    }
+  }
+  return didReplace;
 }
 //find and highlight searchtext
 function searchTextInTab(findTxt, args, replaceTxt){
@@ -739,7 +785,12 @@ function showFindText(){
             });
             //replace all button
             replaceAllBtn.click(function(){
-              //***
+              var args=getSearchtextArgs();
+              //if a search term is cached (can be replaced)
+              if(!replaceAllTextInTab(searchInput.val(), args, replaceInput.val())){
+                //no search term is cached yet, so search for the term first
+                findBtn.click();
+              }
               replaceInput.focus();
             });
           }
