@@ -387,6 +387,16 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor,lineTrimLeftOf){
           str=txtParts[index];
         } return str;
       };
+      //escape strings nested between [], "", '', {}, <>, or ()
+      var escapeNested=function(eStr){
+        //***
+        return eStr;
+      };
+      //restore strings nested between [], "", '', {}, <>, or ()
+      var unescapeNested=function(eStr){
+        //***
+        return eStr;
+      };
       //get the next chunk of text between the next pre and post, returns undefined if the __complete format is not followed
       var completeEntry=st+lineAfterCursor;
       var getNextBetween=function(pre, post){
@@ -396,6 +406,8 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor,lineTrimLeftOf){
           //if there is either a separator before or after this dynamicPlaceholder
           if(pre.length>0 || post.length>0){
             completeEntry=completeEntry.trimLeft();
+            //escape pres that are nested between [], "", '', {}, <>, or ()
+            completeEntry=escapeNested(completeEntry);
             //if pre is in the correct spot
             var preTrim=trimIfNotAllWhitespace(pre);
             if(preTrim.length<1 || completeEntry.indexOf(preTrim)===0){
