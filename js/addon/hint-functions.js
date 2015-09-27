@@ -8,6 +8,65 @@ function getLineSplit(editor){
   var aftStr=lStr.substring(cIndex);
   return [preStr,aftStr];
 }
+//gets the start and end chunk of a string based on start and end characters (finds the end, even if there is nesting like {{{}}} )
+function getStrChunk(str, start, end){
+  var eatStr=str; str='';
+  //if start is a substring of str
+  var indexOfStart=eatStr.indexOf(start);
+  if(indexOfStart!==-1){
+    //if end is a substring of str, after start
+    eatStr=eatStr.substring(indexOfStart+start.length);
+    var lastIndexOfEnd=eatStr.lastIndexOf(end);
+    if(lastIndexOfEnd!==-1){
+      //got the content between the first and last start ... end
+      eatStr=eatStr.substring(0, lastIndexOfEnd);
+      //if start and end are different
+      if(start!==end){
+        //get through all of the nested start/ends, finding the end for the first start
+        var starts=1, ends=0, growStr='', forward=true;
+        var consume=function(index, tag){
+          growStr+=eatStr.substring(0, index+tag.length);
+          eatStr=eatStr.substring(index+tag.length);
+        };
+        while(forward){
+          var indexOfStart=eatStr.indexOf(start);
+          var indexOfEnd=eatStr.indexOf(end);
+          if(indexOfStart!==-1 && indexOfEnd!==-1){
+            if(indexOfStart<indexOfEnd){
+              starts++; consume(indexOfStart, start);
+            }else{
+              ends++; consume(indexOfEnd, end);
+            }
+          }
+          else if(indexOfStart!==-1){
+            starts++; consume(indexOfStart, start);
+          }
+          else if(indexOfEnd!==-1){
+            ends++; consume(indexOfEnd, end);
+          }
+          else{
+            forward=false;
+            if(ends+1===starts){
+              growStr+=eatStr;
+              //count the last end string that was already removed
+              ends++; growStr+=end;
+            }
+          }
+          if(starts===ends){ forward=false; }
+        }
+        if(starts===ends){
+          str=start+growStr;
+        }
+      }else{ //start and end are the same
+        var nextIndexOfEnd=eatStr.indexOf(end);
+        if(nextIndexOfEnd!==-1){
+          eatStr=eatStr.substring(0, nextIndexOfEnd);
+        }
+        str=start+eatStr+end;
+      }
+    }
+  } return str;
+}
 //trims non-white-space-text, or leaves it alone (if it's all white space)
 function trimIfNotAllWhitespace(str){
   if(str!=undefined){
@@ -387,22 +446,58 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor,lineTrimLeftOf){
           str=txtParts[index];
         } return str;
       };
-      //escape strings nested between [], "", '', {}, <>, or ()
-      var escapeNested=function(eStr){
-        var ret={txt:eStr};
-        //***
-        return ret;
-      };
-      //restore strings nested between [], "", '', {}, <>, or ()
-      var unescapeNested=function(eStr){
-        //***
-        return eStr;
+      //list of characters that could escape the inner commas like "[0, 3, 2]"
+      var escapeChars=[
+        {a:'(', b:')', escA:'\\(', escB:'\\)'},
+        {a:'[', b:']', escA:'\\[', escB:'\\]'},
+        {a:'"', b:'"'},
+        {a:"'", b:"'"},
+        {a:'{', b:'}', escA:'\\{', escB:'\\}'},
+        {a:'<', b:'>', escA:'\\<', escB:'\\>'}
+      ];
+      //get indexes of escape strings, nested between [], "", '', {}, <>, or ()
+      var indexesOfEscapeNested=function(eStr){
+        var ret=[], matches={}, orderedIndexes=[];
+        if(escapeChars.length>0){
+          //find the index positions of the escape characters
+          for(var e=0;e<escapeChars.length;e++){
+            var esc=escapeChars[e];
+            if(!esc.hasOwnProperty('escA')){ esc['escA']=esc['a']; } if(!esc.hasOwnProperty('escB')){ esc['escB']=esc['b']; }
+            var reg=new RegExp(esc['escA']+'(.*?)'+esc['escB']);
+            var indexOfMatch=eStr.search(reg);
+            if(indexOfMatch!==-1){
+              var eChunk=eStr.substring(indexOfMatch);
+              eChunk=getStrChunk(eChunk, esc['a'], esc['b']);
+              var match={index:indexOfMatch, chunk:eChunk, esc:esc, regex:reg};
+              matches[indexOfMatch]=match;
+              //push into orderedIndexes in the correct sort order
+              if(orderedIndexes.length<1){
+                orderedIndexes.push(indexOfMatch);
+              }else{
+                for(var o=orderedIndexes.length-1;o>-1;o--){
+                  if(indexOfMatch>=orderedIndexes[o]){ orderedIndexes.splice(o+1, 0, indexOfMatch); break; }
+                }
+              }
+            }
+          }
+          if(orderedIndexes.length>0){
+            //put the matches in the correct sequential order
+            for(var i=0;i<orderedIndexes.length;i++){
+              ret.push(matches[orderedIndexes[i]]);
+            }
+          }
+        } return ret;
       };
       //set the text to parse out
       var completeEntry=st+lineAfterCursor;
-      //escape pres that are nested between [], "", '', {}, <>, or ()
-      var escapedNested=escapeNested(completeEntry);
-      completeEntry=escapedNested['txt'];
+      //figure out if there are any parts that may be nested between [], "", '', {}, <>, or ()
+      var indexesOfEscaped=indexesOfEscapeNested(completeEntry); var hasEscaped=indexesOfEscaped.length>0;
+      //get the string before the next stopChar that appears outside of [], "", '', {}, <>, or ()
+      var getNextBetweenOutOfEscape=function(eStr, post){
+        var ret=eStr;
+        var test=''; //***
+        return ret;
+      };
       //get the next chunk of text between the next pre and post, returns undefined if the __complete format is not followed
       var getNextBetween=function(pre, post){
         var between; var foundPre;
@@ -439,8 +534,14 @@ function getAutocompleteOptions(lineSplit,hintsJson,editor,lineTrimLeftOf){
                   between=completeEntry; completeEntry='';
                 //if there is post
                 }else if(completeEntry.indexOf(postTrim)!==-1){
-                  //get text before the post
-                  between=completeEntry.substring(0, completeEntry.indexOf(postTrim));
+                  //if there are any escaped nested sections
+                  if(hasEscaped){
+                    //ignore postTrim that are nested between [], "", '', {}, <>, or ()
+                    between=getNextBetweenOutOfEscape(completeEntry, postTrim);
+                  }else{
+                    //get text before the post
+                    between=completeEntry.substring(0, completeEntry.indexOf(postTrim));
+                  }
                   //trim off between
                   completeEntry=completeEntry.substring(between.length);
                 }
