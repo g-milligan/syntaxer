@@ -42,9 +42,9 @@
     - XXX saved state to remember last filter?
 - XXX Handle notifications that appear on top of each other. They should wait their turn so the first has time to fade out. (array of pending notes to show?)
 - XXX Command+F text search / replace / replace-all
+- XXX Syntax detection _complete (don't end a parameter with a nested comma, eg: ",")
 
 
-- Syntax detection _complete (don't end a parameter with a nested comma, eg: ",")
 - Project Stats in the project menu, created, modified, time open, etc...
 
 
