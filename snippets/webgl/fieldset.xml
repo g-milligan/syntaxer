@@ -1,0 +1,55 @@
+<fieldset>
+  <fields>
+  </fields>
+  <objects>
+    <object key="texture">
+      <label>Texture</label>
+      <count>
+        <min>0</min><max></max>
+      </count>
+      <fields></fields>
+    </object>
+    <object key="shader">
+      <label>Shader</label>
+      <count>
+        <min>2</min><max></max>
+      </count>
+      <fields>
+        <field key="type">
+          <label>Shader Type</label>
+          <type>select</type>
+          <options>
+            <option>
+              <label>Select Type</label>
+            </option>
+            <option key="vert">
+              <label>Vertex</label>
+            </option>
+            <option key="frag">
+              <label>Fragment</label>
+            </option>
+          </options>
+        </field>
+      </fields>
+    </object>
+    <object key="program">
+      <label>Shader Program</label>
+      <count>
+        <min>1</min><max></max>
+      </count>
+      <fields></fields>
+      <objects>
+        <object key="shader">
+            <option key="vert" /> <option key="frag" />
+        </object>
+      </objects>
+    </object>
+    <object key="buffer">
+      <label>Buffer</label>
+      <count>
+        <min>1</min><max></max>
+      </count>
+      <fields></fields>
+    </object>
+  </objects>
+</fieldset>

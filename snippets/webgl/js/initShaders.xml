@@ -1,0 +1,11 @@
+<snip>
+  <comment>
+    <start><![CDATA[/*]]></start>
+    <end><![CDATA[*/]]></end>
+  </comment>
+  <fieldsets>
+    <fieldset src="/webgl/fieldset.xml" />
+  </fieldsets>
+
+
+</snip>

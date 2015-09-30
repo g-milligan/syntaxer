@@ -44,6 +44,20 @@
 - XXX Command+F text search / replace / replace-all
 - XXX Syntax detection _complete (don't end a parameter with a nested comma, eg: ",")
 
+- getDefaultTemplateHtml should open from a starter_templates/webgl/default.html file, which holds the default HTML
+- for unsaved new projects, there should be an option to select which project template to use, from starter_templates
+- for saved projects, there should be an option to save as new starter template
+
+- Cmd+I (insert snippet)
+
+[@snip/webgl/js/init.xml]
+
+[/@snip]
+
+
+
+
+
 
 - Project Stats in the project menu, created, modified, time open, etc...
 
