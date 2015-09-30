@@ -1,20 +1,37 @@
 <fieldset>
-  <fields>
-  </fields>
   <objects>
+
     <object key="texture">
       <label>Texture</label>
       <count>
         <min>0</min><max></max>
       </count>
-      <fields></fields>
+      <fields>
+        <field key="variable_name">
+          <label>Variable Name</label>
+          <type>variable_name</type>
+        </field>
+      </fields>
     </object>
+
     <object key="shader">
       <label>Shader</label>
       <count>
         <min>2</min><max></max>
       </count>
       <fields>
+        <field key="variable_name">
+          <label>Variable Name</label>
+          <type>variable_name</type>
+        </field>
+        <field key="script_id">
+          <label>Script ID</label>
+          <type>text</type>
+          <length>
+            <min>1</min><max>70</max>
+          </length>
+          <unique />
+        </field>
         <field key="type">
           <label>Shader Type</label>
           <type>select</type>
@@ -32,24 +49,48 @@
         </field>
       </fields>
     </object>
+
     <object key="program">
       <label>Shader Program</label>
       <count>
         <min>1</min><max></max>
       </count>
-      <fields></fields>
-      <objects>
-        <object key="shader">
-            <option key="vert" /> <option key="frag" />
-        </object>
-      </objects>
+      <relations>
+        <relation key="fragment_shader">
+          <label>Fragment Shader</label>
+          <count>
+            <min>1</min><max>1</max>
+          </count>
+          <selector>object[key="shader"]:has(option[key="frag"])</selector>
+        </relation>
+        <relation key="vertex_shader">
+          <label>Vertex Shader</label>
+          <count>
+            <min>1</min><max>1</max>
+          </count>
+          <selector>object[key="shader"]:has(option[key="vert"])</selector>
+        </relation>
+      </relations>
+      <fields>
+        <field key="variable_name">
+          <label>Variable Name</label>
+          <type>variable_name</type>
+        </field>
+      </fields>
     </object>
+
     <object key="buffer">
       <label>Buffer</label>
       <count>
         <min>1</min><max></max>
       </count>
-      <fields></fields>
+      <fields>
+        <field key="variable_name">
+          <label>Variable Name</label>
+          <type>variable_name</type>
+        </field>
+      </fields>
     </object>
+
   </objects>
 </fieldset>
