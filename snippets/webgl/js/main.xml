@@ -1,0 +1,58 @@
+<snip>
+  <comment>
+    <start><![CDATA[/*]]></start>
+    <end><![CDATA[*/]]></end>
+  </comment>
+
+  <fieldsets>
+    <fieldset src="/webgl/fieldset.xml" />
+  </fieldsets>
+
+<!-- from l13.html -->
+
+  <template trim="left,right"><![CDATA[
+
+var program;
+
+function initShaders() {
+    program = createProgram("fragmentShaderId", "vertexShaderId");
+}
+
+  ]]></template>
+
+  <builder>
+    <vars>
+      <match>
+        <var replace="%var">[a-zA-Z]+\S*</var> <!-- select a javascript variable, starts with a non-number character and continues with any number of non-whitespace characters -->
+        <var replace="%eol">;.*?\n?+</var> <!-- select the end of a code statement/line (includes any additional spacing or comments, etc...) -->
+        <var replace="%com">\s*,\s*</var> <!-- comma surrounded by whitespace characters, or not -->
+        <var replace="%=%">\s*=\s*</var> <!-- equals sign surrounded by whitespace characters, or not -->
+        <var replace="%'">["|']</var> <!-- either type of quote " or ' -->
+      </match>
+    </vars>
+    <for each="object[key='program']">
+      <items>
+        <item> <!-- initializes a program variable -->
+          <boundary>
+            <before>function initShaders</before>
+          </boundary>
+          <match>var (%var)%eol</match>
+          <values><value>field[key='variable_name']</value></values>
+        </item>
+        <item> <!-- createProgram, binds a fragment / vertex shader to a program variable -->
+          <boundary>
+            <after>function initShaders</after>
+            <in><start>{</start><end>}</end></in>
+          </boundary>
+          <match>(%var)%=%createProgram\(%'(%var)%'%com'(%var)%'\)%eol</match>
+          <values>
+            <value>field[key='variable_name']</value>
+            <value>rel[key='fragment_shader'] field[key='script_id']</value>
+            <value>rel[key='vertex_shader'] field[key='script_id']</value>
+          </values>
+        </item>
+      </items>
+    </for>
+  </builder>
+
+</snip>

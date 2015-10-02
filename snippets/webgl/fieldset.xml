@@ -10,6 +10,12 @@
         <field key="variable_name">
           <label>Variable Name</label>
           <type>variable_name</type>
+          <rules>
+            <rule>
+              <match>([a-zA-Z]+\S*)</match>
+              <message>Must be non blank and begin with a letter</message>
+            </rule>
+          </rules>
         </field>
       </fields>
     </object>
@@ -23,6 +29,12 @@
         <field key="variable_name">
           <label>Variable Name</label>
           <type>variable_name</type>
+          <rules>
+            <rule>
+              <match>([a-zA-Z]+\S*)</match>
+              <message>Must be non blank and begin with a letter</message>
+            </rule>
+          </rules>
         </field>
         <field key="script_id">
           <label>Script ID</label>
@@ -31,6 +43,12 @@
             <min>1</min><max>70</max>
           </length>
           <unique />
+          <rules>
+            <rule>
+              <match>([a-zA-Z]+\S*)</match>
+              <message>Must be non blank and begin with a letter</message>
+            </rule>
+          </rules>
         </field>
         <field key="type">
           <label>Shader Type</label>
@@ -55,26 +73,32 @@
       <count>
         <min>1</min><max></max>
       </count>
-      <relations>
-        <relation key="fragment_shader">
+      <rels>
+        <rel key="fragment_shader">
           <label>Fragment Shader</label>
           <count>
             <min>1</min><max>1</max>
           </count>
           <selector>object[key="shader"]:has(option[key="frag"])</selector>
-        </relation>
-        <relation key="vertex_shader">
+        </rel>
+        <rel key="vertex_shader">
           <label>Vertex Shader</label>
           <count>
             <min>1</min><max>1</max>
           </count>
           <selector>object[key="shader"]:has(option[key="vert"])</selector>
-        </relation>
-      </relations>
+        </rel>
+      </rels>
       <fields>
         <field key="variable_name">
           <label>Variable Name</label>
           <type>variable_name</type>
+          <rules>
+            <rule>
+              <match>([a-zA-Z]+\S*)</match>
+              <message>Must be non blank and begin with a letter</message>
+            </rule>
+          </rules>
         </field>
       </fields>
     </object>
@@ -88,6 +112,12 @@
         <field key="variable_name">
           <label>Variable Name</label>
           <type>variable_name</type>
+          <rules>
+            <rule>
+              <match>([a-zA-Z]+\S*)</match>
+              <message>Must be non blank and begin with a letter</message>
+            </rule>
+          </rules>
         </field>
       </fields>
     </object>
