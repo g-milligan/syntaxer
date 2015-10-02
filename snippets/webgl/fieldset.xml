@@ -79,14 +79,14 @@
           <count>
             <min>1</min><max>1</max>
           </count>
-          <selector>object[key="shader"]:has(option[key="frag"])</selector>
+          <find>object[key="shader"]:has(option[key="frag"])</find>
         </rel>
         <rel key="vertex_shader">
           <label>Vertex Shader</label>
           <count>
             <min>1</min><max>1</max>
           </count>
-          <selector>object[key="shader"]:has(option[key="vert"])</selector>
+          <find>object[key="shader"]:has(option[key="vert"])</find>
         </rel>
       </rels>
       <fields>
