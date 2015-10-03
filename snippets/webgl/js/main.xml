@@ -1,73 +1,56 @@
 <template>
-  <comment>
-    <start><![CDATA[/*]]></start>
-    <end><![CDATA[*/]]></end>
-  </comment>
-
   <fieldsets>
     <fieldset src="/webgl/fieldset.xml" />
+    <fieldset src="/webgl/js/fieldset.xml" />
   </fieldsets>
 
 <!-- from l13.html -->
 
-  <vars>
-    <var replace="%var" in_tags="match">[a-zA-Z]+\S*</var> <!-- select a javascript variable, starts with a non-number character and continues with any number of non-whitespace characters -->
-    <var replace="%eol" in_tags="match">;.*?\n?+</var> <!-- select the end of a code statement/line (includes any additional spacing or comments, etc...) -->
-    <var replace="%com" in_tags="match">\s*,\s*</var> <!-- comma surrounded by whitespace characters, or not -->
-    <var replace="%=%" in_tags="match">\s*=\s*</var> <!-- equals sign surrounded by whitespace characters, or not -->
-    <var replace="%'" in_tags="match">["|']</var> <!-- either type of quote " or ' -->
-  </vars>
+  <snippet>
 
-  <snippets>
-    <snippet key="bind programs to shaders">
-      <if is="=">
-        <find>field[key='variable_name']</find>
-        <value>program</value>
-      </if>
-      <then>
-        <text trim="left,right"><![CDATA[
+    <region key="initShaders" trim="left,right"><![CDATA[
 
 var program;
 
 function initShaders() {
-  program = createProgram("fragmentShaderId", "vertexShaderId");
+program = createProgram("fragmentShaderId", "vertexShaderId");
 }
 
-        ]]></text>
-      </then>
+    ]]></region>
 
-      <builder>
-        <for each="object[key='program']">
-          <items>
-            <item> <!-- initializes a program variable -->
-              <boundary>
-                <before>function initShaders</before>
-              </boundary>
-              <match>var (%var)%eol</match>
-              <values>
-                <find>field[key='variable_name']</find>
-              </values>
-            </item>
-            <item> <!-- createProgram, binds a fragment / vertex shader to a program variable -->
-              <boundary>
-                <after>function initShaders</after>
-                <in>
-                  <start>{</start>
-                  <end>}</end>
-                </in>
-              </boundary>
-              <match>(%var)%=%createProgram\(%'(%var)%'%com'(%var)%'\)%eol</match>
-              <values>
-                <find>field[key='variable_name']</find>
-                <find>rel[key='fragment_shader'] field[key='script_id']</find>
-                <find>rel[key='vertex_shader'] field[key='script_id']</find>
-              </values>
-            </item>
-          </items>
-        </for>
-      </builder>
+    <!-- inherited from the fieldset.xml -->
+    <vars><![CDATA[
 
-    </snippet>
-  </snippets>
+      @var: @var @com: @com
+      @=: @= @quo: @quo @eol: @eol
+
+    ]]></vars>
+
+    <builder><![CDATA[
+
+      each: "object[key='program']" {
+
+        set-region: "initShaders" {
+          before: "function initShaders"
+        }
+
+        match: "var (" + @var + ")" + @eol
+        replace-matches: val("field[key='variable_name']")
+
+        set-region: "initShaders" {
+          after: "function initShaders"
+          inside: "{", "}"
+        }
+
+        match: "(" + @var + ")" + @= + "createProgram\(" + @quo + "(" + @var + ")" + @quo + @com
+          + @quo + "(" + @var + ")" + @quo + "\)" + @eol
+        replace-matches: val("field[key='variable_name']"),
+          val("rel[key='fragment_shader'] field[key='script_id']"),
+          val("rel[key='vertex_shader'] field[key='script_id']")
+      }
+
+    ]]></builder>
+
+  </snippet>
 
 </template>

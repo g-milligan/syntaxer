@@ -1,6 +1,16 @@
 <fieldset>
-  <objects>
 
+  <vars><![CDATA[
+
+    @var: "[a-zA-Z]+\S*"
+    @com: "\s*,\s*"
+    @=: "\s*=\s*"
+    @quo: "[\"|']"
+    @eol: ";.*?\n?+"
+
+  ]]></vars>
+
+  <objects>
     <object key="texture">
       <label>Texture</label>
       <count>
@@ -12,7 +22,9 @@
           <type>variable_name</type>
           <rules>
             <rule>
-              <match>([a-zA-Z]+\S*)</match>
+              <match><![CDATA[
+                @var
+              ]]></match>
               <message>Must be non blank and begin with a letter</message>
             </rule>
           </rules>
@@ -31,7 +43,9 @@
           <type>variable_name</type>
           <rules>
             <rule>
-              <match>([a-zA-Z]+\S*)</match>
+              <match><![CDATA[
+                @var
+              ]]></match>
               <message>Must be non blank and begin with a letter</message>
             </rule>
           </rules>
@@ -45,7 +59,9 @@
           <unique />
           <rules>
             <rule>
-              <match>([a-zA-Z]+\S*)</match>
+              <match><![CDATA[
+                @var
+              ]]></match>
               <message>Must be non blank and begin with a letter</message>
             </rule>
           </rules>
@@ -95,7 +111,9 @@
           <type>variable_name</type>
           <rules>
             <rule>
-              <match>([a-zA-Z]+\S*)</match>
+              <match><![CDATA[
+                @var
+              ]]></match>
               <message>Must be non blank and begin with a letter</message>
             </rule>
           </rules>
@@ -114,7 +132,9 @@
           <type>variable_name</type>
           <rules>
             <rule>
-              <match>([a-zA-Z]+\S*)</match>
+              <match><![CDATA[
+                @var
+              ]]></match>
               <message>Must be non blank and begin with a letter</message>
             </rule>
           </rules>
@@ -123,4 +143,5 @@
     </object>
 
   </objects>
+
 </fieldset>
