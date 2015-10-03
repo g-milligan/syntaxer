@@ -1,4 +1,4 @@
-<template>
+<snippet>
   <fieldsets>
     <fieldset src="/webgl/fieldset.xml" />
     <fieldset src="/webgl/js/fieldset.xml" />
@@ -6,9 +6,9 @@
 
 <!-- from l13.html -->
 
-  <snippet>
-
-    <region key="initShaders" trim="left,right"><![CDATA[
+  <regions>
+    <br />
+    <region key="initShaders" trim="left,right"><br /><![CDATA[
 
 var program;
 
@@ -16,41 +16,41 @@ function initShaders() {
 program = createProgram("fragmentShaderId", "vertexShaderId");
 }
 
-    ]]></region>
+    ]]><br /></region>
+    <br />
+  </regions>
 
-    <!-- inherited from the fieldset.xml -->
-    <vars><![CDATA[
+  <!-- inherited from the fieldset.xml -->
+  <vars><![CDATA[
 
-      @var: @var @com: @com
-      @=: @= @quo: @quo @eol: @eol
+    @var: @var @com: @com
+    @=: @= @quo: @quo @eol: @eol
 
-    ]]></vars>
+  ]]></vars>
 
-    <builder><![CDATA[
+  <builder><![CDATA[
 
-      each: "object[key='program']" {
+    each: "obj[key='program']" {
 
-        set-region: "initShaders" {
-          before: "function initShaders"
-        }
-
-        match: "var (" + @var + ")" + @eol
-        replace-matches: val("field[key='variable_name']")
-
-        set-region: "initShaders" {
-          after: "function initShaders"
-          inside: "{", "}"
-        }
-
-        match: "(" + @var + ")" + @= + "createProgram\(" + @quo + "(" + @var + ")" + @quo + @com
-          + @quo + "(" + @var + ")" + @quo + "\)" + @eol
-        replace-matches: val("field[key='variable_name']"),
-          val("rel[key='fragment_shader'] field[key='script_id']"),
-          val("rel[key='vertex_shader'] field[key='script_id']")
+      set-region: "initShaders" {
+        before: "function initShaders"
       }
 
-    ]]></builder>
+      match: "var (" + @var + ")" + @eol
+      replace-matches: val("field[key='variable_name']")
 
-  </snippet>
+      set-region: "initShaders" {
+        after: "function initShaders"
+        inside: "{", "}"
+      }
 
-</template>
+      match: "(" + @var + ")" + @= + "createProgram\(" + @quo + "(" + @var + ")" + @quo + @com
+        + @quo + "(" + @var + ")" + @quo + "\)" + @eol
+      replace-matches: val("field[key='variable_name']"),
+        val("rel[key='fragment_shader'] field[key='script_id']"),
+        val("rel[key='vertex_shader'] field[key='script_id']")
+    }
+
+  ]]></builder>
+
+</snippet>

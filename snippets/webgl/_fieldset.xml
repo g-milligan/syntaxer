@@ -10,15 +10,36 @@
 
   ]]></vars>
 
-  <objects>
-    <object key="texture">
-      <label>Texture</label>
+  <rels><![CDATA[
+
+    @program: "obj[key='program']"
+    @shader: "obj[key='shader']"
+    @vertex-shader: "obj[key='shader'] field[type='type'] option[key='vert']"
+    @fragment-shader: "obj[key='shader'] field[type='type'] option[key='frag']"
+    @vertex-shader-attr: "obj[key='vertex_shader_attribute']"
+    @buffer: "obj[key='buffer']"
+
+    #program relation to 2 shaders (one fragment and one vertex shader)
+    obj-rel: required, @program, x1,
+      @vertex-shader + ", " + @fragment-shader, x1
+
+    #vertex shader relation to its attributes
+    obj-rel: optional, @vertex-shader, x1, @vertex-shader-attr, x0-M
+
+    #vertex shader attribute relation to a buffer object
+    obj-rel: required, @vertex-shader-attr, x1, @buffer, x1
+
+  ]]></rels>
+
+  <objs>
+    <obj key="texture">
+      <lbl>Texture</lbl>
       <count>
         <min>0</min><max></max>
       </count>
       <fields>
         <field key="variable_name">
-          <label>Variable Name</label>
+          <lbl>Variable Name</lbl>
           <type>variable_name</type>
           <rules>
             <rule>
@@ -30,16 +51,16 @@
           </rules>
         </field>
       </fields>
-    </object>
+    </obj>
 
-    <object key="shader">
-      <label>Shader</label>
+    <obj key="shader">
+      <lbl>Shader</lbl>
       <count>
         <min>2</min><max></max>
       </count>
       <fields>
         <field key="variable_name">
-          <label>Variable Name</label>
+          <lbl>Variable Name</lbl>
           <type>variable_name</type>
           <rules>
             <rule>
@@ -51,7 +72,7 @@
           </rules>
         </field>
         <field key="script_id">
-          <label>Script ID</label>
+          <lbl>Script ID</lbl>
           <type>text</type>
           <length>
             <min>1</min><max>70</max>
@@ -67,47 +88,35 @@
           </rules>
         </field>
         <field key="type">
-          <label>Shader Type</label>
+          <lbl>Shader Type</lbl>
           <type>select</type>
-          <options>
-            <option>
-              <label>Select Type</label>
-            </option>
+          <options canedit="false">
             <option key="vert">
-              <label>Vertex</label>
+              <lbl>Vertex</lbl>
             </option>
             <option key="frag">
-              <label>Fragment</label>
+              <lbl>Fragment</lbl>
             </option>
           </options>
         </field>
       </fields>
-    </object>
+    </obj>
 
-    <object key="program">
-      <label>Shader Program</label>
+    <obj key="vertex_shader_attribute">
+      <lbl>Vertex Shader Attribute</lbl>
+      <count>
+        <min>0</min><max></max>
+      </count>
+    </obj>
+
+    <obj key="program">
+      <lbl>Shader Program</lbl>
       <count>
         <min>1</min><max></max>
       </count>
-      <rels>
-        <rel key="fragment_shader">
-          <label>Fragment Shader</label>
-          <count>
-            <min>1</min><max>1</max>
-          </count>
-          <find>object[key="shader"]:has(option[key="frag"])</find>
-        </rel>
-        <rel key="vertex_shader">
-          <label>Vertex Shader</label>
-          <count>
-            <min>1</min><max>1</max>
-          </count>
-          <find>object[key="shader"]:has(option[key="vert"])</find>
-        </rel>
-      </rels>
       <fields>
         <field key="variable_name">
-          <label>Variable Name</label>
+          <lbl>Variable Name</lbl>
           <type>variable_name</type>
           <rules>
             <rule>
@@ -119,16 +128,16 @@
           </rules>
         </field>
       </fields>
-    </object>
+    </obj>
 
-    <object key="buffer">
-      <label>Buffer</label>
+    <obj key="buffer">
+      <lbl>Buffer</lbl>
       <count>
         <min>1</min><max></max>
       </count>
       <fields>
         <field key="variable_name">
-          <label>Variable Name</label>
+          <lbl>Variable Name</lbl>
           <type>variable_name</type>
           <rules>
             <rule>
@@ -140,8 +149,8 @@
           </rules>
         </field>
       </fields>
-    </object>
+    </obj>
 
-  </objects>
+  </objs>
 
 </fieldset>
