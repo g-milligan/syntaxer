@@ -28,80 +28,11 @@
 <script type="text/javascript" src="js/ui-tabs.js"></script>
 <script type="text/javascript" src="js/ui-ajax.js"></script>
 <script type="text/javascript" src="js/ui-notifications.js"></script>
+<script type="text/javascript" src="js/ui-content-menus.js"></script>
 <script type="text/javascript" src="js/ui-project-browse.js"></script>
 <script type="text/javascript" src="js/ui-findtext.js"></script>
 <script type="text/javascript">
 
-  //create or open the content menu, eg: when you press Command+I
-  function openContentMenu(menuType){
-    //==REUSE VALUES FOR CERTAIN MENU TYPES==
-    var insertTitle='Insert';
-    var insertOnOpen=function(){
-      console.log('insert open');
-    };
-    var insertOnClose=function(){
-      console.log('insert close');
-    };
-    //==CONFIGURE MENU TYPES==
-    var menusJson={
-      insert:{
-        template:{
-          title:insertTitle, onopen:insertOnOpen, onclose:insertOnClose
-        },
-        js:{
-          title:insertTitle, onopen:insertOnOpen, onclose:insertOnClose
-        }
-      }
-    };
-    //==CREATE OR OPEN THE MENU==
-    if(menusJson.hasOwnProperty(menuType)){
-      var json=menusJson[menuType];
-      //get active conten div
-      var divWrap=getEditorDiv(getActiveTabLi());
-      //get extension for active file
-      var ext=getPathExt(divWrap);
-      if(json.hasOwnProperty(ext)){
-        json=json[ext];
-        var menuBodiesWrap=divWrap.children('.content-menus:last').children('.menu-bodies:last');
-        var menuBody=menuBodiesWrap.children('[name="'+menuType+'"]:first');
-        //if this menuType isn't already created for this active tab
-        if(menuBody.length<1){
-          //create the menu
-          menuBodiesWrap.append('<div name="'+menuType+'" class="menu-body"><h1>'+json['title']+'</h1><div class="scroll"></div></div>');
-          menuBody=menuBodiesWrap.children('[name="'+menuType+'"]:last');
-          //*** add menu content related to this insert menu
-          //close handler
-          menuBody[0]['contentMenuClose']=function(){
-            menuBody.removeClass('active');
-            menuBodiesWrap.parent().parent().removeClass('show-content-menu');
-            if(json.hasOwnProperty('onclose')){
-              json['onclose']();
-            }
-          };
-          //open handler
-          menuBody[0]['contentMenuOpen']=function(){
-            menuBodiesWrap.parent().parent().addClass('show-content-menu');
-            menuBody.parent().children('.active').removeClass('active');
-            menuBody.addClass('active');
-            if(json.hasOwnProperty('onopen')){
-              json['onopen']();
-            }
-          };
-          //open the menu
-          menuBody[0]['contentMenuOpen']();
-        }else{
-          //menu body already created...
-
-          //toggle open the menu
-          if(menuBody.hasClass('active')){
-            menuBody[0]['contentMenuClose']();
-          }else{
-            menuBody[0]['contentMenuOpen']();
-          }
-        }
-      }
-    }
-  }
   function clearProject(){
     var wrap=jQuery('#file-content:first');
     wrap.html('');
@@ -176,6 +107,13 @@
         saveas:{
           _action:function(){
             saveAsProjectBrowse();
+          }
+        }
+      },
+      snippets:{
+        menu:{
+          _action:function(){
+            openContentMenu('snippet');
           }
         }
       },
@@ -320,7 +258,7 @@
           case 'i':
             //if Command+I
             e.preventDefault(); ret=false;
-            openContentMenu('insert');
+            openContentMenu('snippet');
             break;
         }
       }else if(e.altKey){
@@ -476,6 +414,11 @@
           <li name="save"><span>Save Preview<shortcut>Cmd + S</shortcut></span></li>
           <li name="pack"><span>Pack/Save Changes<shortcut>Cmd + Shift + S</shortcut></span></li>
           <li name="saveas"><span>Save As<shortcut>Alt + S</shortcut></span></li>
+        </ul>
+      </li>
+      <li name="snippets"><span>Snippets</span>
+        <ul>
+          <li name="menu"><span>Menu<shortcut>Cmd + I</shortcut></span>
         </ul>
       </li>
       <li name="preview"><span>Preview</span>
