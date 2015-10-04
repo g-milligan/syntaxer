@@ -1,7 +1,7 @@
 //create or open the content menu, eg: when you press Command+I
 function openContentMenu(menuType){
   //==REUSE VALUES FOR CERTAIN MENU TYPES==
-  var snippetTitle='Snippets';
+  var snippetTitle='snippets';
   var snippetOnOpen=function(){
     console.log('snippet open');
   };

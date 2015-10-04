@@ -50,6 +50,8 @@
 
 - Cmd+I (insert snippet)
 
+- project preferences to set the project type, eg: webgl
+
 [@snip/webgl/js/init.xml]
 
 [/@snip]

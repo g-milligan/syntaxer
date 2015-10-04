@@ -1,7 +1,7 @@
 <snippet>
   <fieldsets>
-    <fieldset src="/webgl/fieldset.xml" />
-    <fieldset src="/webgl/js/fieldset.xml" />
+    <fieldset src="/webgl/_fieldset.xml" />
+    <fieldset src="/webgl/js/_fieldset.xml" />
   </fieldsets>
 
 <!-- from l13.html -->
