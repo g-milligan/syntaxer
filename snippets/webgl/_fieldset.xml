@@ -20,14 +20,19 @@
     @buffer: "obj[key='buffer']"
 
     #program relation to 2 shaders (one fragment and one vertex shader)
-    obj-rel: required, @program, x1,
-      @vertex-shader + ", " + @fragment-shader, x1
+    rel: "obj", @program, x1 {
+      required: "obj", @vertex-shader + ", " + @fragment-shader, x1
+    }
 
     #vertex shader relation to its attributes
-    obj-rel: optional, @vertex-shader, x1, @vertex-shader-attr, x0-M
+    rel: "obj", @vertex-shader, x1 {
+      optional: "obj", @vertex-shader-attr, x0-M
+    }
 
     #vertex shader attribute relation to a buffer object
-    obj-rel: required, @vertex-shader-attr, x1, @buffer, x1
+    rel: "obj", @vertex-shader-attr, x1 {
+      required: "obj", @buffer, x1
+    }
 
   ]]></rels>
 
