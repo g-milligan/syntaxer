@@ -285,6 +285,7 @@
             var noteWrap=jQuery('section#notifications.active:last');
             var openLightBox=jQuery('section#lightbox:last').children('.box.open:first');
             var contentMenuWrap=jQuery('section#file-content .active.content-wrap.show-content-menu:first');
+            var hintsInfoWrap=jQuery('#hints-info:first');
             //if notification is open
             if(noteWrap.length>0){
               e.preventDefault(); e.stopPropagation(); ret=false;
@@ -293,6 +294,9 @@
             }else if(openLightBox.length>0){
               e.preventDefault(); e.stopPropagation(); ret=false;
               openLightBox.find('h1 .box-btn.cancel:first').click();
+            //if hints info is open
+            }else if(hintsInfoWrap.hasClass('open')){
+              hintsInfoWrap.find('.info-title .trigger-text').click();
             //if findtext is open
             }else if(jQuery('body:first').hasClass('findtext-open')){
               hideFindText();

@@ -52,9 +52,17 @@
 
 - project preferences to set the project type, eg: webgl
 
-[@snip/webgl/js/init.xml]
+/*[@snippet/webgl/js/main.xml]*/
 
-[/@snip]
+/*[@region/initShaders]*/
+
+/*[/@region]
+
+/*[/@snippet]*/
+
+
+
+
 
 - Dark theme instead of white
 

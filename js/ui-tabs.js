@@ -603,10 +603,33 @@ function setCodemirrorContent(fpath,textarea,callback){
   wrap.append('<div class="content-menus"></div>');
   var subMenus=wrap.children('.content-menus:last');
   subMenus.append('<div class="menu-bodies"></div>');
-  subMenus.append('<div class="menu-btns"><div title="back to code" class="btn-cancel"></div></div>');
+  subMenus.append('<div class="menu-btns"><div class="btn-split-panels">'+svgPanels+'</div><div title="back to code" class="btn-cancel"></div></div>');
+  subMenus.append('<div class="drag-resize"></div>');
+  var dragResize=subMenus.children('.drag-resize:last');
   var btnsWrap=subMenus.children('.menu-btns:first');
+  var btnSplitPanels=btnsWrap.children('.btn-split-panels:first');
+  btnSplitPanels.append('<div class="dropdown"><div name="top" class="top"></div><div name="right" class="right"></div><div name="bottom" class="bottom"></div><div name="left" class="left"></div><div name="center" class="center"></div></div>');
+  var dropdownPanels=btnSplitPanels.children('.dropdown:first');
   var btnCancel=btnsWrap.children('.btn-cancel:first');
   //standard content menu events
+  btnSplitPanels.hover(function(){
+    jQuery(this).addClass('open');
+  },function(){
+    jQuery(this).removeClass('open');
+  });
+  dropdownPanels.children().click(function(){
+    var panelSplitType=jQuery(this).attr('name');
+    var splitClass='content-menu-'+panelSplitType;
+    var cwrap=jQuery(this).parents('.content-wrap:first');
+    if(!cwrap.hasClass(splitClass)){
+      cwrap.removeClass('content-menu-top').removeClass('content-menu-right').removeClass('content-menu-bottom').removeClass('content-menu-left').removeClass('content-menu-center');
+      cwrap.addClass(splitClass); cwrap[0]['currentSplitPanelClass']=splitClass;
+      var ddlBtn=jQuery(this).parent().parent();
+      setTimeout(function(){
+        ddlBtn.removeClass('open');
+      },200);
+    }
+  });
   btnCancel.click(function(){
     var divWrap=getEditorDiv(getActiveTabLi());
     var divActive=divWrap.children('.content-menus:last').children('.menu-bodies:first').children('.active:first');

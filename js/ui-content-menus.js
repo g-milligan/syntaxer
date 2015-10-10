@@ -40,6 +40,7 @@ function openContentMenu(menuType){
           menuBody[0]['contentMenuClose']=function(){
             menuBody.removeClass('active');
             menuBodiesWrap.parent().parent().removeClass('show-content-menu');
+            divWrap.removeClass(divWrap[0]['currentSplitPanelClass']);
             if(json.hasOwnProperty('onclose')){
               json['onclose']();
             }
@@ -48,6 +49,7 @@ function openContentMenu(menuType){
           menuBody[0]['contentMenuOpen']=function(){
             menuBodiesWrap.parent().parent().addClass('show-content-menu');
             menuBody.parent().children('.active').removeClass('active');
+            divWrap.addClass(divWrap[0]['currentSplitPanelClass']);
             menuBody.addClass('active');
             if(json.hasOwnProperty('onopen')){
               json['onopen']();
@@ -55,6 +57,14 @@ function openContentMenu(menuType){
           };
           //open the menu
           menuBody[0]['contentMenuOpen']();
+          //set the content menu split panel class
+          if(!divWrap.hasClass('content-menu-top')
+            && !divWrap.hasClass('content-menu-right')
+            && !divWrap.hasClass('content-menu-bottom')
+            && !divWrap.hasClass('content-menu-left')){
+              divWrap.addClass('content-menu-center');
+              divWrap[0]['currentSplitPanelClass']='content-menu-center';
+          }
         }else{
           //menu body already created...
 
@@ -64,6 +74,11 @@ function openContentMenu(menuType){
           }else{
             menuBody[0]['contentMenuOpen']();
           }
+        }
+        //close the hints info, if it is showing
+        var hintsInfoWrap=jQuery('#hints-info:first');
+        if(hintsInfoWrap.hasClass('open')){
+          hintsInfoWrap.find('.info-title .trigger-text').click();
         }
       }
     }else{
