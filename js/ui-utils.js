@@ -357,3 +357,168 @@ function getFormattedDate(date,args){
   }
   return str;
 }
+function draggy(boundaryWrap, handle, args){
+  //args
+  if(args==undefined){ args={}; }
+  if(!args.hasOwnProperty('direction')){ args['direction']=function(){ return ['up', 'down', 'left', 'right']; } }
+  if(!args.hasOwnProperty('boundary')){ args['boundary']=function(){ return {'padding-top':0,'padding-bottom':0,'padding-left':0,'padding-right':0}; } }
+  //function handlers
+  var handleMousedown=function(e){
+    if(!handle.hasClass('draggy-dragging')){
+      //handle initial position on mouse down
+      var top=handle.offset().top; var bottom=top+handle.height();
+      var left=handle.offset().left; var right=left+handle.width();
+      handle.addClass('draggy-dragging');
+      handle.css({left:left, top:top, bottom:bottom, right:right});
+      var newTop=handle.offset().top; var newBottom=newTop+handle.height();
+      var newLeft=handle.offset().left; var newRight=newLeft+handle.width();
+      var setTop=top, setBottom=bottom, setLeft=left, setRight=right;
+      if(top!==newTop){ setTop+=top-newTop; }
+      if(bottom!==newBottom){ setBottom+=bottom-newBottom; }
+      if(left!==newLeft){ setLeft+=left-newLeft; }
+      if(right!==newRight){ setRight+=right-newRight; }
+      handle[0]['dragOffsetPosition']={left:setLeft, top:setTop, bottom:setBottom, right:setRight};
+      handle[0]['initialDragOffsetPosition']={left:setLeft, top:setTop, bottom:setBottom, right:setRight};
+      handle.css(handle[0]['dragOffsetPosition']);
+      handle[0]['dragCursorPosition']={left:e.pageX, top:e.pageY};
+    }
+  };
+  var handleMouseup=function(e){
+    if(handle.hasClass('draggy-dragging')){
+      //execute custom mouseup with drag results data
+      if(args.hasOwnProperty('mouseup')){
+        var result={diff:{left:0,top:0}, move:[]};
+        var initOffset=handle[0]['initialDragOffsetPosition'];
+        var newOffset=handle[0]['dragOffsetPosition'];
+        //if change X
+        if(initOffset['left']!==newOffset['left']){
+          result['diff']['left']=newOffset['left']-initOffset['left'];
+          if(result['diff']['left']>0){
+            result['move'].push('right');
+          }else{
+            result['move'].push('left');
+          }
+          //calculate percentage relative to wrapper boundary
+          var boundLeft=boundaryWrap.offset().left;
+          var boundWidth=boundaryWrap.outerWidth();
+          var handleLeft=handle.offset().left - boundLeft;
+          result['percent_left']=handleLeft/boundWidth*100;
+        }
+        //if change Y
+        if(initOffset['top']!==newOffset['top']){
+          result['diff']['top']=newOffset['top']-initOffset['top'];
+          if(result['diff']['top']>0){
+            result['move'].push('down');
+          }else{
+            result['move'].push('up');
+          }
+          //calculate percentage relative to wrapper boundary
+          var boundTop=boundaryWrap.offset().top;
+          var boundHeight=boundaryWrap.outerHeight();
+          var handleTop=handle.offset().top - boundTop;
+          result['percent_top']=handleTop/boundHeight*100;
+        }
+        //execute custom mouseup with the calculated data
+        args['mouseup'](result, boundaryWrap, handle, args);
+      }
+      //cleanup
+      boundaryWrap.removeClass('draggy-boundary');
+      handle.removeClass('draggy-dragging').css({left:'', right:'', top:'', bottom:''});
+    }
+  };
+  var handleMousemove=function(e){
+    if(handle.hasClass('draggy-dragging')){
+      boundaryWrap.addClass('draggy-boundary');
+      //get current and previous cursor positions
+      var currentCursor={left:e.pageX, top:e.pageY}; var prevCursor=handle[0]['dragCursorPosition']; handle[0]['dragCursorPosition']=currentCursor;
+      //compare cursor position change
+      var directions=args['direction'](boundaryWrap, handle, args);
+      var boundary=args['boundary'](boundaryWrap, handle, args);
+      if(!boundary.hasOwnProperty('padding-top')){ boundary['padding-top']=0; }
+      if(!boundary.hasOwnProperty('padding-bottom')){ boundary['padding-bottom']=0; }
+      if(!boundary.hasOwnProperty('padding-left')){ boundary['padding-left']=0; }
+      if(!boundary.hasOwnProperty('padding-right')){ boundary['padding-right']=0; }
+      var offsets=handle[0]['dragOffsetPosition'];
+      var changeX=currentCursor['left']-prevCursor['left']; var changeY=currentCursor['top']-prevCursor['top'];
+      //move X?
+      var didChangeX=false; var whichX;
+      if(changeX!==0){
+        //if move left
+        if(changeX<0){
+          if(directions.indexOf('left')!==-1){ didChangeX=true; whichX='left'; }
+        }else{ //move right
+          if(directions.indexOf('right')!==-1){ didChangeX=true; whichX='right'; }
+        }
+      }
+      if(didChangeX){ offsets['left']+=changeX; offsets['right']+=changeX; }
+      //move Y?
+      var didChangeY=false; var whichY;
+      if(changeY!==0){
+        //if move up
+        if(changeY<0){
+          if(directions.indexOf('up')!==-1){ didChangeY=true; whichY='up'; }
+        }else{ //move down
+          if(directions.indexOf('down')!==-1){ didChangeY=true; whichY='down'; }
+        }
+      }
+      if(didChangeY){ offsets['top']+=changeY; offsets['bottom']+=changeY; }
+      //any movement?
+      if(didChangeX || didChangeY){
+        handle[0]['dragOffsetPosition']=offsets;
+        handle.css(handle[0]['dragOffsetPosition']);
+        //enforce drag boundaries
+        var didEnforceBound=false;
+        if(didChangeX){
+          var diff=0;
+          var wrapLeft=boundaryWrap.offset().left; var handleLeft=handle.offset().left;
+          if(whichX==='left'){
+            //if too far left
+            if((wrapLeft+boundary['padding-left'])>handleLeft){
+              diff=(wrapLeft+boundary['padding-left'])-handleLeft;
+            }
+          }else{
+            var wrapRight=wrapLeft+boundaryWrap.outerWidth(); var handleRight=handleLeft+handle.outerWidth();
+            //if too far right
+            if((wrapRight-boundary['padding-right'])<handleRight){
+              diff=(wrapRight-boundary['padding-right'])-handleRight;
+            }
+          }
+          if(diff!==0){ offsets['left']+=diff; offsets['right']+=diff; didEnforceBound=true; }
+        }
+        if(didChangeY){
+          var diff=0;
+          var wrapTop=boundaryWrap.offset().top; var handleTop=handle.offset().top;
+          if(whichY==='up'){
+            //if too far up
+            if((wrapTop+boundary['padding-top'])>handleTop){
+              diff=(wrapTop+boundary['padding-top'])-handleTop;
+            }
+          }else{
+            var wrapBottom=wrapTop+boundaryWrap.outerHeight(); var handleBottom=handleTop+handle.outerHeight();
+            //if too far bottom
+            if((wrapBottom-boundary['padding-bottom'])<handleBottom){
+              diff=(wrapBottom-boundary['padding-bottom'])-handleBottom;
+            }
+          }
+          if(diff!==0){ offsets['top']+=diff; offsets['bottom']+=diff; didEnforceBound=true; }
+        }
+        if(didEnforceBound){
+          //set the enforced boundary
+          handle[0]['dragOffsetPosition']=offsets;
+          handle.css(handle[0]['dragOffsetPosition']);
+        }
+      }
+    }
+  };
+  //wire the events to the elements
+  handle.mousedown(function(e){ handleMousedown(e); });
+  boundaryWrap.mouseup(function(e){ handleMouseup(e); });
+  boundaryWrap.mouseleave(function(e){ handleMouseup(e); });
+  jQuery(document).mousemove(function(e){ handleMousemove(e); });
+  jQuery(document).on('selectstart touchstart touchmove',function(e){
+    var ret=true;
+    if(handle.hasClass('draggy-dragging')){
+      e.preventDefault(); ret=false;
+    } return ret;
+  });
+}

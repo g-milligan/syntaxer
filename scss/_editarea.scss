@@ -129,6 +129,7 @@ section#file-content{ .content-wrap{ .content-menus{
 
   .drag-resize{display:none;position:absolute;width:5px;height:5px;background-color:rgba(100,0,100,.1);@include transition(background-color .2s linear);}
   .drag-resize:hover{background-color:#7f1171;}
+  .drag-resize.draggy-dragging{background-color:#B91DA5;box-shadow:0 0 5px rgba(212, 78, 195, 0.57);}
 
   .btn-split-panels{
     .dropdown{
