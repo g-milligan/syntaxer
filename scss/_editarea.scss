@@ -257,6 +257,7 @@ body.split-2panel-rows{
 }
 
 body.findtext-open section#file-content > div.content-wrap{bottom:$h-findtext-wrap;}
+body.findtext-open section#file-content > div.content-wrap.content-menu-bottom{bottom:auto;}
 
 /*codemirror hints*/
 
