@@ -513,6 +513,7 @@ function draggy(boundaryWrap, handle, args){
   //wire the events to the elements
   handle.mousedown(function(e){ handleMousedown(e); });
   boundaryWrap.mouseup(function(e){ handleMouseup(e); });
+  jQuery(document).mouseup(function(e){ handleMouseup(e); });
   boundaryWrap.mouseleave(function(e){ handleMouseup(e); });
   jQuery(document).mousemove(function(e){ handleMousemove(e); });
   jQuery(document).on('selectstart touchstart touchmove',function(e){

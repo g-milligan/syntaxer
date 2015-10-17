@@ -611,6 +611,29 @@ function setCodemirrorContent(fpath,textarea,callback){
   btnSplitPanels.append('<div class="dropdown"><div name="top" class="top"></div><div name="right" class="right"></div><div name="bottom" class="bottom"></div><div name="left" class="left"></div><div name="center" class="center"></div></div>');
   var dropdownPanels=btnSplitPanels.children('.dropdown:first');
   var btnCancel=btnsWrap.children('.btn-cancel:first');
+  //set the drag panel percent
+  var setDragPercent=function(leftOrTop,cwrap){
+    if(cwrap[0].hasOwnProperty(leftOrTop+'SplitPanelPercent')){
+      var cMen=cwrap.children('.content-menus:last');
+      var contentPercent=cwrap[0][leftOrTop+'SplitPanelPercent'];
+      var codePercent=100-contentPercent;
+      switch(leftOrTop){
+        case 'left':
+          cwrap.css({width:codePercent+'%',height:''});
+          var cwrapWidth=cwrap.outerWidth();
+          var fullWidth=cwrapWidth/(.01*codePercent);
+          var contentWidthPx=fullWidth-cwrapWidth;
+          var relContentPercent=contentWidthPx/cwrapWidth;
+          relContentPercent*=100;
+          cMen.css({width:relContentPercent+'%',left:'-'+relContentPercent+'%',height:'',top:''});
+          break;
+        case 'top':
+          cwrap.css({height:codePercent+'%',width:''});
+          //***
+          break;
+      }
+    }
+  };
   //standard content menu events
   draggy(dragResize.parents('#file-content:first'), dragResize, {
     direction:function(wrap, handle, args){
@@ -630,7 +653,17 @@ function setCodemirrorContent(fpath,textarea,callback){
       return bounds;
     },
     mouseup:function(result, wrap, handle, args){
-      //***
+      var cwrap=handle.parents('.content-wrap:first'); var leftOrTop;
+      if(result['move'].indexOf('right')!==-1){
+        cwrap[0]['leftSplitPanelPercent']=result['percent_left']; leftOrTop='left';
+      }else if(result['move'].indexOf('left')!==-1){
+        cwrap[0]['leftSplitPanelPercent']=result['percent_left']; leftOrTop='left';
+      }else if(result['move'].indexOf('down')!==-1){
+        cwrap[0]['topSplitPanelPercent']=result['percent_top']; leftOrTop='top';
+      }else if(result['move'].indexOf('up')!==-1){
+        cwrap[0]['topSplitPanelPercent']=result['percent_top']; leftOrTop='top';
+      }
+      setDragPercent(leftOrTop,cwrap);
     }
   });
   btnSplitPanels.hover(function(){
@@ -645,6 +678,12 @@ function setCodemirrorContent(fpath,textarea,callback){
     if(!cwrap.hasClass(splitClass)){
       cwrap.removeClass('content-menu-top').removeClass('content-menu-right').removeClass('content-menu-bottom').removeClass('content-menu-left').removeClass('content-menu-center');
       cwrap.addClass(splitClass); cwrap[0]['currentSplitPanelClass']=splitClass;
+      switch(panelSplitType){
+        case 'right': setDragPercent('left',cwrap); break;
+        case 'left': setDragPercent('left',cwrap); break;
+        case 'down': setDragPercent('top',cwrap); break;
+        case 'up': setDragPercent('top',cwrap); break;
+      }
       var ddlBtn=jQuery(this).parent().parent();
       setTimeout(function(){
         ddlBtn.removeClass('open');
