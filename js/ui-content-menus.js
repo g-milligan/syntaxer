@@ -47,6 +47,9 @@ function openContentMenu(menuType){
           };
           //open handler
           menuBody[0]['contentMenuOpen']=function(){
+            //close other extra windows, like findtext
+            var uiWins=uiWindows(); uiWins['close']('findtext');
+            //open content menu
             menuBodiesWrap.parent().parent().addClass('show-content-menu');
             menuBody.parent().children('.active').removeClass('active');
             divWrap.addClass(divWrap[0]['currentSplitPanelClass']);

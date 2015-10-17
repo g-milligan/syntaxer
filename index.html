@@ -281,31 +281,13 @@
 
         switch(e.keyCode){
           case 27: //escape key
-            //check to see if dialog boxes are open
-            var noteWrap=jQuery('section#notifications.active:last');
-            var openLightBox=jQuery('section#lightbox:last').children('.box.open:first');
-            var contentMenuWrap=jQuery('section#file-content .active.content-wrap.show-content-menu:first');
-            var hintsInfoWrap=jQuery('#hints-info:first');
-            //if notification is open
-            if(noteWrap.length>0){
+            var windows=uiWindows();
+            //if a window was closed
+            var closed=windows.closeNext();
+            if(closed!=undefined){
+              //prevent default, etc...
               e.preventDefault(); e.stopPropagation(); ret=false;
-              hideNote(noteWrap.children('.notification.active:first'));
-            //if lightbox is open
-            }else if(openLightBox.length>0){
-              e.preventDefault(); e.stopPropagation(); ret=false;
-              openLightBox.find('h1 .box-btn.cancel:first').click();
-            //if hints info is open
-            }else if(hintsInfoWrap.hasClass('open')){
-              hintsInfoWrap.find('.info-title .trigger-text').click();
-            //if findtext is open
-            }else if(jQuery('body:first').hasClass('findtext-open')){
-              hideFindText();
-            //if a content menu is open for the current tab
-            }else if(contentMenuWrap.length>0){
-              e.preventDefault(); e.stopPropagation(); ret=false;
-              contentMenuWrap.children('.content-menus:last').children('.menu-btns:last').children('.btn-cancel:last').click();
             }
-            break;
         }
       }
       return ret;

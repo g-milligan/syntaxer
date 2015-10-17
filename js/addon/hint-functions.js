@@ -1122,6 +1122,11 @@ function showHintsInfo(aJson, editor){
           hintsInfoWrap.removeClass('open');
           removeSplitPanelClasses(bodyElem);
         }else{
+          //close other extra windows, like findtext
+          var uiWins=uiWindows();
+          var openWins=uiWins['getOpen']();
+          uiWins['close']('contentmenu',openWins);
+          //---uiWins['close']('findtext',openWins); 
           //open
           hintsInfoWrap.addClass('open');
           bodyElem.addClass('split-2panel-rows');

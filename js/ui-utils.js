@@ -522,3 +522,103 @@ function draggy(boundaryWrap, handle, args){
     } return ret;
   });
 }
+//this function returns information about any open ui window types that share screen space or overlap
+function uiWindows(){
+  //get functions
+  var gets=[];
+  var getNotification=function(){
+    var el=jQuery('section#notifications.active:last');
+    var close=function(elm){
+      if(elm.length>0){
+        hideNote(elm.children('.notification.active:first'));
+      }
+    };
+    return {el:el, type:'notification', close:close};
+  };gets.push(getNotification);
+  var getLightbox=function(){
+    var el=jQuery('section#lightbox:last').children('.box.open:first');
+    var close=function(elm){
+      if(elm.length>0){
+        elm.find('h1 .box-btn.cancel:first').click();
+      }
+    };
+    return {el:el, type:'lightbox', close:close};
+  };gets.push(getLightbox);
+  var getHintsInfo=function(){
+    var el=jQuery('#hints-info.open:first');
+    var close=function(elm){
+      if(elm.length>0){
+        elm.find('.info-title .trigger-text').click();
+      }
+    };
+    return {el:el, type:'hintsinfo', close:close};
+  };gets.push(getHintsInfo);
+  var getFindText=function(){
+    var el=jQuery('body:first').filter('.findtext-open').children('#file-content:first').children('.findtext-wrap:last');
+    var close=function(elm){
+      if(elm.length>0){
+        hideFindText();
+      }
+    };
+    return {el:el, type:'findtext', close:close};
+  };gets.push(getFindText);
+  var getContentMenu=function(){
+    var el=jQuery('section#file-content .active.content-wrap.show-content-menu:first');
+    var close=function(elm){
+      if(elm.length>0){
+        elm.children('.content-menus:last').children('.menu-btns:last').children('.btn-cancel:last').click();
+      }
+    };
+    return {el:el, type:'contentmenu', close:close};
+  };gets.push(getContentMenu);
+  //get next open window function
+  var getNext=function(){
+    var next;
+    for(var g=0;g<gets.length;g++){
+      var got=gets[g]();
+      if(got['el'].length>0){
+        next=got; break;
+      }
+    } return next;
+  };
+  //close next open window function
+  var closeNext=function(){
+    var closed;
+    var next=getNext();
+    if(next!=undefined){
+      next['close'](next['el']);
+      closed=next['type'];
+    } return closed;
+  };
+  //get all opened windows
+  var getOpen=function(){
+    var openWindows={count:0,type:{}};
+    for(var g=0;g<gets.length;g++){
+      var got=gets[g]();
+      if(got['el'].length>0){
+        openWindows['count']++;
+        openWindows['type'][got['type']]=got;
+      }
+    }
+    return openWindows;
+  };
+  var close=function(type, openWins){
+    if(openWins==undefined){ openWins=getOpen(); }
+    if(openWins['count']>0){
+      if(openWins['type'].hasOwnProperty(type)){
+        openWins['type'][type]['close'](openWins['type'][type]['el']);
+      }
+    }
+  };
+  isOpen=function(type, openWins){
+    if(openWins==undefined){ openWins=getOpen(); }
+    var is=false;
+    var openWins=getOpen();
+    if(openWins['count']>0){
+      if(openWins['type'].hasOwnProperty(type)){
+        is=true;
+      }
+    } return is;
+  }
+  return {close:close, getNext:getNext, closeNext:closeNext, getOpen:getOpen, isOpen:isOpen};
+}
