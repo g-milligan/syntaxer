@@ -164,7 +164,11 @@ section#file-content{ .content-wrap{ .content-menus{
   }
 
   .btn-split-panels.open{
-    .dropdown{display:block;}
+    .dropdown{
+      display:block;
+
+      &:after{content:"";display:block;position:absolute;left:0;top:-$h-content-menu-btns;height:$h-content-menu-btns;width:100%;background-color:transparent;}
+    }
   }
 
   .menu-bodies{
