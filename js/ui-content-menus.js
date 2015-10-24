@@ -125,27 +125,41 @@ function setContentMenuDragPercent(cwrap){
   }
 }
 
+//define the data for a unique content menu
+function defineContentMenu(menuType, data){
+  if(!document.hasOwnProperty('ui_content_menus')){
+    document['ui_content_menus']={};
+  }
+  if(!document['ui_content_menus'].hasOwnProperty(menuType)){
+    document['ui_content_menus'][menuType]={};
+    if(data!=undefined){
+      var addDataProperty=function(ext, propName){
+        if(data[ext].hasOwnProperty(propName)){
+          document['ui_content_menus'][menuType][ext][propName]=data[ext][propName];
+        }
+      };
+      for(ext in data){
+        if(data.hasOwnProperty(ext)){
+          //make sure this extension property is defined, eg: _default, js, template, etc...
+          if(!document['ui_content_menus'][menuType].hasOwnProperty(ext)){
+            document['ui_content_menus'][menuType][ext]={};
+          }
+          //set all of the allowed data properties for a content menu
+          addDataProperty(ext, 'title');
+          addDataProperty(ext, 'oncreate');
+          addDataProperty(ext, 'onopen');
+          addDataProperty(ext, 'onclose');
+        }
+      }
+    }
+  }
+}
+
 //create or open the content menu, eg: when you press Command+I
 function openContentMenu(menuType){
-  //==REUSE VALUES FOR CERTAIN MENU TYPES==
-  var snippetTitle='snippets';
-  var snippetOnOpen=function(){
-    console.log('snippet open');
-  };
-  var snippetOnClose=function(){
-    console.log('snippet close');
-  };
-  //==CONFIGURE MENU TYPES==
-  var menusJson={
-    snippet:{
-      _default:{ title:snippetTitle, onopen:snippetOnOpen, onclose:snippetOnClose }/*,
-      template:{ title:snippetTitle, onopen:snippetOnOpen, onclose:snippetOnClose },
-      js:{ title:snippetTitle, onopen:snippetOnOpen, onclose:snippetOnClose }*/
-    }
-  };
   //==CREATE OR OPEN THE MENU==
-  if(menusJson.hasOwnProperty(menuType)){
-    var json=menusJson[menuType];
+  if(document['ui_content_menus'].hasOwnProperty(menuType)){
+    var json=document['ui_content_menus'][menuType];
     //get active conten div
     var divWrap=getEditorDiv(getActiveTabLi());
     //get extension for active file (if viewing a file with an extension)
@@ -162,7 +176,8 @@ function openContentMenu(menuType){
           //create the menu
           menuBodiesWrap.append('<div name="'+menuType+'" class="menu-body"><h1>'+json['title']+'</h1><div class="scroll"></div></div>');
           menuBody=menuBodiesWrap.children('[name="'+menuType+'"]:last');
-          //*** add menu content related to this insert menu
+          //add menu content related to this insert menu
+          json['oncreate'](menuBody.children('.scroll:last'));
           //close handler
           menuBody[0]['contentMenuClose']=function(){
             menuBody.removeClass('active');
