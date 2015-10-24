@@ -1,0 +1,11 @@
+.menu-body[name="snippet"] > .scroll{
+  .snippet-header{
+    font-size:0;display:block;
+    .comboselect{
+      font-size:1rem;display:inline-block;
+    }
+    .comboselect[name="project-type"]{width:25%;}
+    .comboselect[name="snippet-file"]{width:60%;}
+    .comboselect[name="code-type"]{width:15%;}
+  }
+}

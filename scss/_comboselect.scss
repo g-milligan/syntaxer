@@ -1,0 +1,14 @@
+$h-comboselect: 1.7rem;
+
+.comboselect{
+  position:relative;@include borderbox();height:$h-comboselect;border:solid 1px #DCDCDC;background-color:#fff;
+  .cs{
+    width:100%;height:100%;@include borderbox();
+    input{width:100%;height:100%;color:#989898;padding:0 .3rem;background-color:transparent;@include borderbox();border:none;outline:none;border-right:solid $h-comboselect transparent;font-size:($h-comboselect * .5);line-height:$h-comboselect;font-family:$f-norm;}
+    .cs-btn{
+      text-align:center;color:#989898;position:absolute;right:0;top:0;bottom:0;width:$h-comboselect;height:$h-comboselect;line-height:$h-comboselect;cursor:pointer;font-family:$f-code;font-size:($h-comboselect * .5);
+    }
+  }
+}
+.comboselect .cs-btn:before{content:"";@include triangle(down, ($h-comboselect * .4), ($h-comboselect * .4), #989898);position:absolute;left:0;top:0;right:0;bottom:0;margin:auto;}
+.comboselect.cs-open .cs-btn:before{@include triangle(up, ($h-comboselect * .4), ($h-comboselect * .4), #989898);}
