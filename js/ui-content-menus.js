@@ -186,7 +186,7 @@ function openContentMenu(menuType){
             divWrap.css({width:'',height:''});
             divWrap.children('.content-menus:last').css({width:'',left:'',height:'',top:''});
             if(json.hasOwnProperty('onclose')){
-              json['onclose']();
+              json['onclose'](menuBody.children('.scroll:last'));
             }
           };
           //open handler
@@ -200,7 +200,7 @@ function openContentMenu(menuType){
             setContentMenuDragPercent(divWrap);
             menuBody.addClass('active');
             if(json.hasOwnProperty('onopen')){
-              json['onopen']();
+              json['onopen'](menuBody.children('.scroll:last'));
             }
           };
           //open the menu

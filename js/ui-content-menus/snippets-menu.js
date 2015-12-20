@@ -3,10 +3,26 @@ jQuery(document).ready(function(){
   defineContentMenu('snippet', {
     _default:{
       title:'snippets',
-      onopen:function(){
-        console.log('snippet open yah!');
+      onopen:function(scrollWrap){
+        //get the snippet select dropdowns
+        var snippetHeader=scrollWrap.children('.snippet-header:first');
+        var projectSelect, fileSelect, extSelect;
+        snippetHeader.children().each(function(){
+          switch(jQuery(this).attr('name')){
+            case 'project-type': projectSelect=jQuery(this); break;
+            case 'snippet-file': fileSelect=jQuery(this); break;
+            case 'code-type': extSelect=jQuery(this); break;
+          }
+        });
+        //get the body element
+        var bodyEl=jQuery('body:first');
+        var projectType=bodyEl.attr('project_type');
+        //ajax to get the real dropdown options from the file system
+        requestSnippetsData({}, function(data){
+
+        });
       },
-      onclose:function(){
+      onclose:function(scrollWrap){
         console.log('snippet close yeah ;)');
       },
       oncreate:function(scrollWrap){

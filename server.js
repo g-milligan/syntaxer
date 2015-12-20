@@ -635,6 +635,63 @@ if(file!==undefined&&file.trim().length>0){
           res.send(JSON.stringify(resJson));
         }
       });
+      //request to delete a file or folder
+      app.post('/request-snippets-data', function(req, res){
+        var fromUrl=req.headers.referer;
+        //if the request came from this local site
+        if(isSameHost(fromUrl)){
+          //build the filter for the path
+          var resJson={status:'ok', type_options:[], ext_options:[], path_options:[]};
+          var snippetsRoot='./snippets/';
+          var type, path, ext;
+          if(req.body.hasOwnProperty('type')){
+            type=req.body['type'];
+            if(fs.existsSync(snippetsRoot+type)){
+              if(fs.lstatSync(snippetsRoot+type).isDirectory()){
+                if(req.body.hasOwnProperty('ext')){
+                  ext=req.body['ext'];
+                  if(fs.existsSync(snippetsRoot+type+'/'+ext)){
+                    if(fs.lstatSync(snippetsRoot+type+'/'+ext).isDirectory()){
+                      if(req.body.hasOwnProperty('path')){
+                        path=req.body['path'];
+                        if(path.indexOf('/')===0){path=path.substring(1);}
+                        if(fs.existsSync(snippetsRoot+type+'/'+ext+'/'+path)){
+                          if(fs.lstatSync(snippetsRoot+type+'/'+ext+'/'+path).isDirectory()){
+                            path=undefined;
+                            resJson['status']='error, '+snippetsRoot+type+'/'+ext+'/'+path+' is not a file';
+                          }
+                        }else{
+                          path=undefined;
+                          resJson['status']='error, '+snippetsRoot+type+'/'+ext+'/'+path+' does not exist';
+                        }
+                      }
+                    }else{
+                      ext=undefined;
+                      resJson['status']='error, '+snippetsRoot+type+'/'+ext+' is not a directory';
+                    }
+                  }else{
+                    ext=undefined;
+                    resJson['status']='error, '+snippetsRoot+type+'/'+ext+' does not exist';
+                  }
+                }
+              }else{
+                type=undefined;
+                resJson['status']='error, '+snippetsRoot+type+' is not a directory';
+              }
+            }else{
+              type=undefined;
+              resJson['status']='error, '+snippetsRoot+type+' does not exist';
+            }
+          }
+          if(resJson['status']==='ok'){
+            //get the updated options for the 3 filter dropdowns
+            //*** type_options:[], ext_options:[], path_options:[]
+            //get the data for the given filter
+            //***
+          }
+          res.send(JSON.stringify(resJson));
+        }
+      });
       //request to pack project changes (write preview file over original project file)
       app.post('/pack-project', function(req, res){
         var fromUrl=req.headers.referer;
@@ -1402,6 +1459,10 @@ if(file!==undefined&&file.trim().length>0){
                 //get the project name, if in the json
                 if(projJson.hasOwnProperty('name')){
                   resJson['name']=projJson.name;
+                }
+                //get the project type, if in the json
+                if(projJson.hasOwnProperty('type')){
+                  resJson['type']=projJson['type'];
                 }
                 var filesJson={};
                 //add the template.html file

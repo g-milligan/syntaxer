@@ -110,8 +110,15 @@ function openProjectFile(){
           }
         }
         //mark the time that the project was opened
+        var bodyEl=jQuery('body:first');
         if(json.hasOwnProperty('open_time')){
-          jQuery('body:first').attr('open_time', json['open_time']);
+          bodyEl.attr('open_time', json['open_time']);
+        }
+        //mark the type of the project, if one is set
+        if(json.hasOwnProperty('type')){
+          bodyEl.attr('project_type', json['type']);
+        }else{
+          bodyEl.attr('project_type', 'unknown');
         }
       }else{
         //returned errors... show error message
@@ -409,5 +416,30 @@ function browserDeleteFileOrFolder(path, callback){
         xhr.send(JSON.stringify(send));
       }
     }
+  }
+}
+//get snippet data
+function requestSnippetsData(args, callback){
+  if(args!=undefined){
+    var send={};
+    //type/path/ext correspond to the three dropdowns that filter snippet menu data
+    if(args.hasOwnProperty('type')){ send['type']=args['type']; } //eg: webgl
+    if(args.hasOwnProperty('path')){ send['path']=args['path']; } //eg: js/main.xml
+    if(args.hasOwnProperty('ext')){ send['ext']=args['ext']; } //eg: .*, .js, .frag, ...
+    // construct an HTTP request
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/request-snippets-data', true);
+    xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+    xhr.onloadend=function(res){
+      //if the server responded with ok status
+      var res=JSON.parse(this.responseText);
+      if(res['status']==='ok'){
+        if(callback!=undefined){
+          callback(res);
+        }
+      }
+    };
+    // send the collected data as JSON
+    xhr.send(JSON.stringify(send));
   }
 }
