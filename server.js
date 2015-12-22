@@ -641,7 +641,7 @@ if(file!==undefined&&file.trim().length>0){
         //if the request came from this local site
         if(isSameHost(fromUrl)){
           //build the filter for the path
-          var resJson={status:'ok', type_options:[], ext_options:[], path_options:[]};
+          var resJson={status:'ok', fieldsets:[], type_options:[], ext_options:[], path_options:[]};
           var snippetsRoot='./snippets/';
           var type, path, ext;
           if(req.body.hasOwnProperty('type')){
@@ -684,8 +684,31 @@ if(file!==undefined&&file.trim().length>0){
             }
           }
           if(resJson['status']==='ok'){
+
             //get the updated options for the 3 filter dropdowns
-            //*** type_options:[], ext_options:[], path_options:[]
+            var rootFiles=fs.readdirSync(snippetsRoot);
+            for(var r=0;r<rootFiles.length;r++){
+              //if this is a directory
+              if(fs.lstatSync(snippetsRoot+rootFiles[r]).isDirectory()){
+                resJson['type_options'].push(rootFiles[r]);
+                if(rootFiles[r]===type){
+                  var extFiles=fs.readdirSync(snippetsRoot+type);
+                  for(var e=0;e<extFiles.length;e++){
+                    //if this is a directory
+                    if(fs.lstatSync(snippetsRoot+type+'/'+extFiles[e]).isDirectory()){
+                      resJson['ext_options'].push(extFiles[e]);
+                      //***
+                    }else{
+                      //is there a _fieldset.xml file for this project type?
+                      //***
+                    }
+                  }
+                }
+              }
+            }
+
+
+            //*** fieldsets:[], type_options:[], ext_options:[], path_options:[]
             //get the data for the given filter
             //***
           }

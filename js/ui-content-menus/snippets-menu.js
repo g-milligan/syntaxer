@@ -18,8 +18,9 @@ jQuery(document).ready(function(){
         var bodyEl=jQuery('body:first');
         var projectType=bodyEl.attr('project_type');
         //ajax to get the real dropdown options from the file system
-        requestSnippetsData({}, function(data){
-
+        requestSnippetsData({type:'webgl', ext:'js', path:'main.xml'}, function(data){
+          //***
+          var test='';
         });
       },
       onclose:function(scrollWrap){
