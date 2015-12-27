@@ -641,8 +641,12 @@ if(file!==undefined&&file.trim().length>0){
         //if the request came from this local site
         if(isSameHost(fromUrl)){
           //build the filter for the path
-          var resJson={status:'ok', fieldsets:[], type_options:[], ext_options:[], path_options:[]};
-          var snippetsRoot='./snippets/';
+          var resJson={status:'ok',
+            fieldsets:[], type_options:[], ext_options:[], path_options:[],
+            content:'', content_type:'', content_path:''};
+          var snippetsRoot='./snippets/', fieldsetFile='_fieldset.xml';
+          resJson['snippets_root']=snippetsRoot; resJson['fieldset_file']=fieldsetFile;
+          //check to see if the file selection exists
           var type, path, ext;
           if(req.body.hasOwnProperty('type')){
             type=req.body['type'];
@@ -683,34 +687,57 @@ if(file!==undefined&&file.trim().length>0){
               resJson['status']='error, '+snippetsRoot+type+' does not exist';
             }
           }
-          if(resJson['status']==='ok'){
-
-            //get the updated options for the 3 filter dropdowns
-            var rootFiles=fs.readdirSync(snippetsRoot);
-            for(var r=0;r<rootFiles.length;r++){
-              //if this is a directory
-              if(fs.lstatSync(snippetsRoot+rootFiles[r]).isDirectory()){
-                resJson['type_options'].push(rootFiles[r]);
-                if(rootFiles[r]===type){
-                  var extFiles=fs.readdirSync(snippetsRoot+type);
-                  for(var e=0;e<extFiles.length;e++){
-                    //if this is a directory
-                    if(fs.lstatSync(snippetsRoot+type+'/'+extFiles[e]).isDirectory()){
-                      resJson['ext_options'].push(extFiles[e]);
-                      //***
-                    }else{
-                      //is there a _fieldset.xml file for this project type?
-                      //***
+          //get the updated options for the 3 filter dropdowns
+          var rootFiles=fs.readdirSync(snippetsRoot);
+          for(var r=0;r<rootFiles.length;r++){
+            //if this is a directory
+            if(fs.lstatSync(snippetsRoot+rootFiles[r]).isDirectory()){
+              resJson['type_options'].push(rootFiles[r]);
+              if(rootFiles[r]===type){
+                var extFiles=fs.readdirSync(snippetsRoot+type);
+                for(var e=0;e<extFiles.length;e++){
+                  //if this is a directory
+                  if(fs.lstatSync(snippetsRoot+type+'/'+extFiles[e]).isDirectory()){
+                    resJson['ext_options'].push(extFiles[e]);
+                    if(extFiles[e]===ext){
+                      var pathFiles=fs.readdirSync(snippetsRoot+type+'/'+extFiles[e]);
+                      for(var p=0;p<pathFiles.length;p++){
+                        //if ends in .xml
+                        if(pathFiles[p].indexOf('.xml')!==-1 && pathFiles[p].lastIndexOf('.xml')===pathFiles[p].length-'.xml'.length){
+                          //if not a directory
+                          if(!fs.lstatSync(snippetsRoot+type+'/'+extFiles[e]+'/'+pathFiles[p]).isDirectory()){
+                            //if this is a _fieldset.xml file for this extension type
+                            if(pathFiles[p]===fieldsetFile){
+                              resJson['fieldsets'].push(type+'/'+extFiles[e]+'/'+pathFiles[p]);
+                            }else{
+                              resJson['path_options'].push(pathFiles[p]);
+                            }
+                          }
+                        }
+                      }
                     }
+                  }else if(extFiles[e]===fieldsetFile){
+                    //if this is a _fieldset.xml file for this project type?
+                    resJson['fieldsets'].push(type+'/'+extFiles[e]);
                   }
                 }
               }
             }
-
-
-            //*** fieldsets:[], type_options:[], ext_options:[], path_options:[]
-            //get the data for the given filter
-            //***
+          }
+          //sort things
+          resJson['fieldsets'].sort();
+          resJson['type_options'].sort();
+          resJson['ext_options'].sort();
+          resJson['path_options'].sort();
+          //if the given file selection exists in the snippets directory
+          if(resJson['status']==='ok'){
+            //get the data for the given snippet content file
+            var fullFilePath=snippetsRoot+type+'/'+ext+'/'+path;
+            resJson['content_path']=fullFilePath;
+            var fileContent=fs.readFileSync(fullFilePath,'utf8');
+            resJson['content']=fileContent;
+            resJson['content_type']='builder-code';
+            if(path===fieldsetFile){ resJson['content_type']='fieldset-code'; }
           }
           res.send(JSON.stringify(resJson));
         }

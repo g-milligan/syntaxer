@@ -425,7 +425,7 @@ function requestSnippetsData(args, callback){
     //type/path/ext correspond to the three dropdowns that filter snippet menu data
     if(args.hasOwnProperty('type')){ send['type']=args['type']; } //eg: webgl
     if(args.hasOwnProperty('path')){ send['path']=args['path']; } //eg: js/main.xml
-    if(args.hasOwnProperty('ext')){ send['ext']=args['ext']; } //eg: .*, .js, .frag, ...
+    if(args.hasOwnProperty('ext')){ send['ext']=args['ext']; } //eg: .*, .js, .frag
     // construct an HTTP request
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/request-snippets-data', true);
@@ -433,10 +433,8 @@ function requestSnippetsData(args, callback){
     xhr.onloadend=function(res){
       //if the server responded with ok status
       var res=JSON.parse(this.responseText);
-      if(res['status']==='ok'){
-        if(callback!=undefined){
-          callback(res);
-        }
+      if(callback!=undefined){
+        callback(res);
       }
     };
     // send the collected data as JSON
