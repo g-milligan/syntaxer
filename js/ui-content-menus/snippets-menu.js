@@ -1,4 +1,5 @@
 jQuery(document).ready(function(){
+  var defaultSelectVal='[select]', defaultSelectText='[select]';
   //create the snippets content menu
   defineContentMenu('snippet', {
     _default:{
@@ -31,16 +32,12 @@ jQuery(document).ready(function(){
         var snippetHeader=scrollWrap.children('.snippet-header:first');
         var snippetScroll=scrollWrap.children('.snippet-scroll:last');
         snippetHeader.append('<div class="comboselect" name="project-type"></div><div class="comboselect" name="snippet-file"></div><div class="comboselect" name="code-type"></div>');
-        var defaultSelectVal='[select]', defaultSelectText='[select]';
         snippetHeader.children().each(function(){
           switch(jQuery(this).attr('name')){
             case 'project-type':
               initComboSelect(jQuery(this), {
                 options:[
-                  {value:defaultSelectVal, text:defaultSelectText},
-                  {value:'test', text:'test'},
-                  {value:'hello', text:'hi!'},
-                  {value:'goobye', text:'bye!'}
+                  {value:defaultSelectVal, text:defaultSelectText}
                 ]
               });
               break;
