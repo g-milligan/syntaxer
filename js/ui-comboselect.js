@@ -36,6 +36,15 @@ function initComboSelect(csWrap, args){
       i.focus();
     }
   });
+  csWrap.mousedown(function(e){
+    e.preventDefault(); e.stopPropagation();
+  });
+  if(!document.hasOwnProperty('close_comboselect_event') || !document['close_comboselect_event']){
+      document['close_comboselect_event']=true;
+      jQuery(document).mousedown(function(){
+        jQuery('.comboselect.cs-open .cs-btn').click();
+      });
+  }
   input.keyup(function(){
     filterCsInput(jQuery(this));
   });
@@ -56,27 +65,56 @@ function initComboSelect(csWrap, args){
     }
   });
   input.keydown(function(e){
+    var i=jQuery(this);
+    var getElems=function(){
+      var c=i.parent();
+      var w=c.parent();
+      var menu=c.children('.cs-menu:first');
+      var b=c.children('.cs-btn:last');
+      return {wrap:w, cs:c, menu:menu, btn:b};
+    };
+    var enterOrEsc=function(e){
+      e.preventDefault(); e.stopPropagation();
+      var els=getElems();
+      if(els['wrap'].hasClass('cs-open')){
+        var selOption=els['menu'].children('.option.selected:first');
+        if(selOption.length>0){
+          selOption.children('span:first').click();
+        }
+      }else{
+        els['btn'].click();
+      }
+    };
+    var arrowNext=function(e, getNext, lastSelector){
+      e.preventDefault(); e.stopPropagation();
+      var els=getElems();
+      if(els['wrap'].hasClass('cs-open')){
+        if(els['menu'].children('.option').length>1){
+          var selOption=els['menu'].children('.option.selected:first');
+          var nextOption=getNext(selOption);
+          if(nextOption.length<1){
+            nextOption=els['menu'].children(lastSelector);
+          }
+          csWrap[0]['selectItem'](nextOption, els['menu'], false);
+        }
+      }else{
+        els['btn'].click();
+      }
+    };
     switch(e.keyCode){
       case 13: //enter key
-        e.preventDefault(); e.stopPropagation();
-
-        break;
+        enterOrEsc(e); break;
       case 27: //esc key
-        e.preventDefault(); e.stopPropagation();
-
-        break;
+        enterOrEsc(e); break;
       case 40: //down key
-        e.preventDefault(); e.stopPropagation();
-
-        break;
+        arrowNext(e, function(sopt){ return sopt.next('.option:first'); }, '.option:first'); break;
       case 38: //up key
-        e.preventDefault(); e.stopPropagation();
-
-        break;
+        arrowNext(e, function(sopt){ return sopt.prev('.option:first'); }, '.option:last'); break;
     }
   });
   //select option method
-  csWrap[0]['selectItem']=function(val, menu){
+  csWrap[0]['selectItem']=function(val, menu, closeMenu){
+    if(closeMenu==undefined){ closeMenu=true; }
     if(menu==undefined){ menu=csWrap.find('.cs .cs-menu:first'); }
     var option=val;
     if(typeof val==='string'){ option=menu.find('.option[name="'+val+'"]:first'); }
@@ -88,11 +126,13 @@ function initComboSelect(csWrap, args){
       i.val(option.text());
       i.focus();
       //close menu
-      if(csWrap.hasClass('cs-open')){
-        var b=menu.parent().children('.cs-btn:first');
-        setTimeout(function(){
-          b.click();
-        },100);
+      if(closeMenu){
+        if(csWrap.hasClass('cs-open')){
+          var b=menu.parent().children('.cs-btn:first');
+          setTimeout(function(){
+            b.click();
+          },100);
+        }
       }
     }
   };
@@ -106,7 +146,7 @@ function initComboSelect(csWrap, args){
     if(existingOption.length<1){
       menu.append('<div class="option" name="'+val+'"><span>'+text+'</span></div>');
       var option=menu.children('.option:last');
-      option.click(function(){ csWrap[0]['selectItem'](jQuery(this)); });
+      option.children('span:first').click(function(){ csWrap[0]['selectItem'](jQuery(this).parent()); });
     } return menu;
   };
   //remove item method

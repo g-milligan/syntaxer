@@ -38,7 +38,9 @@ jQuery(document).ready(function(){
               initComboSelect(jQuery(this), {
                 options:[
                   {value:defaultSelectVal, text:defaultSelectText},
-                  {value:'test', text:'test'}
+                  {value:'test', text:'test'},
+                  {value:'hello', text:'hi!'},
+                  {value:'goobye', text:'bye!'}
                 ]
               });
               break;
