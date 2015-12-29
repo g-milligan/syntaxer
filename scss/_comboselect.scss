@@ -9,6 +9,22 @@ $h-comboselect: 1.7rem;
       text-align:center;color:#989898;position:absolute;right:0;top:0;bottom:0;width:$h-comboselect;height:$h-comboselect;line-height:$h-comboselect;cursor:pointer;font-family:$f-code;font-size:($h-comboselect * .5);
     }
   }
+  .cs-menu{
+    @include borderbox();display:none;position:absolute;width:100%;background-color:#fff;left:0;top:$h-comboselect;border:solid 1px #DCDCDC;border-top:none;
+    .option{
+      position:relative;@include borderbox();border-bottom:solid 1px #E1E1E1;display:block;color:#989898;font-size:($h-comboselect * .5);line-height:$h-comboselect;font-family:$f-norm;
+
+      span{display:block;@include borderbox();width:100%;height:100%;cursor:pointer;padding:0 .3rem;}
+    }
+    .option:last-child{border-bottom:none;}
+    .option.selected{background-color:#7F1171;color:#fff;border-bottom:solid 1px transparent;}
+  }
 }
 .comboselect .cs-btn:before{content:"";@include triangle(down, ($h-comboselect * .4), ($h-comboselect * .4), #989898);position:absolute;left:0;top:0;right:0;bottom:0;margin:auto;}
-.comboselect.cs-open .cs-btn:before{@include triangle(up, ($h-comboselect * .4), ($h-comboselect * .4), #989898);}
+.comboselect.cs-open{
+  .cs-btn:before{@include triangle(up, ($h-comboselect * .4), ($h-comboselect * .4), #989898);}
+  .cs-menu{
+    display:block;
+    .option{}
+  }
+}
