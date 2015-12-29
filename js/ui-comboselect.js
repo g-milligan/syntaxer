@@ -4,36 +4,21 @@ function initComboSelect(csWrap, args){
   var cs=csWrap.children('.cs:first');
   var input=cs.children('input:first');
   var btn=cs.children('.cs-btn:last');
-  var filterCsInput=function(i){
-    var val=i.val(); val=val.trim();
-    if(val.length>0){
-      var w=i.parents('.comboselect:first');
-      w.removeClass('filtered-options');
-      if(w.hasClass('cs-open')){
-        var menu=w.find('.cs .cs-menu:first');
-        val=val.toLowerCase();
-        menu.find('.option').each(function(){
-          i.removeClass('filtered');
-          var txt=i.text(); txt=txt.trim(); txt=txt.toLowerCase();
-          if(txt===val){
-            i.addClass('filtered');
-            w.addClass('filtered-options');
-          }
-        });
-      }
-    }
-  };
   btn.click(function(){
     var w=jQuery(this).parents('.comboselect:first');
-
+    var i=w.find('.cs input:first');
     if(w.hasClass('cs-open')){
       w.removeClass('cs-open');
+      var selOption=w.find('.cs .cs-menu .option.selected:first');
+      if(selOption.length>0){
+        var span=selOption.children('span:first');
+        i.val(span.text());
+      }
     }else{
       jQuery('.comboselect.cs-open .cs > .cs-btn').click();
       w.addClass('cs-open');
-      var i=w.find('.cs input:first');
-      filterCsInput(i);
       i.focus();
+      i.select();
     }
   });
   csWrap.mousedown(function(e){
@@ -45,9 +30,6 @@ function initComboSelect(csWrap, args){
         jQuery('.comboselect.cs-open .cs-btn').click();
       });
   }
-  input.keyup(function(){
-    filterCsInput(jQuery(this));
-  });
   input.focus(function(){
     var w=jQuery(this).parents('.comboselect:first');
     if(!w.hasClass('cs-open')){
@@ -110,6 +92,60 @@ function initComboSelect(csWrap, args){
         arrowNext(e, function(sopt){ return sopt.next('.option:first'); }, '.option:first'); break;
       case 38: //up key
         arrowNext(e, function(sopt){ return sopt.prev('.option:first'); }, '.option:last'); break;
+      case 9: //tab key
+        break;
+      default:
+        e.preventDefault(); e.stopPropagation();
+        if(!e.metaKey && !e.shiftKey && !e.ctrlKey){
+          var char=String.fromCharCode(e.keyCode);
+          if(char!=undefined && char.length>0){
+            char=char.toLowerCase();
+            var els=getElems();
+            //function to decide if an option should be selected
+            var selectBasedOnText=function(option){
+              var selected=false;
+              var span=option.children('span:first');
+              var txt=span.text(); txt=txt.trim();
+              if(txt.length>0){
+                txt=txt.toLowerCase();
+                if(txt.indexOf(char)===0){
+                  //select the item that starts with this letter
+                  csWrap[0]['selectItem'](option, els['menu'], false);
+                  selected=true;
+                }
+              } return selected;
+            };
+            //if not already open
+            if(!els['wrap'].hasClass('cs-open')){
+              //open the menu
+              els['btn'].click();
+              //get the first menu item with this letter
+              els['menu'].children('.option').each(function(){
+                if(selectBasedOnText(jQuery(this))){
+                  return false;
+                }
+              });
+            }else{
+              //menu already open... get first selected option
+              var selOption=els['menu'].children('.option.selected:first');
+              var selectedAfter=false;
+              selOption.nextAll().each(function(){
+                if(selectBasedOnText(jQuery(this))){
+                  selectedAfter=true;
+                  return false;
+                }
+              });
+              if(!selectedAfter){
+                els['menu'].children('.option').each(function(){
+                  if(selectBasedOnText(jQuery(this))){
+                    return false;
+                  }
+                });
+              }
+            }
+          }
+        }
+        break;
     }
   });
   //select option method
