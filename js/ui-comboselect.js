@@ -150,27 +150,41 @@ function initComboSelect(csWrap, args){
   });
   //select option method
   csWrap[0]['selectItem']=function(val, menu, closeMenu){
+    var didSelect=false;
     if(closeMenu==undefined){ closeMenu=true; }
     if(menu==undefined){ menu=csWrap.find('.cs .cs-menu:first'); }
     var option=val;
     if(typeof val==='string'){ option=menu.find('.option[name="'+val+'"]:first'); }
-    else{ val=option.attr('name'); }
+    else{ val=option.attr('name'); option=menu.find('.option[name="'+val+'"]:first'); }
     if(option.length>0){
       menu.children('.option.selected').removeClass('selected');
       option.addClass('selected');
+      didSelect=true;
       var i=csWrap.find('.cs input:first');
       i.val(option.text());
-      i.focus();
-      //close menu
-      if(closeMenu){
-        if(csWrap.hasClass('cs-open')){
-          var b=menu.parent().children('.cs-btn:first');
-          setTimeout(function(){
-            b.click();
-          },100);
+      //if the menu is open
+      if(csWrap.hasClass('cs-open')){
+        i.focus();
+        //close menu
+        if(closeMenu){
+          if(csWrap.hasClass('cs-open')){
+            var b=menu.parent().children('.cs-btn:first');
+            setTimeout(function(){
+              b.click();
+            },100);
+          }
         }
       }
-    }
+    } return didSelect;
+  };
+  //get selected option method
+  csWrap[0]['getSelectedItem']=function(menu){
+    if(menu==undefined){ menu=csWrap.find('.cs .cs-menu:first'); }
+    var option=menu.children('.option.selected:first');
+    if(option.length<1){
+      option=menu.children('.option:first');
+      csWrap[0]['selectItem'](option, menu, false);
+    } return option;
   };
   //add item method
   csWrap[0]['addItem']=function(params, menu){
