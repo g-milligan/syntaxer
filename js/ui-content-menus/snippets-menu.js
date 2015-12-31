@@ -15,15 +15,23 @@ jQuery(document).ready(function(){
             case 'code-type': extSelect=jQuery(this); break;
           }
         });
+        //get the current selected items in the dropdowns
+        var projOption=projectSelect[0]['getSelectedItem']();
+        var fileOption=fileSelect[0]['getSelectedItem']();
+        var extOption=extSelect[0]['getSelectedItem']();
         //get the body element
         var bodyEl=jQuery('body:first');
         var projectType=bodyEl.attr('project_type');
+        var type='', ext='', path='';
+        //set the project type to send to the server
+        if(projectType!=='unknown'){ type=projectType; }
+        else if(projOption.attr('name')!==defaultSelectVal){ type=projOption.attr('name'); }
+        //set the ext to send to the server
+        if(extOption.attr('name')!==defaultSelectVal){ ext=extOption.attr('name'); }
+        //set the snippet path to send to the server
+        if(fileOption.attr('name')!==defaultSelectVal){ path=fileOption.attr('name'); }
         //ajax to get the real dropdown options from the file system
-        requestSnippetsData({type:'webgl', ext:'js', path:'main.xml'}, function(data){
-          //get the current selected items in the dropdowns
-          var projOption=projectSelect[0]['getSelectedItem']();
-          var fileOption=fileSelect[0]['getSelectedItem']();
-          var extOption=extSelect[0]['getSelectedItem']();
+        requestSnippetsData({type:type, ext:ext, path:path}, function(data){
           //clear out the previous dropdown values
           projectSelect[0]['removeItem'](projectSelect.find('.cs .cs-menu .option').not(':first'));
           fileSelect[0]['removeItem'](fileSelect.find('.cs .cs-menu .option').not(':first'));
@@ -51,6 +59,12 @@ jQuery(document).ready(function(){
           restoreSelection(projectSelect, projOption);
           restoreSelection(fileSelect, fileOption);
           restoreSelection(extSelect, extOption);
+          //if the status is ok to show file content
+          if(data['status']==='ok'){
+            //***
+          }else{
+            //***
+          }
         });
       },
       onclose:function(scrollWrap){
@@ -64,7 +78,7 @@ jQuery(document).ready(function(){
         snippetHeader.children().each(function(){
           switch(jQuery(this).attr('name')){
             case 'project-type':
-              initComboSelect(jQuery(this), {
+              initComboSelect(jQuery(this), { //*** on change, the body attribute should be updated
                 options:[
                   {value:defaultSelectVal, text:defaultSelectText},
                   {value:'remove', text:'remove'}
@@ -72,13 +86,13 @@ jQuery(document).ready(function(){
               });
               break;
             case 'snippet-file':
-              initComboSelect(jQuery(this), {
+              initComboSelect(jQuery(this), { //*** on change causes an ajax request to update snippet content
                 options:[
                   {value:defaultSelectVal, text:defaultSelectText}
                 ]
               });
               break;
-            case 'code-type':
+            case 'code-type': //*** on change causes an ajax request to update snippet file selection
               initComboSelect(jQuery(this), {
                 options:[
                   {value:defaultSelectVal, text:defaultSelectText}
