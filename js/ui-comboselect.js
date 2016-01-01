@@ -168,6 +168,10 @@ function initComboSelect(csWrap, args){
         //close menu
         if(closeMenu){
           if(csWrap.hasClass('cs-open')){
+            if(csWrap[0].hasOwnProperty('onchange_select_event')){
+              //fire the onchange event
+              csWrap[0]['onchange_select_event'](option, option.attr('name'));
+            }
             var b=menu.parent().children('.cs-btn:first');
             setTimeout(function(){
               b.click();
@@ -234,6 +238,11 @@ function initComboSelect(csWrap, args){
         //select the first option
         csWrap[0]['selectItem'](firstOpt, menu);
       }
+    }
+    if(args.hasOwnProperty('onchange')){
+      csWrap[0]['onchange_select_event']=function(selOption, val){
+        return args['onchange'](selOption, val);
+      };
     }
   }
 }
